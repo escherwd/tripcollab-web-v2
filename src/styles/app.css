@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+  --font-display: var(--font-dm-sans);
+
+  --spacing-navbar: 4rem;
+}
+
+@import "./components/buttons.css";
+@import "./components/layout.css";
+@import "./components/animations.css";
+
+body {
+  @apply font-sans bg-gray-50 text-black/80;
+}

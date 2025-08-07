@@ -13,4 +13,11 @@ const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 
+// Disable warnings about <img> tags instead of <Image> tags
+eslintConfig.push({
+  rules: {
+    '@next/next/no-img-element': 'off',
+  },
+});
+
 export default eslintConfig;

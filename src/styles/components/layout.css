@@ -1,0 +1,3 @@
+.tc-page-padding {
+  @apply px-4 pt-navbar pb-12;
+}

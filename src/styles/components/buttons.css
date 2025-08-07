@@ -1,0 +1,9 @@
+.tc-nav-button {
+  @apply text-sm bg-transparent;
+  @apply px-2 py-2 rounded-lg text-gray-900;
+  @apply hover:bg-gray-100 transition-colors;
+
+  &.tc-nav-button-primary {
+    @apply bg-black text-white px-4;
+  }
+}
