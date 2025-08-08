@@ -11,7 +11,7 @@ export default async function Navbar({
 
     return (
         <div className="absolute h-navbar inset-0 z-50 w-full p-2 flex items-center justify-stretch">
-            <div id="navbar" className="border size-full gap-2 bg-white border-gray-100 rounded-lg flex items-center px-1 shadow">
+            <div id="navbar" className="tc-floating size-full gap-2  flex items-center px-1">
                 <Link href="/" className="tc-nav-button !text-base font-display font-medium !px-4 text-black">
                     tripcollab
                 </Link>

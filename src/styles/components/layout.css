@@ -1,3 +1,7 @@
 .tc-page-padding {
   @apply px-4 pt-navbar pb-12;
 }
+
+.tc-floating {
+  @apply border bg-white border-gray-100 rounded-lg shadow;
+}

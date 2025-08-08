@@ -11,14 +11,17 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.13.0",
+    "@remixicon/react": "^4.6.0",
     "@types/mapbox-gl": "^3.4.1",
     "@types/react-map-gl": "^6.1.7",
     "@workos-inc/authkit-nextjs": "^2.4.6",
     "@workos-inc/node": "^7.65.0",
     "mapbox-gl": "^3.14.0",
+    "moment": "^2.30.1",
     "next": "15.4.5",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-icons": "^5.5.0",
     "react-map-gl": "^8.0.4"
   },
   "devDependencies": {

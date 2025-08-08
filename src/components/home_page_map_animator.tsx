@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { mapController } from "./global_map";
 import { EasingOptions } from "mapbox-gl";
 
@@ -13,15 +13,21 @@ export default function HomePageMapAnimator() {
         let callOffAnimation = false
         let interval: NodeJS.Timeout | null = null
 
+        mapController.setPadding({
+            left: 0,
+            right: 0,
+            bottom: 0,
+            top: windowHeight() * 2 / 3,
+        })
+
+        mapController.setMarkers([])
+
         const viewState: EasingOptions & { center: [number, number] } = {
             center: [-122.4, 37.8],
             zoom: 4.98,
             bearing: -14.2,
             pitch: 80.0,
-            duration: 1000,
-            padding: {
-                top: windowHeight() * 2 / 3,
-            },
+            duration: 3000,
         };
 
         (async () => {

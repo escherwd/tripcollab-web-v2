@@ -1,0 +1,7 @@
+.tc-map-place-icon {
+    @apply size-8 rounded-full overflow-hidden flex items-center justify-center;
+
+    & > svg {
+        @apply size-4;
+    }
+}
