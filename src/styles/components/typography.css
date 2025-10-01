@@ -1,0 +1,15 @@
+.tc-small-heading {
+    @apply mb-4 text-sm text-gray-500 tracking-wider;
+
+    &.tc-small-heading-white {
+        @apply text-white/50;
+    }
+}
+
+.tc-panel-title {
+    @apply font-display font-medium leading-[1.8] min-w-0 text-ellipsis overflow-hidden;
+}
+
+.tc-panel-title-dense {
+    @apply text-sm;
+}

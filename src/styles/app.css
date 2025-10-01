@@ -12,6 +12,9 @@
 @import "./components/layout.css";
 @import "./components/animations.css";
 @import "./components/map.css";
+@import "./components/typography.css";
+@import "./components/activity_list.css";
+@import "./components/route_planner.css";
 
 body {
   @apply font-sans bg-gray-50 text-black/80;
@@ -22,5 +25,14 @@ button:focus, input:focus, textarea:focus {
 }
 
 .tc-render-faster {
-  image-rendering: pixelated;
+  image-rendering: optimizeSpeed;
+}
+
+.tc-scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tc-scrollbar-hidden::-webkit-scrollbar {
+  display: none;
 }

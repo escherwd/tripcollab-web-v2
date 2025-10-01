@@ -1,9 +1,9 @@
 import { randomUUID } from "crypto";
-import moment from "moment";
+import { DateTime } from "luxon";
 
 export type AppleMapsPlaceResult = {
     name: string;
-    address?: string[];
+    address?: string;
     coordinate: {
         lat: number;
         lng: number;
@@ -20,19 +20,27 @@ export type AppleMapsPlaceResult = {
         url: string;
         width: number;
         height: number;
+        category?: string;
     }[]
 }
 
 export const appleMapsGenerateClientTimeInfo = () => {
-  return {
-    clientRequestTime: moment().diff(moment("2001-01-01"), "seconds"),
-    clientTimezoneOffset: 0 - moment().utcOffset() / 60,
-    clientHourOfDay: moment().hour(),
-    clientDayOfWeek: moment().day(),
+
+  const now = DateTime.now();
+
+  const info = {
+    clientRequestTime: Math.floor(now.diff(DateTime.fromISO("2001-01-01"), "seconds").seconds),
+    clientTimezoneOffset: 0 - now.offset / 60,
+    clientHourOfDay: now.hour,
+    clientDayOfWeek: now.weekday,
   };
+  console.log(info);
+  return info;
 };
 
 export const appleMapsGenerateAnalyticsBody = () => {
+  const now = DateTime.now();
+
   return {
     appIdentifier: "com.apple.MapsWeb",
     appMajorVersion: "1",
@@ -40,8 +48,8 @@ export const appleMapsGenerateAnalyticsBody = () => {
     isInternalInstall: false,
     isFromAPI: false,
     requestTime: {
-      timeRoundedToHour: moment().diff(moment("2001-01-01"), "seconds"),
-      timezoneOffsetFromGmtInHours: 0 - moment().utcOffset() / 60,
+      timeRoundedToHour: Math.floor(now.diff(DateTime.fromISO("2001-01-01"), "seconds").seconds),
+      timezoneOffsetFromGmtInHours: 0 - now.offset / 60,
     },
     serviceTag: {
         // Some requests like autocomplete will be rejected if the service tag is not present.

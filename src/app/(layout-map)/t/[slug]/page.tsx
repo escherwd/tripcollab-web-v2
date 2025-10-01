@@ -18,6 +18,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             slug,
             userId: user?.id
         },
+        include: {
+            pins: true,
+            user: true
+        }
     })
 
     if (!project) {

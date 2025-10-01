@@ -1,0 +1,11 @@
+.tc-route-planner-input {
+    @apply bg-gray-50 border border-gray-100 rounded-lg px-4 py-2 relative;
+
+    & > span {
+        @apply block text-gray-400 text-sm w-10 text-right
+    }
+
+    & > input {
+        @apply absolute inset-0 size-full pl-16 pr-4
+    }
+}

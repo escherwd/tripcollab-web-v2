@@ -1,0 +1,109 @@
+.tc-activity-list-header {
+    @apply text-xs text-left text-gray-400 uppercase tracking-wider pl-[43px] pr-3 pt-3 pb-2;
+    @apply border-b border-gray-100;
+}
+
+
+.tc-activity-list-items {
+    @apply rounded-lg pt-2 flex flex-col gap-0 min-h-14 transition-colors duration-300;
+}
+
+
+.tc-activity-list-item {
+    @apply h-10 pl-0 pr-2 bg-gray-50 py-2 mb-1 flex items-center gap-1 text-left cursor-pointer rounded-lg relative;
+    @apply transition-all duration-300;
+    @apply z-10;
+
+    .tc-activity-list-item-text {
+        @apply text-sm text-gray-500 leading-tight;
+    }
+
+    .tc-activity-list-item-icon {
+        @apply transition-all;
+
+        .tc-map-place-icon > * {
+            @apply transition-opacity;
+        }
+    }
+
+    .tc-activity-list-item-duration-track {
+        @apply absolute left-[17px] top-4 h-12 w-1.5 rounded-full transition-opacity delay-200 duration-300;
+    }
+
+    &.tc-activity-list-item-unfocused {
+        @apply h-6 mb-1 z-20 bg-transparent;
+
+        .tc-activity-list-item-text {
+            @apply text-xs opacity-50 -ml-[3px];
+        }
+
+        .tc-activity-list-item-duration-track {
+            @apply opacity-0 delay-0 duration-150; 
+        }
+
+        .tc-activity-list-item-icon {
+            @apply scale-40 z-30 -ml-[3px] border-white border-[7px];
+
+
+            .tc-map-place-icon > * {
+                @apply opacity-0;
+            }
+        }
+    }
+
+    .tc-activity-list-item-icon {
+        @apply scale-75 border-[4px] origin-center border-gray-50 rounded-full;
+    }
+}
+
+.tc-activity-list-item-end {
+
+    @apply flex h-5 gap-[13px] items-center mb-2;
+    @apply transition-all;
+
+    &.tc-activity-list-item-end-unfocused {
+        @apply h-0 opacity-0 mb-0;
+    }
+}
+
+.tc-activity-toggler {
+    @apply rounded-lg py-2 px-3 flex items-center justify-start;
+    @apply text-white text-sm font-medium cursor-pointer;
+    @apply transition-all;
+    /* @apply border-2; */
+    @apply flex-shrink-1 flex-grow-0 relative;
+    /* @apply overflow-hidden; */
+
+    span {
+        /* @apply pl-0 opacity-0 max-w-0 overflow-hidden transition-all duration-300; */
+        @apply absolute left-8 top-[5px] bottom-0 opacity-0 transition-opacity;
+    }
+}
+
+.tc-activity-toggler.active {
+
+    @apply flex-1 px-3;
+
+    span {
+        /* @apply pl-2 opacity-100 max-w-full; */
+        @apply opacity-100 delay-150;
+    }
+}
+
+.tc-activity-list-unfocused-track {
+    @apply absolute z-0 top-2 bottom-2 w-1.5 rounded-full overflow-hidden;
+    @apply transition-all;
+}
+
+.tc-activity-list-scroll-view {
+    @apply h-full overflow-y-scroll overflow-x-hidden;
+    @apply transition-all pointer-events-none;
+}
+
+.tc-activity-list-unfocused-track-inner {
+    @apply relative z-0 size-full;
+}
+
+.tc-activity-list-unfocused-track-item {
+    @apply absolute w-full rounded-full hover:brightness-75 transition-all cursor-pointer;
+}

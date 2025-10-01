@@ -13,3 +13,32 @@
     opacity: 1;
   }
 }
+
+.slide-in-from-left {
+  animation: slideInFromLeft 300ms ease-in-out;
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.expand-from-origin {
+  animation: expandFromOrigin 300ms ease-in-out;
+}
+
+@keyframes expandFromOrigin {
+  from {
+    transform: scale(0);
+  }
+  75% {
+    transform: scale(1.2);
+  }
+  to {
+    transform: scale(1);
+  }
+}

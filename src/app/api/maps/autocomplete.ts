@@ -21,7 +21,8 @@ export type AppleMapsAutocompleteResponse = {
 
 export async function autocompleteAppleMaps(
   query: string,
-  loc: { lng: number; lat: number; deltaLng: number; deltaLat: number }
+  loc: { lng: number; lat: number; deltaLng: number; deltaLat: number },
+  routePlanningPreviousLocation?: { lng: number; lat: number }
 ): Promise<AppleMapsAutocompleteResponse> {
   const body = {
     latlong: { lat: loc.lat, lng: loc.lng },
@@ -33,6 +34,12 @@ export async function autocompleteAppleMaps(
     q: query,
     clientTimeInfo: appleMapsGenerateClientTimeInfo(),
     analyticMetadata: appleMapsGenerateAnalyticsBody(),
+    routePlanningParameters: routePlanningPreviousLocation
+      ? {
+          fromRoutePlanning: true,
+          previousLocation: routePlanningPreviousLocation,
+        }
+      : undefined,
   };
 
   const response = await fetch(
@@ -62,55 +69,62 @@ export async function autocompleteAppleMaps(
         })
         .map((result: Record<string, any>) => {
           let muid = randomUUID();
+          let place: AppleMapsPlaceResult | null = null;
 
           if (result.type === "BUSINESS") {
             muid = result.business.muid;
+
+            const mapResult = data.mapsResult.find(
+              (mapResult: Record<string, any>) => mapResult.place?.muid === muid
+            );
+
+            if (!mapResult) return null;
+
+            const entity = mapResult.place.component.find(
+              (component: Record<string, any>) =>
+                component.type === "COMPONENT_TYPE_ENTITY"
+            )?.value[0].entity;
+
+            if (!entity) return null;
+
+            const placeInfo = mapResult.place.component.find(
+              (component: Record<string, any>) =>
+                component.type === "COMPONENT_TYPE_PLACE_INFO"
+            )?.value[0].placeInfo;
+
+            if (!placeInfo) return null;
+
+            const address = mapResult.place.component.find(
+              (component: Record<string, any>) =>
+                component.type === "COMPONENT_TYPE_ADDRESS_OBJECT"
+            )?.value?.[0]?.addressObject;
+
+            place = <AppleMapsPlaceResult>{
+              name: entity.name[0].stringValue,
+              address: address?.formattedAddressLines,
+              coordinate: placeInfo.center,
+              categoryId: entity.mapsCategoryId,
+              muid: muid,
+            };
+          } else if (result.type === "ADDRESS") {
+
+            place = <AppleMapsPlaceResult>{
+              name: result.highlightMain.line,
+              coordinate: result.address.center,
+              muid: muid,
+            };
+
+
           }
+
+
 
           return {
             muid: muid,
             highlight: result.highlightMain.line,
             extra: result.highlightExtra?.line,
             type: result.type,
-            place:
-              result.type === "BUSINESS"
-                ? (() => {
-                    const mapResult = data.mapsResult.find(
-                      (mapResult: Record<string, any>) =>
-                        mapResult.place?.muid === muid
-                    );
-
-                    if (!mapResult) return null;
-
-                    const entity = mapResult.place.component.find(
-                      (component: Record<string, any>) =>
-                        component.type === "COMPONENT_TYPE_ENTITY"
-                    )?.value[0].entity;
-
-                    if (!entity) return null;
-
-                    const placeInfo = mapResult.place.component.find(
-                      (component: Record<string, any>) =>
-                        component.type === "COMPONENT_TYPE_PLACE_INFO"
-                    )?.value[0].placeInfo;
-
-                    if (!placeInfo) return null;
-
-                    const address = mapResult.place.component.find(
-                      (component: Record<string, any>) =>
-                        component.type === "COMPONENT_TYPE_ADDRESS_OBJECT"
-                    )?.value?.[0]?.addressObject;
-
-
-                    return <AppleMapsPlaceResult>{
-                      name: entity.name[0].stringValue,
-                      address: address?.formattedAddressLines,
-                      coordinate: placeInfo.center,
-                      categoryId: entity.mapsCategoryId,
-                      muid: muid,
-                    };
-                  })()
-                : null,
+            place: place,
           };
         }) ?? [],
   };

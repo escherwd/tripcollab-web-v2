@@ -5,3 +5,7 @@
         @apply size-4;
     }
 }
+
+.mapboxgl-ctrl.mapboxgl-ctrl-attrib {
+    @apply !mb-2 !mr-2 !px-2 !rounded-full backdrop-blur-lg;
+}

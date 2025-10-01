@@ -1,7 +1,5 @@
 "use server";
 
-import { randomUUID } from "crypto";
-import moment from "moment";
 import { appleMapsGenerateAnalyticsBody, appleMapsGenerateClientTimeInfo, AppleMapsPlaceResult } from "./apple_maps";
 
 export type AppleMapsSearchResult = {
@@ -70,9 +68,9 @@ export async function searchAppleMaps(
         } : null,
         photos: result.components.searchResultPlacePhoto?.values.map((photo: Record<string, any>) => ({
             id: photo.photo.photoId,
-            url: photo.photo.photoVersions[0].url,
-            width: photo.photo.photoVersions[0].width,
-            height: photo.photo.photoVersions[0].height,
+            url: photo.photo.photoVersions[0]?.url,
+            width: photo.photo.photoVersions[0]?.width,
+            height: photo.photo.photoVersions[0]?.height,
         })).filter((photo: Record<string, any>) => photo.url),
     }))
   };

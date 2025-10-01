@@ -36,6 +36,7 @@ export default async function Home() {
           border: none;
           box-shadow: none;
           filter: invert(1);
+          outline: none;
         }
 
         #profile-photo {
@@ -55,7 +56,7 @@ export default async function Home() {
 
 
         <div className="w-full">
-          <div className="mb-4 text-sm text-white/50 tracking-wider">Upcoming Trips</div>
+          <div className="tc-small-heading tc-small-heading-white">Upcoming Trips</div>
           <div className="grid grid-cols-3 gap-2 w-full items-stretch">
             {
               projects.map((project, i) => {

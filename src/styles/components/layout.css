@@ -2,6 +2,20 @@
   @apply px-4 pt-navbar pb-12;
 }
 
-.tc-floating {
-  @apply border bg-white border-gray-100 rounded-lg shadow;
+.tc-panel {
+  @apply bg-white rounded-lg shadow-md outline-2 outline-white/50;
+}
+
+.tc-panel-header {
+  @apply py-2 px-4 flex-none flex gap-4 items-center justify-between border-b border-gray-100;
+
+
+}
+
+.tc-panel-header-dense {
+  @apply py-1 px-2;
+}
+
+input[type=number].tc-input-always-show-arrows::-webkit-inner-spin-button {
+  opacity: 1
 }

@@ -1,0 +1,171 @@
+"use client";
+
+import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/16/solid";
+import { MapProject } from "./global_map";
+import PanelIconButton from "./panel_icon_button";
+import { useCallback, useMemo, useState } from "react";
+import { DateTime } from "luxon";
+
+const offset = (arr: any[], offset: number) => [
+  ...arr.slice(offset),
+  ...arr.slice(0, offset),
+];
+
+export default function CalendarComponent({
+  project,
+  dense = false,
+  initialAnchorDate = DateTime.now().startOf("month"),
+  date = null,
+  onDateChange,
+  readonly = false,
+}: {
+  project?: MapProject | null;
+  dense?: boolean;
+  initialAnchorDate?: DateTime;
+  date?: DateTime | null;
+  onDateChange?: (date?: DateTime | null) => void;
+  readonly?: boolean;
+}) {
+  const dateRange = {
+    start: 13,
+    end: 26,
+  };
+
+  const [anchorDate, setAnchorDate] = useState(initialAnchorDate);
+
+  const [selectedDate, setSelectedDate] = useState<DateTime | null>(date);
+
+  const locale = new Intl.Locale("en-US")
+
+  const localeWeekStart = useCallback(() => {
+    try {
+      // @ts-expect-error - getWeekInfo is almost baseline, I think Firefox is the only browser that doesn't support it
+      return locale.getWeekInfo()?.firstDay ?? 7;
+    } catch (_) {
+      return 7;
+    }
+  }, []);
+
+  const dayArray = useMemo(() => {
+    const firstOfMonth = anchorDate.startOf("month");
+    const previousMonth = anchorDate.minus({ months: 1 }).startOf("month");
+
+    const firstWeekday = firstOfMonth.weekday + ((7 - localeWeekStart()) % 7);
+
+    return [
+      ...Array.from(
+        { length: firstWeekday },
+        (_, index) => (previousMonth.daysInMonth ?? 31) - index
+      )
+        .reverse()
+        .map((day) => ({
+          day,
+          primaryMonth: false,
+          isoDate: previousMonth
+            .plus({ days: day - 1 })
+            .toISODate(),
+        })),
+      ...Array.from(
+        { length: firstOfMonth.daysInMonth ?? 31 },
+        (_, index) => index + 1
+      ).map((day) => ({
+        day,
+        primaryMonth: true,
+        isoDate: firstOfMonth.plus({ days: day - 1 }).toISODate(),
+      })),
+      ...Array.from(
+        { length: 42 - (firstOfMonth.daysInMonth ?? 31) - (firstWeekday ?? 0) },
+        (_, index) => index + 1
+      ).map((day) => ({
+        day,
+        primaryMonth: false,
+        isoDate: firstOfMonth.plus({ days: day - 1, months: 1 }).toISODate(),
+      })),
+    ];
+  }, [anchorDate, localeWeekStart]);
+
+  const setDate = (isoDate: string | null) => {
+    if (readonly) return;
+    setSelectedDate(isoDate ? DateTime.fromISO(isoDate) : null);
+    if (onDateChange) {
+      onDateChange(isoDate ? DateTime.fromISO(isoDate) : null);
+    }
+  }
+
+  return (
+    <div className="flex-grow-0 w-full h-full flex flex-col !pointer-events-auto select-none">
+      <div
+        className={`tc-panel-header ${dense ? "tc-panel-header-dense" : ""}`}
+      >
+        <div
+          className={`tc-panel-title ${
+            dense ? "tc-panel-title-dense" : ""
+          } flex-1`}
+        >
+          {anchorDate.toLocaleString({ month: "long" })}
+        </div>
+        <div className={`font-display text-gray-500 ${dense ? "text-sm" : ""}`}>
+          {anchorDate.year}
+        </div>
+        <div className="flex gap-1">
+          <PanelIconButton
+            className={`${dense ? "" : ""}`}
+            icon={<ArrowLeftIcon />}
+            onClick={() => {
+              setAnchorDate(anchorDate.minus({ months: 1 }));
+            }}
+          />
+          <PanelIconButton
+            className={`${dense ? "" : ""}`}
+            icon={<ArrowRightIcon />}
+            onClick={() => {
+              setAnchorDate(anchorDate.plus({ months: 1 }));
+            }}
+          />
+        </div>
+      </div>
+      <div
+        className={`grid grid-cols-7 text-center ${
+          dense ? "pt-1 pb-0" : "pt-2 pb-1"
+        }`}
+      >
+        {offset(
+          ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+          localeWeekStart() - 1
+        ).map((weekday) => (
+          <div key={weekday} className="text-xs font-display text-gray-400">
+            {weekday}
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 grid-rows-6 size-full cursor-pointer">
+        {dayArray.map((day, index) => (
+          <div
+            key={index}
+            className="flex items-center justify-center relative"
+          >
+            <div
+              className={`text-xs font-mono rounded-full flex items-center justify-center  z-10 ${
+                day.isoDate === selectedDate?.toISODate()
+                  ? "bg-gray-950 text-white"
+                  : ""
+              } ${day.primaryMonth ? "text-gray-500" : "text-gray-400"} ${
+                dense ? "size-6" : "size-7"
+              }`}
+              onClick={() => setDate(day.isoDate)}
+            >
+              {day.day}
+            </div>
+            {index >= dateRange.start && index <= dateRange.end && (
+              <div
+                className={`absolute inset-x-0 inset-y-auto h-6 bg-gray-100 ${
+                  index === dateRange.start ? "rounded-l-full" : ""
+                } ${index === dateRange.end ? "rounded-r-full" : ""}`}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
