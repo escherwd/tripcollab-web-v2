@@ -4,7 +4,7 @@ import { DateTime } from "luxon";
 import { useMemo, useState } from "react";
 import CalendarComponent from "./calendar_component";
 import { updatePin } from "@/app/api/project/update_pin";
-import { Prisma } from "@/generated/client";
+import { Prisma } from "@prisma/client";
 import { debounce } from "@/app/utils/ui/debounce";
 import _ from "lodash";
 

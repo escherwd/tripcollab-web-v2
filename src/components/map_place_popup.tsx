@@ -23,7 +23,7 @@ import {
 import { RiFileCopyLine, RiLoaderFill, RiRouteFill } from "react-icons/ri";
 import { AppleMapsPlace, getPlaceAppleMaps } from "@/app/api/maps/place";
 import { useEffect, useMemo, useState } from "react";
-import { Prisma } from "@/generated/client";
+import { Prisma } from "@prisma/client";
 import { addPin } from "@/app/api/project/add_pin";
 import { deletePin } from "@/app/api/project/delete_pin";
 import CalendarComponent from "./calendar_component";

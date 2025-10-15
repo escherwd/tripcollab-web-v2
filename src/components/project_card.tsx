@@ -1,4 +1,4 @@
-import { Prisma } from "@/generated/client";
+import { Prisma } from "@prisma/client";
 import Link from "next/link";
 
 export default function ProjectCard({

@@ -2,11 +2,11 @@
 
 import { getUser } from "@/backend/auth/get_user";
 import prisma from "@/backend/prisma";
-import { Prisma } from "@/generated/client";
+import { Prisma } from "@prisma/client";
 
 export const updatePin = async (
   pinId: string,
-  pin: Prisma.PinGetPayload<{}>,
+  pin: Prisma.PinGetPayload<any>,
 ) => {
   const user = await getUser();
 

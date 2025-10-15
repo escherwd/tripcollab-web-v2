@@ -17,7 +17,7 @@ import { renderFeatureToMarker } from "@/app/utils/mapbox/render_feature_to_mark
 import { AppleMapsPlace } from "@/app/api/maps/place";
 import { projectPinToMarker } from "@/app/utils/backend/project_pin_to_marker";
 // import { Feature } from "geojson";
-import { Prisma } from "@/generated/client";
+import { Prisma } from "@prisma/client";
 
 // Create a global event emitter for the map
 const mapEmitter = new EventTarget();
