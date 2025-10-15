@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "prisma:generate": "pnpify prisma generate",
+    "prisma:push": "pnpify prisma db push",
+    "build": "yarn prisma:generate && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
@@ -23,6 +25,7 @@
     "@types/react-map-gl": "^6.1.7",
     "@workos-inc/authkit-nextjs": "^2.4.6",
     "@workos-inc/node": "^7.65.0",
+    "@yarnpkg/pnpify": "^4.1.6",
     "lodash": "^4.17.21",
     "luxon": "^3.7.2",
     "mapbox-gl": "^3.14.0",
@@ -53,5 +56,13 @@
     "typescript": "^5",
     "wrangler": "^4.40.3"
   },
-  "packageManager": "yarn@4.10.3"
+  "packageManager": "yarn@4.10.3",
+  "dependenciesMeta": {
+    "@prisma/client@6.15.0": {
+      "unplugged": true
+    },
+    "prisma@6.15.0": {
+      "unplugged": true
+    }
+  }
 }

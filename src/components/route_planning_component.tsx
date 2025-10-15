@@ -24,7 +24,6 @@ import { DateTime, Duration } from "luxon";
 import { GeoJSONFeature } from "mapbox-gl";
 import { decode } from "@here/flexpolyline";
 import { MapGeoJSONFeature } from "react-map-gl/maplibre";
-import { Feature } from "geojson";
 
 export default function RoutePlanningComponent({
   project,
@@ -72,7 +71,7 @@ export default function RoutePlanningComponent({
 
   const handleAutocomplete = async (
     query: string,
-    otherLocation?: { lng: number; lat: number }
+    otherLocation?: { lng: number; lat: number },
   ) => {
     if (query.length > 3) {
       const bounds = await mapController.getMapBounds();
@@ -89,7 +88,7 @@ export default function RoutePlanningComponent({
         },
         otherLocation
           ? { lng: otherLocation.lng, lat: otherLocation.lat }
-          : undefined
+          : undefined,
       );
       return data;
     } else {
@@ -105,7 +104,7 @@ export default function RoutePlanningComponent({
 
     handleAutocomplete(
       fromSearchQuery!,
-      to ? { lng: to.coordinate.lng, lat: to.coordinate.lat } : undefined
+      to ? { lng: to.coordinate.lng, lat: to.coordinate.lat } : undefined,
     ).then((data) => {
       setFromAutocompleteResults(data ?? null);
     });
@@ -117,7 +116,7 @@ export default function RoutePlanningComponent({
     console.log(
       "should calculate route between",
       from.coordinate,
-      to.coordinate
+      to.coordinate,
     );
     calculateRoutes(from.coordinate, to.coordinate);
   }, [to, from]);
@@ -130,14 +129,14 @@ export default function RoutePlanningComponent({
 
     handleAutocomplete(
       toSearchQuery!,
-      from ? { lng: from.coordinate.lng, lat: from.coordinate.lat } : undefined
+      from ? { lng: from.coordinate.lng, lat: from.coordinate.lat } : undefined,
     ).then((data) => {
       setToAutocompleteResults(data ?? null);
     });
   }, [toSearchQuery]);
 
   const handleFromAutocompleteResultClick = (
-    result: AppleMapsAutocompleteResponse["results"][number]
+    result: AppleMapsAutocompleteResponse["results"][number],
   ) => {
     if (!result.place) return;
     setFromSearchQuery(null);
@@ -149,7 +148,7 @@ export default function RoutePlanningComponent({
   };
 
   const handleToAutocompleteResultClick = (
-    result: AppleMapsAutocompleteResponse["results"][number]
+    result: AppleMapsAutocompleteResponse["results"][number],
   ) => {
     // setToSearchQuery(result.highlight);
     if (!result.place) return;
@@ -163,27 +162,26 @@ export default function RoutePlanningComponent({
 
   const displayRoute = (route: HereMultimodalRoute) => {
     const features = route.sections.map((section) => {
-      const feature: Feature = {
+      const feature = {
         id: route.id + "-" + section.id,
         type: "Feature",
         properties: {},
         geometry: {
           type: "LineString",
-          "coordinates": decode(section.polyline).polyline.map((coord) => [
+          coordinates: decode(section.polyline).polyline.map((coord) => [
             coord[1],
             coord[0],
           ]),
-        }
-      }
-      return feature
-    })
-    mapController.setGeoJSONFeatures('temporary', features);
+        },
+      };
+      return feature;
+    });
+    mapController.setGeoJSONFeatures("temporary", features);
   };
-
 
   const calculateRoutes = async (
     from: { lat: number; lng: number },
-    to: { lat: number; lng: number }
+    to: { lat: number; lng: number },
   ) => {
     setIsCalculatingRoute(true);
     const routes = await serverCalculateMultimodalRoute(from, to);
@@ -197,7 +195,7 @@ export default function RoutePlanningComponent({
 
   const calculateTotalDuration = (route: HereMultimodalRoute): Duration => {
     return DateTime.fromISO(
-      route.sections[route.sections.length - 1].arrival.time
+      route.sections[route.sections.length - 1].arrival.time,
     ).diff(DateTime.fromISO(route.sections[0].departure.time), [
       "hours",
       "minutes",
@@ -233,7 +231,7 @@ export default function RoutePlanningComponent({
                   if (e.key === "Enter") {
                     if (fromAutocompleteResults?.results[0]) {
                       handleFromAutocompleteResultClick(
-                        fromAutocompleteResults?.results[0]
+                        fromAutocompleteResults?.results[0],
                       );
                     }
                   }
@@ -282,7 +280,7 @@ export default function RoutePlanningComponent({
                   if (e.key === "Enter") {
                     if (toAutocompleteResults?.results[0]) {
                       handleToAutocompleteResultClick(
-                        toAutocompleteResults?.results[0]
+                        toAutocompleteResults?.results[0],
                       );
                     }
                   }

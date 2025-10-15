@@ -4,7 +4,7 @@ import { DateTime } from "luxon";
 import { useMemo, useState } from "react";
 import CalendarComponent from "./calendar_component";
 import { updatePin } from "@/app/api/project/update_pin";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/client";
 import { debounce } from "@/app/utils/ui/debounce";
 import _ from "lodash";
 
@@ -27,12 +27,13 @@ export default function PopupScheduleComponent({
     mapController.setProject({
       ...project,
       pins: project.pins.map((p) =>
-        p.id === pin.id ? { ...p, ...(data as any) } : p
+        p.id === pin.id ? { ...p, ...(data as any) } : p,
       ),
     });
 
     const sendUpdate = async () => {
-      await updatePin(pin.id, data);
+      // TODO: do not cast data to any
+      await updatePin(pin.id, data as any);
     };
     // Debounce this request
     debounce(sendUpdate, "schedule-component-update", 300);
@@ -92,11 +93,7 @@ export default function PopupScheduleComponent({
                   day: "numeric",
                 })
               : "Unscheduled"}
-              {
-                pin?.dateStart && pin.timeStart && (
-                  " – " + timeStartString
-                )
-              }
+            {pin?.dateStart && pin.timeStart && " – " + timeStartString}
           </div>
           <div>
             <ChevronRightIcon

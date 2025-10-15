@@ -1,4 +1,11 @@
-import { MdAirlineStops, MdCallSplit, MdClose, MdPolyline, MdRefresh, MdRoute } from "react-icons/md";
+import {
+  MdAirlineStops,
+  MdCallSplit,
+  MdClose,
+  MdPolyline,
+  MdRefresh,
+  MdRoute,
+} from "react-icons/md";
 import { mapController, MapMarker } from "./global_map";
 import {
   ArrowUpRightIcon,
@@ -16,7 +23,7 @@ import {
 import { RiFileCopyLine, RiLoaderFill, RiRouteFill } from "react-icons/ri";
 import { AppleMapsPlace, getPlaceAppleMaps } from "@/app/api/maps/place";
 import { useEffect, useMemo, useState } from "react";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/client";
 import { addPin } from "@/app/api/project/add_pin";
 import { deletePin } from "@/app/api/project/delete_pin";
 import CalendarComponent from "./calendar_component";
@@ -64,10 +71,23 @@ export default function MapPlacePopup({
     days: 0,
   });
 
-  const updatePinScheduleTime = ({time, minutes, hours, days}: {time?: DateTime | null, minutes?: number | null, hours?: number | null, days?: number | null}) => {
+  const updatePinScheduleTime = ({
+    time,
+    minutes,
+    hours,
+    days,
+  }: {
+    time?: DateTime | null;
+    minutes?: number | null;
+    hours?: number | null;
+    days?: number | null;
+  }) => {
     setPinScheduleTime({
       time: time ?? pinScheduleTime.time,
-      minutes: Math.min(Math.max(minutes ?? pinScheduleTime.minutes ?? 0, 0), 59),
+      minutes: Math.min(
+        Math.max(minutes ?? pinScheduleTime.minutes ?? 0, 0),
+        59,
+      ),
       hours: Math.min(Math.max(hours ?? pinScheduleTime.hours ?? 0, 0), 23),
       days: Math.min(Math.max(days ?? pinScheduleTime.days ?? 0, 0), 99),
     });
@@ -158,10 +178,11 @@ export default function MapPlacePopup({
     mapController.setProject({
       ...project,
       pins: project.pins.map((p) =>
-        p.id === pin.id ? { ...p, ...(data as any) } : p
+        p.id === pin.id ? { ...p, ...(data as any) } : p,
       ),
     });
-    await updatePin(pin.id, data);
+    // TODO: Do not cast to any
+    await updatePin(pin.id, data as any);
   };
 
   const toggleInProject = async () => {
@@ -294,7 +315,7 @@ export default function MapPlacePopup({
                   className="text-sm cursor-pointer text-gray-300 hover:bg-gray-100 hover:text-gray-400 rounded-full -mt-1 p-1.5"
                   onClick={() =>
                     navigator.clipboard.writeText(
-                      coordinates.lat + ", " + coordinates.lng
+                      coordinates.lat + ", " + coordinates.lng,
                     )
                   }
                 >

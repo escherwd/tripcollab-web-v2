@@ -5,6 +5,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 import {
   EasingOptions,
+  GeoJSONFeature,
   LngLatBounds,
   MapMouseEvent,
 } from "mapbox-gl";
@@ -12,10 +13,11 @@ import { AppleMapsPlaceResult } from "@/app/api/maps/apple_maps";
 import MapPlaceIcon from "./map_place_icon";
 import MapPlacePopup from "./map_place_popup";
 import { renderFeatureToMarker } from "@/app/utils/mapbox/render_feature_to_marker";
-import { Prisma } from "@prisma/client";
+
 import { AppleMapsPlace } from "@/app/api/maps/place";
 import { projectPinToMarker } from "@/app/utils/backend/project_pin_to_marker";
-import { Feature } from "geojson";
+// import { Feature } from "geojson";
+import { Prisma } from "@/generated/client";
 
 // Create a global event emitter for the map
 const mapEmitter = new EventTarget();
@@ -45,7 +47,7 @@ export type MapProject = Prisma.ProjectGetPayload<{
 
 export type MapPin = Prisma.PinGetPayload<any>;
 
-type MapFeatureContextType = 'permanent' | 'temporary' | 'all';
+type MapFeatureContextType = "permanent" | "temporary" | "all";
 
 class MapController {
   private map: MapRef | null = null;
@@ -75,7 +77,7 @@ class MapController {
     await this.waitForMap();
     this.markers = markers;
     mapEmitter.dispatchEvent(
-      new CustomEvent("set-markers", { detail: markers })
+      new CustomEvent("set-markers", { detail: markers }),
     );
   }
 
@@ -119,7 +121,7 @@ class MapController {
 
     if (typeof marker === "string") {
       // Check the current markers (usually search results)
-      let targetMarker = this.markers.find((m) => m.ephemeralId === marker)
+      let targetMarker = this.markers.find((m) => m.ephemeralId === marker);
       // Also check the project pins (permenent pins)
       if (!targetMarker) {
         const pin = this.project?.pins.find((p) => p.id === marker);
@@ -135,7 +137,7 @@ class MapController {
     }
     // Dispatch the event to set the markers
     mapEmitter.dispatchEvent(
-      new CustomEvent("open-marker", { detail: marker })
+      new CustomEvent("open-marker", { detail: marker }),
     );
   }
 
@@ -143,18 +145,21 @@ class MapController {
     await this.waitForMap();
     this.project = project ?? null;
     mapEmitter.dispatchEvent(
-      new CustomEvent("set-project", { detail: project })
+      new CustomEvent("set-project", { detail: project }),
     );
   }
 
-  async setGeoJSONFeatures(type: MapFeatureContextType, features: Feature[]) {
+  async setGeoJSONFeatures(
+    type: MapFeatureContextType,
+    // TODO: update to feature type
+    features: any[],
+  ) {
     await this.waitForMap();
     console.log("Setting geojson features", type, features);
     mapEmitter.dispatchEvent(
-      new CustomEvent("set-geojson-features", { detail: { type, features } })
+      new CustomEvent("set-geojson-features", { detail: { type, features } }),
     );
   }
-
 }
 
 export const mapController = new MapController();
@@ -178,19 +183,23 @@ export default function GlobalAppMap() {
 
   const mapStyles = [
     "mapbox://styles/escherwd/cme0ipkvn00og01sp60vr2cjt",
-    "mapbox://styles/mapbox/standard"
-  ]
+    "mapbox://styles/mapbox/standard",
+  ];
 
   const [mapStyle, setMapStyle] = useState<string>(mapStyles[0]);
 
-  const [temporaryFeatures, setTemporaryFeatures] = useState<Feature[]>([]);
-  const [permanentFeatures, setPermanentFeatures] = useState<Feature[]>([]);
+  const [temporaryFeatures, setTemporaryFeatures] = useState<GeoJSONFeature[]>(
+    [],
+  );
+  const [permanentFeatures, setPermanentFeatures] = useState<GeoJSONFeature[]>(
+    [],
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
       if (map.current?.frameReady) {
         mapEmitter.dispatchEvent(
-          new CustomEvent("map-mount", { detail: map.current })
+          new CustomEvent("map-mount", { detail: map.current }),
         );
         clearInterval(interval);
       }
@@ -200,10 +209,7 @@ export default function GlobalAppMap() {
       if (e.detail) setMarkers(e.detail);
     };
 
-    mapEmitter.addEventListener(
-      "set-markers",
-      listenerSetMarkers
-    );
+    mapEmitter.addEventListener("set-markers", listenerSetMarkers);
 
     const listenerOpenMarker = (e: CustomEventInit<MapMarker>) => {
       if (!e.detail) return;
@@ -219,26 +225,25 @@ export default function GlobalAppMap() {
       }
     };
 
-    mapEmitter.addEventListener(
-      "open-marker",
-      listenerOpenMarker
-    );
+    mapEmitter.addEventListener("open-marker", listenerOpenMarker);
 
     const listenerSetProject = (e: CustomEventInit<MapProject>) => {
       console.log("set-project", e.detail);
       setProject(e.detail ?? null);
-    }
+    };
 
-    mapEmitter.addEventListener(
-      "set-project",
-      listenerSetProject
-    );
+    mapEmitter.addEventListener("set-project", listenerSetProject);
 
-    const listenerSetGeoJSONFeatures = (e: CustomEventInit<{ type: MapFeatureContextType; features: Feature[] }>) => {
-      if (e.detail?.type === 'permanent' || e.detail?.type === 'all') {
+    const listenerSetGeoJSONFeatures = (
+      e: CustomEventInit<{
+        type: MapFeatureContextType;
+        features: GeoJSONFeature[];
+      }>,
+    ) => {
+      if (e.detail?.type === "permanent" || e.detail?.type === "all") {
         setPermanentFeatures(e.detail.features);
       }
-      if (e.detail?.type === 'temporary' || e.detail?.type === 'all') {
+      if (e.detail?.type === "temporary" || e.detail?.type === "all") {
         console.log("Setting temporary features", e.detail.features);
         setTemporaryFeatures(e.detail.features);
       }
@@ -246,23 +251,14 @@ export default function GlobalAppMap() {
 
     mapEmitter.addEventListener(
       "set-geojson-features",
-      listenerSetGeoJSONFeatures
+      listenerSetGeoJSONFeatures,
     );
 
     return () => {
       clearInterval(interval);
-      mapEmitter.removeEventListener(
-        "set-markers",
-        listenerSetMarkers
-      );
-      mapEmitter.removeEventListener(
-        "open-marker",
-        listenerOpenMarker
-      );
-      mapEmitter.removeEventListener(
-        "set-project",
-        listenerSetProject
-      );
+      mapEmitter.removeEventListener("set-markers", listenerSetMarkers);
+      mapEmitter.removeEventListener("open-marker", listenerOpenMarker);
+      mapEmitter.removeEventListener("set-project", listenerSetProject);
     };
   }, [map]);
 
@@ -305,7 +301,7 @@ export default function GlobalAppMap() {
 
   const handleMarkerClick = (
     e: React.MouseEvent<HTMLDivElement>,
-    marker: MapMarker
+    marker: MapMarker,
   ) => {
     e.preventDefault();
     e.stopPropagation();
@@ -317,7 +313,7 @@ export default function GlobalAppMap() {
 
   const handlePinClick = (
     e: React.MouseEvent<HTMLDivElement>,
-    pin: Prisma.PinGetPayload<any>
+    pin: Prisma.PinGetPayload<any>,
   ) => {
     e.preventDefault();
     e.stopPropagation();
@@ -331,10 +327,10 @@ export default function GlobalAppMap() {
     const point = map.current?.project(marker.coordinate);
     if (!point || !map.current) return null;
     const padding = {
-      top: 16 + (mapController.padding.top),
-      left: 16 + (mapController.padding.left),
-      right: 16 + (mapController.padding.right),
-      bottom: 16 + (mapController.padding.bottom),
+      top: 16 + mapController.padding.top,
+      left: 16 + mapController.padding.left,
+      right: 16 + mapController.padding.right,
+      bottom: 16 + mapController.padding.bottom,
     };
 
     const canvasSize = {
@@ -352,12 +348,12 @@ export default function GlobalAppMap() {
     let x = point.x - size.width / 2;
     x = Math.min(
       Math.max(x, padding.left),
-      canvasSize.width - size.width - padding.right
+      canvasSize.width - size.width - padding.right,
     );
     let y = placedAbove ? point.y - size.height : point.y;
     y = Math.min(
       Math.max(y, padding.top - 30),
-      canvasSize.height - size.height - padding.bottom + 30
+      canvasSize.height - size.height - padding.bottom + 30,
     );
 
     const overflow = {
@@ -397,14 +393,18 @@ export default function GlobalAppMap() {
       >
         {[
           ...markers,
-          !markers.some((m) => (m.ephemeralId === openMarker?.ephemeralId)) && (!openMarker?.id) ? openMarker : null,
+          !markers.some((m) => m.ephemeralId === openMarker?.ephemeralId) &&
+          !openMarker?.id
+            ? openMarker
+            : null,
         ]
           .filter((m) => m !== null)
           .map((marker) => (
             <Marker
               className=""
               style={{
-                zIndex: openMarker?.ephemeralId === marker.ephemeralId ? 25 : 20,
+                zIndex:
+                  openMarker?.ephemeralId === marker.ephemeralId ? 25 : 20,
               }}
               key={marker.ephemeralId}
               latitude={marker.coordinate.lat}
@@ -412,13 +412,16 @@ export default function GlobalAppMap() {
             >
               {marker.appleMapsPlace ? (
                 <div
-                  className={`bg-white expand-from-origin relative border-2 border-white shadow-md rounded-full transition-transform cursor-pointer ${openMarker?.ephemeralId === marker.ephemeralId
-                    ? "scale-140 tc-marker-caret"
-                    : ""
-                    } ${openMarker?.ephemeralId && openMarker.ephemeralId !== marker.ephemeralId
+                  className={`bg-white expand-from-origin relative border-2 border-white shadow-md rounded-full transition-transform cursor-pointer ${
+                    openMarker?.ephemeralId === marker.ephemeralId
+                      ? "scale-140 tc-marker-caret"
+                      : ""
+                  } ${
+                    openMarker?.ephemeralId &&
+                    openMarker.ephemeralId !== marker.ephemeralId
                       ? "opacity-50 scale-80"
                       : ""
-                    }`}
+                  }`}
                   onClick={(e) => handleMarkerClick(e, marker)}
                 >
                   <MapPlaceIcon
@@ -439,20 +442,16 @@ export default function GlobalAppMap() {
           >
             <div
               onClick={(e) => handlePinClick(e, pin)}
-              className={`bg-white fade-in relative border-2 border-white shadow-md rounded-full transition-transform cursor-pointer z-10 ${openMarker?.id === pin.id
-                ? "scale-140 tc-marker-caret"
-                : ""
-                } ${markers.length > 0
-                  ? "scale-80"
-                  : ""
-                }`}
+              className={`bg-white fade-in relative border-2 border-white shadow-md rounded-full transition-transform cursor-pointer z-10 ${
+                openMarker?.id === pin.id ? "scale-140 tc-marker-caret" : ""
+              } ${markers.length > 0 ? "scale-80" : ""}`}
             >
               <MapPlaceIcon tcCategoryId={(pin.styleData as any)["iconId"]} />
             </div>
           </Marker>
         ))}
-        {
-          temporaryFeatures.map((feature) => (<Source key={feature.id} type="geojson" data={feature} >
+        {temporaryFeatures.map((feature) => (
+          <Source key={feature.id} type="geojson" data={feature}>
             <Layer
               id={feature.id?.toString() ?? "temporary-feature"}
               type="line"
@@ -465,9 +464,8 @@ export default function GlobalAppMap() {
                 "line-width": 4,
               }}
             />
-          </Source>))
-        }
-
+          </Source>
+        ))}
       </Map>
       {openMarker && openMarkerPopupBounds && project && (
         <div

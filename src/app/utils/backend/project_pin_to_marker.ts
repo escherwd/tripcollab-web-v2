@@ -1,9 +1,9 @@
 import { AppleMapsPlace } from "@/app/api/maps/place";
 import { MapMarker } from "@/components/global_map";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/client";
 
 export function projectPinToMarker(
-  pin: Prisma.PinGetPayload<any>
+  pin: Prisma.PinGetPayload<any>,
 ): MapMarker<AppleMapsPlace> {
   return {
     id: pin.id,

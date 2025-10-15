@@ -110,19 +110,19 @@ export default function GeneralSearchComponent({
 
       // Give the padding time to update
       setTimeout(() => {
-      if (data.displayMapRegion)
-        mapController.flyToBounds(
-          new LngLatBounds(
-            [data.displayMapRegion.westLng, data.displayMapRegion.southLat],
-            [data.displayMapRegion.eastLng, data.displayMapRegion.northLat]
-          )
-        );
+        if (data.displayMapRegion)
+          mapController.flyToBounds(
+            new LngLatBounds(
+              [data.displayMapRegion.westLng, data.displayMapRegion.southLat],
+              [data.displayMapRegion.eastLng, data.displayMapRegion.northLat],
+            ),
+          );
       }, 100);
 
       mapController.setMarkers(
         data.results.map((result) => {
           const existingPin = project?.pins.find(
-            (p) => p.appleMapsMuid === result.muid
+            (p) => p.appleMapsMuid === result.muid,
           );
           return {
             id: existingPin?.id,
@@ -131,7 +131,7 @@ export default function GeneralSearchComponent({
             coordinate: result.coordinate,
             appleMapsPlace: result,
           };
-        })
+        }),
       );
 
       if (data.results.length === 1) {
@@ -151,7 +151,7 @@ export default function GeneralSearchComponent({
   };
 
   const handleAutocompleteResultClick = (
-    result: AppleMapsAutocompleteResponse["results"][number]
+    result: AppleMapsAutocompleteResponse["results"][number],
   ) => {
     if (result.type == "QUERY") {
       // setSearchQuery(result.highlight);
@@ -160,10 +160,10 @@ export default function GeneralSearchComponent({
   };
 
   const handleSearchResultClick = (
-    result: AppleMapsSearchResult["results"][number]
+    result: AppleMapsSearchResult["results"][number],
   ) => {
     const existingPin = project?.pins.find(
-      (p) => p.appleMapsMuid === result.muid
+      (p) => p.appleMapsMuid === result.muid,
     );
     mapController.openMarker(existingPin?.id ?? result.muid);
   };
@@ -184,7 +184,9 @@ export default function GeneralSearchComponent({
 
   return (
     <>
-      <div className={`flex flex-col gap-2 absolute top-navbar left-2 w-72 bottom-9 !pointer-events-none [&>*]:pointer-events-auto duration-300 ${hide ? "transition-opacity pointer-events-none opacity-0" : "transition-none"}`}>
+      <div
+        className={`flex flex-col gap-2 absolute top-navbar left-2 w-72 bottom-9 !pointer-events-none [&>*]:pointer-events-auto duration-300 ${hide ? "transition-opacity pointer-events-none opacity-0" : "transition-none"}`}
+      >
         <div className="tc-panel w-full h-12 relative">
           <div className="absolute top-0 left-3.5 right-4 bottom-0 flex gap-2 items-center justify-between pointer-events-none">
             <MagnifyingGlassIcon className="text-gray-400 size-5" />
@@ -215,7 +217,10 @@ export default function GeneralSearchComponent({
             }}
           />
         </div>
-        <SearchAutocompleteComponent results={autocompleteResults} onResultClick={handleAutocompleteResultClick} />
+        <SearchAutocompleteComponent
+          results={autocompleteResults}
+          onResultClick={handleAutocompleteResultClick}
+        />
 
         {isShowingResults && (
           <div
