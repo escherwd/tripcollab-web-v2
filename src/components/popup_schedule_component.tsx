@@ -69,7 +69,7 @@ export default function PopupScheduleComponent({
     console.log("onDurationChange", duration, days, hours, minutes);
     days = days ?? Math.floor(duration / 24 / 60) ?? 0;
     hours = hours ?? Math.floor((duration % (24 * 60)) / 60) ?? 0;
-    minutes = minutes ?? duration % 60 ?? 0;
+    minutes = minutes ?? duration % 60;
     console.log("onDurationChange", days, hours, minutes);
     const newDuration =
       (days ?? 0) * 24 * 60 + (hours ?? 0) * 60 + (minutes ?? 0);
