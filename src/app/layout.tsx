@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono, DM_Sans } from "next/font/google";
 import "@/styles/app.css";
-import Navbar from "@/components/navbar";
 import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
+import { Analytics } from "@vercel/analytics/next";
 
 const plexSans = IBM_Plex_Sans({
   variable: "--font-plex-sans",
@@ -34,10 +34,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${plexSans.variable} ${plexMono.variable} ${dmSans.variable} w-screen min-h-screen`}>
-        <AuthKitProvider>
-          {children}
-        </AuthKitProvider>
+      <body
+        className={`${plexSans.variable} ${plexMono.variable} ${dmSans.variable} w-screen min-h-screen`}
+      >
+        <AuthKitProvider>{children}</AuthKitProvider>
+        <Analytics />
       </body>
     </html>
   );

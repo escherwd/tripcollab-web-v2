@@ -19,6 +19,7 @@
     "@types/lodash": "^4.17.20",
     "@types/mapbox-gl": "^3.4.1",
     "@types/react-map-gl": "^6.1.7",
+    "@vercel/analytics": "^1.5.0",
     "@workos-inc/authkit-nextjs": "^2.4.6",
     "@workos-inc/node": "^7.65.0",
     "@yarnpkg/pnpify": "^4.1.6",
