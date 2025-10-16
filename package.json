@@ -4,21 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "prisma:generate": "pnpify prisma generate",
-    "prisma:push": "pnpify prisma db push",
-    "build": "yarn prisma:generate && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "cf-build": "opennextjs-cloudflare build",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push"
   },
   "dependencies": {
     "@here/flexpolyline": "^0.1.0",
     "@heroicons/react": "^2.2.0",
-    "@opennextjs/cloudflare": "^1.9.1",
     "@prisma/client": "6.15.0",
     "@remixicon/react": "^4.6.0",
     "@types/lodash": "^4.17.20",
@@ -54,8 +49,7 @@
     "prisma": "6.15.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5",
-    "wrangler": "^4.40.3"
+    "typescript": "^5"
   },
   "packageManager": "yarn@4.10.3",
   "dependenciesMeta": {
