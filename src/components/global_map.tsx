@@ -2,10 +2,11 @@
 
 import Map, { Layer, MapRef, Marker, Source } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   EasingOptions,
   GeoJSONFeature,
+  LayerSpecification,
   LngLatBounds,
   MapMouseEvent,
 } from "mapbox-gl";
@@ -47,6 +48,21 @@ export type MapProject = Prisma.ProjectGetPayload<{
 
 export type MapPin = Prisma.PinGetPayload<any>;
 
+export type ConsolidatedMapMarker = {
+  coordinate: {
+    lat: number;
+    lng: number
+  },
+  element: React.ReactNode
+}
+
+export type MapFeatureWithLayerSpec = {
+  id: string;
+  feature: GeoJSON.GeoJSON;
+  layer: LayerSpecification;
+  marker?: ConsolidatedMapMarker;
+}
+
 type MapFeatureContextType = "permanent" | "temporary" | "all";
 
 class MapController {
@@ -71,6 +87,19 @@ class MapController {
     mapEmitter.addEventListener("map-mount", (e: CustomEventInit<MapRef>) => {
       this.map = e.detail ?? null;
     });
+  }
+
+  async clearAll() {
+    await this.waitForMap();
+    this.project = null;
+    this.markers = [];
+    mapEmitter.dispatchEvent(new CustomEvent("set-project", { detail: null }));
+    mapEmitter.dispatchEvent(new CustomEvent("set-markers", { detail: [] }));
+    mapEmitter.dispatchEvent(
+      new CustomEvent("set-geojson-features", {
+        detail: { type: "all", features: [] },
+      }),
+    );
   }
 
   async setMarkers(markers: MapMarker[]) {
@@ -149,10 +178,10 @@ class MapController {
     );
   }
 
-  async setGeoJSONFeatures(
+  async setFeatures(
     type: MapFeatureContextType,
     // TODO: update to feature type
-    features: any[],
+    features: MapFeatureWithLayerSpec[],
   ) {
     await this.waitForMap();
     console.log("Setting geojson features", type, features);
@@ -188,10 +217,10 @@ export default function GlobalAppMap() {
 
   const [mapStyle, setMapStyle] = useState<string>(mapStyles[0]);
 
-  const [temporaryFeatures, setTemporaryFeatures] = useState<GeoJSONFeature[]>(
+  const [temporaryFeatures, setTemporaryFeatures] = useState<MapFeatureWithLayerSpec[]>(
     [],
   );
-  const [permanentFeatures, setPermanentFeatures] = useState<GeoJSONFeature[]>(
+  const [permanentFeatures, setPermanentFeatures] = useState<MapFeatureWithLayerSpec[]>(
     [],
   );
 
@@ -237,7 +266,7 @@ export default function GlobalAppMap() {
     const listenerSetGeoJSONFeatures = (
       e: CustomEventInit<{
         type: MapFeatureContextType;
-        features: GeoJSONFeature[];
+        features: MapFeatureWithLayerSpec[];
       }>,
     ) => {
       if (e.detail?.type === "permanent" || e.detail?.type === "all") {
@@ -394,7 +423,7 @@ export default function GlobalAppMap() {
         {[
           ...markers,
           !markers.some((m) => m.ephemeralId === openMarker?.ephemeralId) &&
-          !openMarker?.id
+            !openMarker?.id
             ? openMarker
             : null,
         ]
@@ -412,16 +441,14 @@ export default function GlobalAppMap() {
             >
               {marker.appleMapsPlace ? (
                 <div
-                  className={`bg-white expand-from-origin relative border-2 border-white shadow-md rounded-full transition-transform cursor-pointer ${
-                    openMarker?.ephemeralId === marker.ephemeralId
+                  className={`bg-white expand-from-origin relative border-2 border-white shadow-md rounded-full transition-transform cursor-pointer ${openMarker?.ephemeralId === marker.ephemeralId
                       ? "scale-140 tc-marker-caret"
                       : ""
-                  } ${
-                    openMarker?.ephemeralId &&
-                    openMarker.ephemeralId !== marker.ephemeralId
+                    } ${openMarker?.ephemeralId &&
+                      openMarker.ephemeralId !== marker.ephemeralId
                       ? "opacity-50 scale-80"
                       : ""
-                  }`}
+                    }`}
                   onClick={(e) => handleMarkerClick(e, marker)}
                 >
                   <MapPlaceIcon
@@ -442,30 +469,27 @@ export default function GlobalAppMap() {
           >
             <div
               onClick={(e) => handlePinClick(e, pin)}
-              className={`bg-white fade-in relative border-2 border-white shadow-md rounded-full transition-transform cursor-pointer z-10 ${
-                openMarker?.id === pin.id ? "scale-140 tc-marker-caret" : ""
-              } ${markers.length > 0 ? "scale-80" : ""}`}
+              className={`bg-white fade-in relative border-2 border-white shadow-md rounded-full transition-transform cursor-pointer z-10 ${openMarker?.id === pin.id ? "scale-140 tc-marker-caret" : ""
+                } ${markers.length > 0 ? "scale-80" : ""}`}
             >
               <MapPlaceIcon tcCategoryId={(pin.styleData as any)["iconId"]} />
             </div>
           </Marker>
         ))}
         {temporaryFeatures.map((feature) => (
-          <Source key={feature.id} type="geojson" data={feature}>
+          <Source key={feature.id} type="geojson" data={feature.feature}>
             <Layer
-              id={feature.id?.toString() ?? "temporary-feature"}
-              type="line"
-              layout={{
-                "line-cap": "round",
-                "line-join": "round",
-              }}
-              paint={{
-                "line-color": "#007AFD",
-                "line-width": 4,
-              }}
+              {...feature.layer}
             />
           </Source>
         ))}
+        {
+          temporaryFeatures.filter(f => f.marker).map((feature) => (
+            <Marker key={feature.id + "-feature-marker"} latitude={feature.marker!.coordinate.lat} longitude={feature.marker!.coordinate.lng}>
+              {feature.marker!.element}
+            </Marker>
+          ))
+        }
       </Map>
       {openMarker && openMarkerPopupBounds && project && (
         <div

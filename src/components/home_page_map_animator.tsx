@@ -32,6 +32,9 @@ export default function HomePageMapAnimator() {
 
         (async () => {
 
+            
+            await mapController.clearAll();
+
             await mapController.flyTo(viewState)
 
             if (callOffAnimation) return
