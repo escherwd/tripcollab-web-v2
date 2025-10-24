@@ -145,8 +145,15 @@ class MapController {
     await new Promise((resolve) => setTimeout(resolve, duration));
   }
 
-  async openMarker(marker: MapMarker<AppleMapsPlace> | string) {
+  async openMarker(marker: MapMarker<AppleMapsPlace> | string | null) {
     await this.waitForMap();
+
+    if (!marker) {
+      mapEmitter.dispatchEvent(
+        new CustomEvent("open-marker", { detail: null }),
+      );
+      return;
+    }
 
     if (typeof marker === "string") {
       // Check the current markers (usually search results)
@@ -240,9 +247,9 @@ export default function GlobalAppMap() {
 
     mapEmitter.addEventListener("set-markers", listenerSetMarkers);
 
-    const listenerOpenMarker = (e: CustomEventInit<MapMarker>) => {
+    const listenerOpenMarker = (e: CustomEventInit<MapMarker | null>) => {
+      setOpenMarker(e.detail ?? null);
       if (!e.detail) return;
-      setOpenMarker(e.detail);
       const overflow = updateOpenMarkerPopupBounds(e.detail);
       if (overflow) {
         map.current?.flyTo({

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeftIcon,
   ArrowsUpDownIcon,
   ChevronRightIcon,
   XMarkIcon,
@@ -8,7 +9,7 @@ import {
 import { mapController, MapFeatureWithLayerSpec, MapMarker, MapProject } from "./global_map";
 import PanelIconButton from "./panel_icon_button";
 import { projectController } from "@/app/utils/controllers/project_controller";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AppleMapsAutocompleteResponse,
   autocompleteAppleMaps,
@@ -31,6 +32,8 @@ import { set } from "lodash";
 import RoutePlanningSectionChip from "./route_planning_section_chip";
 import { herePlatformDefaultSectionColors, herePlatformRouteGetStyleForSection } from "@/app/utils/here_maps/route_styles";
 import * as turf from "@turf/turf";
+import MapPlaceIcon from "./map_place_icon";
+import RoutePlanningStepRow from "./route_planning_step_row";
 
 export default function RoutePlanningComponent({
   project,
@@ -55,6 +58,8 @@ export default function RoutePlanningComponent({
 
   const close = () => {
     // Opening the route planner with nothing will close it
+    mapController.setFeatures("temporary", []);
+    mapController.setMarkers([]);
     projectController.openRoutePlanner(null);
   };
 
@@ -83,6 +88,12 @@ export default function RoutePlanningComponent({
     setFromSearchQuery(null);
     setToSearchQuery(null);
   };
+
+  useEffect(() => {
+    if (!from && !to) mapController.setMarkers([]);
+    mapController.setMarkers([from, to].filter(m => m !== null));
+    mapController.openMarker(null);
+  }, [to, from]);
 
   // Update the initial from if it changes
   useEffect(() => {
@@ -185,7 +196,7 @@ export default function RoutePlanningComponent({
     const features = route.sections.map((section) => {
       const id = route.id + "-" + section.id;
 
-      
+
 
       const polyline = decode(section.polyline).polyline.map((coord) => [
         coord[1],
@@ -228,8 +239,6 @@ export default function RoutePlanningComponent({
         const length = turf.length(line, { units: 'meters' });
         const center = turf.along(line, length / 2, { units: 'meters' });
 
-        const transport = section.transport as HereMultimodalRouteSectionTransport<"transit">;
-
         feature.marker = {
           coordinate: {
             lat: center.geometry.coordinates[1],
@@ -242,254 +251,326 @@ export default function RoutePlanningComponent({
       }
 
       return feature;
-  }).filter(f => f !== null) as MapFeatureWithLayerSpec[];
+    }).filter(f => f !== null) as MapFeatureWithLayerSpec[];
 
-  mapController.setFeatures("temporary", features);
+    mapController.setFeatures("temporary", features);
 
-  // Determine the bounding box of the route
-  const completePolyline = route.sections.flatMap((section) => decode(section.polyline).polyline.map((coord) => [
-    coord[1],
-    coord[0],
-  ]));
+    // Close any open marker popups
+    mapController.openMarker(null);
 
-  const line = turf.lineString(completePolyline);
-  const bbox = turf.bbox(line);
-
-  // TODO: standardize padding values
-  mapController.setPadding({
-    top: 64,
-    left: 8 + 288 + 8,
-    right: 8 + 272 + 8,
-    bottom: 0,
-  })
-
-  // Expand the bbox by 10% on each side
-  const scalarY = Math.abs(bbox[0] - bbox[2]) / 10;
-  bbox[0] -= scalarY;
-  bbox[2] += scalarY;
-
-  const scalarX = Math.abs(bbox[1] - bbox[3]) / 10;
-  bbox[1] -= scalarX;
-  bbox[3] += scalarX;
-
-  mapController.flyToBounds(new LngLatBounds(
-    [bbox[0], bbox[1]],
-    [bbox[2], bbox[3]],
-  ));
-};
-
-const calculateRoutes = async (
-  from: { lat: number; lng: number },
-  to: { lat: number; lng: number },
-  modality: HereMultimodalRouteModality
-) => {
-  setIsCalculatingRoute(true);
-  try {
-    const routes = await serverCalculateMultimodalRoute(from, to, modality);
-    setRouteOptions(routes);
-    console.log(routes);
-    if (routes.length > 0) {
-      setSelectedRouteId(routes[0].id)
-    }
-  } catch (err) {
-    console.error("Error calculating route:", err);
-  }
-  setIsCalculatingRoute(false);
-
-};
-
-useEffect(() => {
-  if (!routeOptions) return;
-  const selectedRoute = routeOptions.find(route => route.id === selectedRouteId)
-  if (selectedRoute) {
-    displayRoute(selectedRoute)
-  }
-}, [selectedRouteId, routeOptions])
-
-const calculateTotalDuration = (route: HereMultimodalRoute): Duration => {
-  return DateTime.fromISO(
-    route.sections[route.sections.length - 1].arrival.time,
-  ).diff(DateTime.fromISO(route.sections[0].departure.time), [
-    "hours",
-    "minutes",
-  ]);
-};
-
-const shouldDisplay = (section: HereMultimodalRouteSection): boolean => {
-  // For pedestrian sections, only display if longer than 400 meters
-  if (section.type === 'pedestrian') {
-    const polyline = decode(section.polyline).polyline.map((coord) => [
+    // Determine the bounding box of the route
+    const completePolyline = route.sections.flatMap((section) => decode(section.polyline).polyline.map((coord) => [
       coord[1],
       coord[0],
-    ])
-    const line = turf.lineString(polyline);
-    const length = turf.length(line, { units: 'meters' });
-    return length >= 400; // Display if 400 meters or longer
+    ]));
+
+    const line = turf.lineString(completePolyline);
+    const bbox = turf.bbox(line);
+
+    // TODO: standardize padding values
+    mapController.setPadding({
+      top: 64,
+      left: 8 + 288 + 8,
+      right: 8 + 272 + 8,
+      bottom: 0,
+    })
+
+    // Expand the bbox by 10% on each side
+    const scalarY = Math.abs(bbox[0] - bbox[2]) / 10;
+    bbox[0] -= scalarY;
+    bbox[2] += scalarY;
+
+    const scalarX = Math.abs(bbox[1] - bbox[3]) / 10;
+    bbox[1] -= scalarX;
+    bbox[3] += scalarX;
+
+    mapController.flyToBounds(new LngLatBounds(
+      [bbox[0], bbox[1]],
+      [bbox[2], bbox[3]],
+    ));
+  };
+
+  const calculateRoutes = async (
+    from: { lat: number; lng: number },
+    to: { lat: number; lng: number },
+    modality: HereMultimodalRouteModality
+  ) => {
+    setIsCalculatingRoute(true);
+    try {
+      const routes = await serverCalculateMultimodalRoute(from, to, modality);
+      setRouteOptions(routes);
+      console.log(routes);
+      if (routes.length > 0) {
+        // setSelectedRouteId(routes[0].id)
+        displayRoute(routes[0]);
+      }
+    } catch (err) {
+      console.error("Error calculating route:", err);
+    }
+    setIsCalculatingRoute(false);
+
+  };
+
+  useEffect(() => {
+    if (!routeOptions) return;
+    const selectedRoute = routeOptions.find(route => route.id === selectedRouteId)
+    if (selectedRoute) {
+      displayRoute(selectedRoute)
+    }
+  }, [selectedRouteId, routeOptions])
+
+  const calculateTotalDuration = (route: HereMultimodalRoute): Duration => {
+    return DateTime.fromISO(
+      route.sections[route.sections.length - 1].arrival.time,
+    ).diff(DateTime.fromISO(route.sections[0].departure.time), [
+      "hours",
+      "minutes",
+    ]);
+  };
+
+  const shouldDisplay = (section: HereMultimodalRouteSection): boolean => {
+    // For pedestrian sections, only display if longer than 400 meters
+    if (section.type === 'pedestrian') {
+      const polyline = decode(section.polyline).polyline.map((coord) => [
+        coord[1],
+        coord[0],
+      ])
+      const line = turf.lineString(polyline);
+      const length = turf.length(line, { units: 'meters' });
+      return length >= 400; // Display if 400 meters or longer
+    }
+    return true;
   }
-  return true;
-}
+
+  const selectedRoute = useMemo(() => {
+    if (!routeOptions || !selectedRouteId) return null;
+    return routeOptions.find(route => route.id === selectedRouteId) || null;
+  }, [routeOptions, selectedRouteId]);
 
 
 
-return (
-  <div className="absolute slide-in-from-left left-2 bottom-9 w-72 top-navbar">
-    <div className="h-full tc-panel flex min-h-0 flex-col overflow-hidden">
-      <div className="tc-panel-header flex-none">
-        <div className="tc-panel-title">Browse Routes</div>
-        <div>
-          <PanelIconButton
-            icon={<XMarkIcon />}
-            onClick={() => {
-              close();
-            }}
-          />
-        </div>
-      </div>
-      <div className="flex flex-col flex-1 min-h-0">
-        <div className="p-4 bg-gray-50 flex-none h-24 hidden"></div>
-        <div className="p-4 flex-none flex flex-col border-b border-gray-100">
-          <div className="tc-route-planner-input">
-            <span>From</span>
-            <input
-              type="text"
-              value={fromSearchQuery ?? from?.appleMapsPlace?.name ?? ""}
-              onChange={(e) => {
-                setFromSearchQuery(e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (fromAutocompleteResults?.results[0]) {
-                    handleFromAutocompleteResultClick(
-                      fromAutocompleteResults?.results[0],
-                    );
-                  }
-                }
-              }}
-              onFocus={() => {
-                setInputFocused("from");
-              }}
-              onBlur={() => {
-                setTimeout(() => {
-                  setInputFocused(null);
-                }, 100);
-              }}
-            />
-          </div>
-
-          <div className="relative w-full">
-            {inputFocused === "from" && (
-              <div className="absolute top-2 w-full z-40">
-                <SearchAutocompleteComponent
-                  results={fromAutocompleteResults}
-                  onResultClick={handleFromAutocompleteResultClick}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="h-2 w-full flex justify-end items-center pr-2 z-10">
+  return (
+    <div className="absolute slide-in-from-left left-2 bottom-9 w-72 top-navbar">
+      <div className="h-full tc-panel flex min-h-0 flex-col overflow-hidden">
+        <div className="tc-panel-header flex-none transition-all">
+          <div className={`${selectedRoute ? 'opacity-100 mr-0' : 'opacity-0 pointer-events-none -mr-[40px]'} transition-all w-6 flex-none`}>
             <PanelIconButton
-              className=""
-              icon={<ArrowsUpDownIcon />}
+              icon={<ArrowLeftIcon />}
               onClick={() => {
-                swap();
+                setSelectedRouteId(null);
               }}
             />
           </div>
-
-          <div className="tc-route-planner-input">
-            <span>To</span>
-            <input
-              type="text"
-              value={toSearchQuery ?? to?.appleMapsPlace?.name ?? ""}
-              onChange={(e) => {
-                setToSearchQuery(e.target.value);
+          <div className="tc-panel-title flex-1">Browse Route{selectedRoute ? '' : 's'}</div>
+          <div>
+            <PanelIconButton
+              icon={<XMarkIcon />}
+              onClick={() => {
+                close();
               }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (toAutocompleteResults?.results[0]) {
-                    handleToAutocompleteResultClick(
-                      toAutocompleteResults?.results[0],
-                    );
+            />
+          </div>
+        </div>
+        <div className="flex flex-col flex-1 min-h-0 relative overflow-hidden">
+          <div id="route-info-panel" className={`absolute inset-0 bg-white z-30 shadow-lg duration-300 flex flex-col transition-transform ${selectedRoute ? 'translate-x-0' : 'translate-x-[100%]'}`}>
+            {
+              selectedRoute && (
+                <>
+                  <div className="flex-1 overflow-y-scroll">
+                    <div className="p-4 border-b border-gray-100 pt-8 ">
+                      <span className="text-gray-500 text-sm">Total Duration</span>
+                      <h2 className="text-lg font-semibold mt-1">
+                        {calculateTotalDuration(selectedRoute).toHuman({
+                          listStyle: "narrow",
+                          unitDisplay: "long",
+                          showZeros: false,
+                          maximumFractionDigits: 0,
+                        })}
+                      </h2>
+                    </div>
+
+                    <div className="flex flex-col">
+                        <div className="flex gap-3 px-4 py-3 items-center">
+                          <div className="flex-none">
+                            <MapPlaceIcon appleMapsCategoryId={from?.appleMapsPlace?.categoryId} />
+                          </div>
+                          <div className="">
+                            <div className="font-semibold">{from?.appleMapsPlace?.name}</div>
+                            <div className="text-sm text-gray-500">Start</div>
+                          </div>
+                        </div>
+                        {selectedRoute.sections.map((section, index) => {
+                          return (<RoutePlanningStepRow key={section.id} section={section} />);
+                        })}
+                        <div className="flex gap-3 px-4 py-3 items-center even:bg-gray-50">
+                          <div className="flex-none">
+                            <MapPlaceIcon appleMapsCategoryId={to?.appleMapsPlace?.categoryId} />
+                          </div>
+                          <div className="">
+                            <div className="font-semibold">{to?.appleMapsPlace?.name}</div>
+                            <div className="text-sm text-gray-500">Destination</div>
+                          </div>
+                        </div>
+                    </div>
+
+                  </div>
+                  <div className="p-4 border-t border-gray-100 flex-none">
+                    <button className="tc-button tc-button-primary w-full">
+                      Add to Project
+                    </button>
+                  </div>
+                </>
+              )
+            }
+          </div>
+          <div className="p-4 flex-none flex flex-col border-b border-gray-100">
+            <div className="tc-route-planner-input">
+              <span>From</span>
+              <input
+                type="text"
+                value={fromSearchQuery ?? from?.appleMapsPlace?.name ?? ""}
+                onChange={(e) => {
+                  setFromSearchQuery(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (fromAutocompleteResults?.results[0]) {
+                      handleFromAutocompleteResultClick(
+                        fromAutocompleteResults?.results[0],
+                      );
+                    }
                   }
-                }
-              }}
-              onFocus={() => {
-                setInputFocused("to");
-              }}
-              onBlur={() => {
-                setTimeout(() => {
-                  setInputFocused(null);
-                }, 100);
-              }}
-            />
-          </div>
+                }}
+                onFocus={() => {
+                  setInputFocused("from");
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setInputFocused(null);
+                  }, 100);
+                }}
+              />
+            </div>
 
-          <div className="relative w-full">
-            {inputFocused === "to" && (
-              <div className="absolute top-2 w-full z-40">
-                <SearchAutocompleteComponent
-                  results={toAutocompleteResults}
-                  onResultClick={handleToAutocompleteResultClick}
-                />
+            <div className="relative w-full">
+              {inputFocused === "from" && (
+                <div className="absolute top-2 w-full z-40">
+                  <SearchAutocompleteComponent
+                    results={fromAutocompleteResults}
+                    onResultClick={handleFromAutocompleteResultClick}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="h-2 w-full flex justify-end items-center pr-2 z-10">
+              <PanelIconButton
+                className=""
+                icon={<ArrowsUpDownIcon />}
+                onClick={() => {
+                  swap();
+                }}
+              />
+            </div>
+
+            <div className="tc-route-planner-input">
+              <span>To</span>
+              <input
+                type="text"
+                value={toSearchQuery ?? to?.appleMapsPlace?.name ?? ""}
+                onChange={(e) => {
+                  setToSearchQuery(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (toAutocompleteResults?.results[0]) {
+                      handleToAutocompleteResultClick(
+                        toAutocompleteResults?.results[0],
+                      );
+                    }
+                  }
+                }}
+                onFocus={() => {
+                  setInputFocused("to");
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setInputFocused(null);
+                  }, 100);
+                }}
+              />
+            </div>
+
+            <div className="relative w-full">
+              {inputFocused === "to" && (
+                <div className="absolute top-2 w-full z-40">
+                  <SearchAutocompleteComponent
+                    results={toAutocompleteResults}
+                    onResultClick={handleToAutocompleteResultClick}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 p-4">
+            {modalityOptions.map((option) => (
+              <button className={`px-3 py-2 flex justify-center transition-colors text-lg bg-gray-50 hover:bg-gray-100 cursor-pointer rounded-lg ${selectedModality === option.value ? '!bg-black text-white' : ''}`}
+                key={option.value}
+                onClick={() => setSelectedModality(option.value)}>
+                {option.icon}
+              </button>
+            ))}
+          </div>
+          <div className="flex-1 relative overflow-scroll">
+            {isCalculatingRoute && (
+              <div className="absolute inset-0 flex gap-2 items-start justify-center pt-4">
+                <RiLoaderFill className="text-gray-400 size-5 animate-spin" />
+                <div className="text-gray-400 text-sm">Finding routes...</div>
+              </div>
+            )}
+            {routeOptions && !isCalculatingRoute && (
+              <div className="fade-in">
+                {
+                  routeOptions.length === 0 && (
+                    <div className="p-4 text-sm text-center text-gray-400">
+                      No routes found for the selected locations and modality.
+                    </div>
+                  )
+                }
+                {routeOptions.map((route) => (
+                  <a className={`block p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${selectedRouteId == route.id ? 'bg-gray-100 hover:bg-gray-100' : ''}`}
+                    key={route.id}
+                    onClick={() => { setSelectedRouteId(route.id) }}>
+                    <div className="font-medium flex items-center justify-between">
+                      <span>
+                        {calculateTotalDuration(route).toHuman({
+                          listStyle: "narrow",
+                          unitDisplay: "short",
+                          showZeros: false,
+                          maximumFractionDigits: 0,
+                        })}
+                      </span>
+                      <div>
+                        <ChevronRightIcon className={`size-4 text-gray-400 transition-transform ${selectedRouteId == route.id ? 'rotate-90' : ''}`} />
+                      </div>
+                    </div>
+                    <div className="mt-4 text-gray-500 text-sm flex items-center flex-wrap gap-x-2 gap-y-2 bg-gray-100 p-2 rounded-lg">
+                      {route.sections.filter(section => shouldDisplay(section)).map((section) => (
+                        <React.Fragment key={section.id}>
+                          <RoutePlanningSectionChip section={section} />
+                          <div className="flex-none last:hidden">
+                            <ChevronRightIcon className="size-4" />
+                          </div>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </a>
+                ))}
               </div>
             )}
           </div>
-        </div>
-        <div className="grid grid-cols-3 gap-2 p-4">
-          {modalityOptions.map((option) => (
-            <button className={`px-3 py-2 flex justify-center transition-colors text-lg bg-gray-50 hover:bg-gray-100 cursor-pointer rounded-lg ${selectedModality === option.value ? '!bg-black text-white' : ''}`}
-              key={option.value}
-              onClick={() => setSelectedModality(option.value)}>
-              {option.icon}
-            </button>
-          ))}
-        </div>
-        <div className="flex-1 relative overflow-scroll">
-          {isCalculatingRoute && (
-            <div className="absolute inset-0 flex gap-2 items-start justify-center pt-4">
-              <RiLoaderFill className="text-gray-400 size-5 animate-spin" />
-              <div className="text-gray-400 text-sm">Finding routes...</div>
-            </div>
-          )}
-          {routeOptions && !isCalculatingRoute && (
-            <div className="fade-in">
-              {
-                routeOptions.length === 0 && (
-                  <div className="p-4 text-sm text-center text-gray-400">
-                    No routes found for the selected locations and modality.
-                  </div>
-                )
-              }
-              {routeOptions.map((route) => (
-                <a className={`block p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${selectedRouteId == route.id ? 'bg-gray-100 hover:bg-gray-100' : ''}`}
-                  key={route.id}
-                  onClick={() => { setSelectedRouteId(route.id) }}>
-                  <div className="text font-display font-medium">
-                    {calculateTotalDuration(route).toHuman({
-                      listStyle: "narrow",
-                      unitDisplay: "short",
-                      showZeros: false,
-                      maximumFractionDigits: 0,
-                    })}
-                  </div>
-                  <div className="mt-2 text-gray-500 text-sm flex items-center flex-wrap gap-x-2 gap-y-1">
-                    {route.sections.filter(section => shouldDisplay(section)).map((section) => (
-                      <React.Fragment key={section.id}>
-                        <RoutePlanningSectionChip section={section} />
-                        <div className="flex-none last:hidden">
-                          <ChevronRightIcon className="size-4" />
-                        </div>
-                      </React.Fragment>
-                    ))}
-                  </div>
-                </a>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>
-  </div>
-);
+  );
 }

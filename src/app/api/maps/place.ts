@@ -71,6 +71,8 @@ const getPlaceAppleMaps = async (muid: string, loc: {
     analyticMetadata: appleMapsGenerateAnalyticsBody(),
   };
 
+  console.log(body);
+
   const response = await fetch(`https://maps.apple.com/data/place`, {
     method: "POST",
     body: JSON.stringify(body),

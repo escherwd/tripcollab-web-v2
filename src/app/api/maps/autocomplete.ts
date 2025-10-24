@@ -111,7 +111,8 @@ export async function autocompleteAppleMaps(
             place = <AppleMapsPlaceResult>{
               name: result.highlightMain.line,
               coordinate: result.address.center,
-              muid: muid,
+              categoryId: result.address.placeType?.toLowerCase(),
+              muid: result.address.mapsId.shardedId.muid ?? result.address.opaqueGeoId ?? muid,
             };
 
 

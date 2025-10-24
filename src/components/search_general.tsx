@@ -82,6 +82,7 @@ export default function GeneralSearchComponent({
         data?.query != committedSearchQuery
       )
         setAutocompleteResults(data);
+      console.log(data);
     })();
   }, [searchQuery]);
 
@@ -150,12 +151,32 @@ export default function GeneralSearchComponent({
     mapController.setMarkers([]);
   };
 
-  const handleAutocompleteResultClick = (
+  const handleAutocompleteResultClick = async (
     result: AppleMapsAutocompleteResponse["results"][number],
   ) => {
     if (result.type == "QUERY") {
       // setSearchQuery(result.highlight);
       handleSearch(result.highlight);
+    }
+    if (result.place) {
+      // Check if this already exists in the project first
+      const existingPin = project?.pins.find(
+        (p) => p.appleMapsMuid === result.place?.muid,
+      );
+      if (!existingPin) {
+        mapController.openMarker({
+            id: undefined,
+            ephemeralId: 'quicksearch-' + (result.place?.muid ?? ""),
+            coordinate: result.place.coordinate,
+            appleMapsPlace: result.place,
+          });
+      } else {
+        mapController.openMarker(existingPin.id);
+      }
+      mapController.flyTo({
+        center: [result.place.coordinate.lng, result.place.coordinate.lat],
+      })
+      // await mapController.openMarker(existingPin?.id ?? result.place?.muid ?? "");
     }
   };
 

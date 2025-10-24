@@ -229,6 +229,11 @@ export const getMapIconFromAppleMapsCategoryId = (categoryId: string) => {
     "natural_features.physical_feature.volcano": mapIcons.hill,
     "travel_and_leisure.golf_club": mapIcons.golf_club,
     "travel_and_leisure": mapIcons.travel_and_leisure,
+    "region": mapIcons.cities, // only returned in apple maps autocomplete
+    "country": mapIcons.countries, // only returned in apple maps autocomplete
+    "sub_locality": mapIcons.neighborhoods, // only returned in apple maps autocomplete
+    "administrative_area": mapIcons.states, // only returned in apple maps autocomplete
+    "locality": mapIcons.cities,
     "shopping": mapIcons.shopping,
     "health_care": mapIcons.health_care,
     "dining": mapIcons.dining,

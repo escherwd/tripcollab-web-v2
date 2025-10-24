@@ -2,6 +2,30 @@ import { HereMultimodalRouteSection, HereMultimodalRouteSectionTransport } from 
 import { herePlatformDefaultSectionColors } from "@/app/utils/here_maps/route_styles";
 import { MdDirectionsBike, MdDirectionsBoat, MdDirectionsBus, MdDirectionsCar, MdDirectionsRailway, MdDirectionsSubway, MdDirectionsTransit, MdDirectionsTransitFilled, MdDirectionsWalk, MdFlight } from "react-icons/md";
 
+export function RoutePlanningTransitTransportModeIcon({ mode }: { mode: string }) {
+    return <>
+        {
+            mode === "ferry" ? <MdDirectionsBoat title="Ferry Section" /> :
+                mode === "subway" ? <MdDirectionsSubway title="Subway Section" /> :
+                    mode === "cityTrain" ? <MdDirectionsTransit title="Train Section" /> :
+                        mode === 'highSpeedTrain' ? <MdDirectionsRailway title="High Speed Train Section" /> :
+                            mode === 'interRegionalTrain' ? <MdDirectionsRailway title="Inter Regional Train Section" /> :
+                                mode === 'regionalTrain' ? <MdDirectionsRailway title="Regional Train Section" /> :
+                                    mode === 'intercityTrain' ? <MdDirectionsRailway title="Intercity Train Section" /> :
+                                        mode === 'monorail' ? <MdDirectionsTransitFilled title="Monorail Section" /> :
+                                            mode === 'lightRail' ? <MdDirectionsTransit title="Light Rail Section" /> :
+                                                mode === 'aerialBus' ? <MdDirectionsBus title="Aerial Bus Section" /> :
+                                                    mode === 'bus' ? <MdDirectionsBus title="Bus Section" /> :
+                                                        mode === 'busRapid' ? <MdDirectionsBus title="Bus Rapid Section" /> :
+                                                            mode === 'privateBus' ? <MdDirectionsBus title="Private Bus Section" /> :
+                                                                mode === 'rapid' ? <MdDirectionsTransit title="Rapid Transit Section" /> :
+                                                                    mode === 'inclined' ? <MdDirectionsTransit title="Inclined Transit Section" /> :
+                                                                        mode === 'flight' ? <MdFlight title="Flight Section" /> :
+                                                                            <MdDirectionsTransit title="Transit Section" />
+        }
+    </>
+}
+
 export default function RoutePlanningSectionChip({ section }: { section: HereMultimodalRouteSection }) {
 
     if (section.type === "pedestrian") {
@@ -16,25 +40,9 @@ export default function RoutePlanningSectionChip({ section }: { section: HereMul
     if (section.type === "transit") {
         const transport = section.transport as HereMultimodalRouteSectionTransport<"transit">;
         return (
-            <div className="flex gap-1.5 items-center text-xs font-bold px-2 py-1 rounded" style={{ backgroundColor: `${transport.color ?? herePlatformDefaultSectionColors.transit}`, color: `${transport.textColor ?? "#fff"}` }}>
+            <div className="flex gap-1.5 items-center text-xs font-bold px-2 py-1 rounded-md" style={{ backgroundColor: `${transport.color ?? herePlatformDefaultSectionColors.transit}`, color: `${transport.textColor ?? "#fff"}` }}>
                 {
-                    transport.mode === "ferry" ? <MdDirectionsBoat title="Ferry Section" /> :
-                    transport.mode === "subway" ? <MdDirectionsSubway title="Subway Section" /> :
-                    transport.mode === "cityTrain" ? <MdDirectionsTransit title="Train Section" /> :
-                    transport.mode === 'highSpeedTrain' ? <MdDirectionsRailway title="High Speed Train Section" /> :
-                    transport.mode === 'interRegionalTrain' ? <MdDirectionsRailway title="Inter Regional Train Section" /> :
-                    transport.mode === 'regionalTrain' ? <MdDirectionsRailway title="Regional Train Section" /> :
-                    transport.mode === 'intercityTrain' ? <MdDirectionsRailway title="Intercity Train Section" /> :
-                    transport.mode === 'monorail' ? <MdDirectionsTransitFilled title="Monorail Section" /> :
-                    transport.mode === 'lightRail' ? <MdDirectionsTransit title="Light Rail Section" /> :
-                    transport.mode === 'aerialBus' ? <MdDirectionsBus title="Aerial Bus Section" /> :
-                    transport.mode === 'bus' ? <MdDirectionsBus title="Bus Section" /> :
-                    transport.mode === 'busRapid' ? <MdDirectionsBus title="Bus Rapid Section" /> :
-                    transport.mode === 'privateBus' ? <MdDirectionsBus title="Private Bus Section" /> :
-                    transport.mode === 'rapid' ? <MdDirectionsTransit title="Rapid Transit Section" /> :
-                    transport.mode === 'inclined' ? <MdDirectionsTransit title="Inclined Transit Section" /> :
-                    transport.mode === 'flight' ? <MdFlight title="Flight Section" /> :
-                    <MdDirectionsTransit title="Transit Section" />
+                    <RoutePlanningTransitTransportModeIcon mode={transport.mode} />
                 }
                 <div className="" >
                     {transport.shortName ?? transport.name}
@@ -62,3 +70,5 @@ export default function RoutePlanningSectionChip({ section }: { section: HereMul
     }
 
 }
+
+
