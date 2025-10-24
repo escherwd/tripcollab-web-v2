@@ -44,7 +44,7 @@ export default function RoutePlanningStepRow({ section }: { section: HereMultimo
                 {
                     section.type === "transit" && (
                         <div className="flex flex-col gap-1 items-start justify-start">
-                            <div className="text-xs text-gray-400">{transport.category?.split(', ')[0]} — <a target="_blank" className="hover:underline" href={section.agency?.website ?? '#'}>{section.agency?.name} <ArrowUpRightIcon className="inline-block size-3.5 mb-px" /></a></div>
+                            <div className="text-xs text-gray-400">{transport.category?.split(', ')[0]} – <a target="_blank" className="hover:underline whitespace-nowrap" href={section.agency?.website ?? '#'}>{section.agency?.name}&nbsp;<ArrowUpRightIcon className="inline-block size-3.5 mb-px" /></a></div>
                             <div>
                                 Line <span className="font-semibold">{transport.shortName ?? transport.name}</span>, signs for
                             </div>

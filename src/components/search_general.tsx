@@ -176,7 +176,11 @@ export default function GeneralSearchComponent({
       mapController.flyTo({
         center: [result.place.coordinate.lng, result.place.coordinate.lat],
       })
+      setTimeout(() => {
+        setAutocompleteResults(null);
+      }, 250);
       // await mapController.openMarker(existingPin?.id ?? result.place?.muid ?? "");
+
     }
   };
 
