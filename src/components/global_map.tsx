@@ -43,7 +43,7 @@ export type MapMarker<T = AppleMapsPlaceResult> = {
 };
 
 export type MapProject = Prisma.ProjectGetPayload<{
-  include: { pins: true; user: true };
+  include: { pins: true; user: true, routes: true };
 }>;
 
 export type MapPin = Prisma.PinGetPayload<any>;
@@ -504,13 +504,15 @@ export default function GlobalAppMap() {
           style={{
             ...openMarkerPopupBounds,
           }}
-          key={openMarker.id}
+          key={openMarker.ephemeralId}
+
         >
           <MapPlacePopup
             onClose={() => setOpenMarker(null)}
             onMarkerUpdate={(marker) => setOpenMarker(marker)}
             marker={openMarker}
             project={project}
+            key={openMarker.ephemeralId}
           />
         </div>
       )}

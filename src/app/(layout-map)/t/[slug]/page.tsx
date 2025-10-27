@@ -20,7 +20,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
         },
         include: {
             pins: true,
-            user: true
+            user: true,
+            routes: true,
         }
     })
 

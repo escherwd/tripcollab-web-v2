@@ -29,44 +29,44 @@ export type HereMultimodalRouteSectionTransport<
   T extends HereMultimodalRouteSectionType
 > = T extends "transit"
   ? {
-      mode: HereMultimodalRouteSectionTransportMode;
-      name?: string;
-      headsign?: string;
-      category?: string; // Human readable category name like 'Bus' or 'Train'
-      color?: string;
-      textColor?: string;
-      shortName?: string;
-      longName?: string;
-      url?: string;
-    }
+    mode: HereMultimodalRouteSectionTransportMode;
+    name?: string;
+    headsign?: string;
+    category?: string; // Human readable category name like 'Bus' or 'Train'
+    color?: string;
+    textColor?: string;
+    shortName?: string;
+    longName?: string;
+    url?: string;
+  }
   : never | T extends "taxi" | "rented"
   ? {
-      mode: "car" | "bicycle" | "kickScooter";
-      name?: string;
-      category?: string;
-      color?: string;
-      textColor?: string;
-      model?: string;
-      licensePlate?: string;
-      seats?: number;
-      engine?: "electric" | "combustion";
-    }
+    mode: "car" | "bicycle" | "kickScooter";
+    name?: string;
+    category?: string;
+    color?: string;
+    textColor?: string;
+    model?: string;
+    licensePlate?: string;
+    seats?: number;
+    engine?: "electric" | "combustion";
+  }
   : never | T extends "pedestrian" | "vehicle"
   ? {
-      mode: "pedestrian" | "car";
-    }
+    mode: "pedestrian" | "car";
+  }
   : never;
 
 export type HereMultimodalRoutePlace = {
   id?: string;
   name?: string;
   type:
-    | "place"
-    | "station"
-    | "accessPoint"
-    | "parkingLot"
-    | "chargingStation"
-    | "dockingStation";
+  | "place"
+  | "station"
+  | "accessPoint"
+  | "parkingLot"
+  | "chargingStation"
+  | "dockingStation";
   location: {
     lat: number;
     lng: number;
@@ -109,6 +109,7 @@ export type HereMultimodalRouteSection = {
 
 export type HereMultimodalRoute = {
   id: string;
+  modality: HereMultimodalRouteModality;
   sections: HereMultimodalRouteSection[];
 };
 
@@ -169,5 +170,13 @@ export const serverCalculateMultimodalRoute = async (
 
   // At some point we should probably cast these manually, but for now we'll just return the object as it is
   // These objects are remarkably clean as it is
-  return data.routes as HereMultimodalRoute[];
+  return (data.routes as HereMultimodalRoute[]).map((route) => {
+    // Route transformations can happen here
+    route.sections = route.sections.map((section) => {
+      // Section transformations can happen here
+      return section;
+    })
+    route.modality = modality;
+    return route;
+  });
 };

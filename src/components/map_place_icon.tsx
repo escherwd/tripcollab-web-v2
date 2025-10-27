@@ -128,7 +128,7 @@ export const mapIcons = {
     "bg-blue-500"
   ),
   bus_service: new MapIcon("bus_service", <MdDirectionsBus />, "bg-blue-500"),
-  bridge: new MapIcon("bridge", <TbBuildingBridge />, "bg-gray-500"),
+  bridge: new MapIcon("bridge", <TbBuildingBridge />, "bg-pink-500"),
   public_transit: new MapIcon("public_transit", <MdCommute />, "bg-blue-500"),
   airport: new MapIcon("airport", <MdLocalAirport />, "bg-blue-500"),
   bubble_tea_shop: new MapIcon(

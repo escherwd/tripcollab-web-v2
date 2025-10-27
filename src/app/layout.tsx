@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Mono, DM_Sans } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono, DM_Sans, Inter } from "next/font/google";
 import "@/styles/app.css";
 import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
 import { Analytics } from "@vercel/analytics/next";
@@ -15,6 +15,13 @@ const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
+
+// Inter font used for some unicode characters not well supported by Plex Sans
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+})
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -35,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${plexSans.variable} ${plexMono.variable} ${dmSans.variable} w-screen min-h-screen`}
+        className={`${plexSans.variable} ${plexMono.variable} ${dmSans.variable} ${inter.variable} w-screen min-h-screen`}
       >
         <AuthKitProvider>{children}</AuthKitProvider>
         <Analytics />

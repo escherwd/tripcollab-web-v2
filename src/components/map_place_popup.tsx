@@ -6,7 +6,7 @@ import {
   MdRefresh,
   MdRoute,
 } from "react-icons/md";
-import { mapController, MapMarker } from "./global_map";
+import { mapController, MapMarker, MapProject } from "./global_map";
 import {
   ArrowUpRightIcon,
   CalendarIcon,
@@ -41,7 +41,7 @@ export default function MapPlacePopup({
   marker: MapMarker;
   onClose: () => void;
   onMarkerUpdate?: (marker: MapMarker) => void;
-  project: Prisma.ProjectGetPayload<{ include: { pins: true; user: true } }>;
+  project: MapProject;
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isAddingToProject, setIsAddingToProject] = useState(false);
@@ -254,9 +254,9 @@ export default function MapPlacePopup({
             {place?.photos && (
               <div className="flex flex-col gap-1.5 px-4 pb-4">
                 <div className="grid grid-cols-2 gap-2">
-                  {place?.photos.slice(0, 2).map((photo) => (
+                  {place?.photos.slice(0, 2).map((photo, index) => (
                     <div
-                      key={photo.id}
+                      key={photo.id + index.toString()}
                       className="aspect-square overflow-hidden rounded-lg bg-gray-100"
                     >
                       <img

@@ -43,16 +43,24 @@ export default function RoutePlanningStepRow({ section }: { section: HereMultimo
                 }
                 {
                     section.type === "transit" && (
-                        <div className="flex flex-col gap-1 items-start justify-start">
+                        <div className="flex flex-col gap-1.5 items-start justify-start">
                             <div className="text-xs text-gray-400">{transport.category?.split(', ')[0]} – <a target="_blank" className="hover:underline whitespace-nowrap" href={section.agency?.website ?? '#'}>{section.agency?.name}&nbsp;<ArrowUpRightIcon className="inline-block size-3.5 mb-px" /></a></div>
                             <div>
-                                Line <span className="font-semibold">{transport.shortName ?? transport.name}</span>, signs for
+                                Line <span className="font-semibold font-label text-sm bg-gray-100 py-1 px-2 rounded-lg">{transport.shortName ?? transport.name ?? transport.longName}</span>
                             </div>
-                            <div className=" px-2 py-1 rounded-md text-sm font-semibold my-0.5" style={{ backgroundColor: `${transport.color ?? herePlatformDefaultSectionColors.transit}`, color: `${transport.textColor ?? "#fff"}` }}>
-                                {
-                                    transport.headsign ?? transport.name ?? transport.shortName
-                                }
-                            </div>
+                            {
+                                transport.headsign && <>
+                                    <div className="text-sm text-gray-600 mt-3">
+                                        Signs for:
+                                    </div>
+                                    <div className="font-label px-2 py-1 rounded-md text-sm font-semibold my-0.5" style={{ backgroundColor: `${transport.color ?? herePlatformDefaultSectionColors.transit}`, color: `${transport.textColor ?? "#fff"}` }}>
+                                        {
+                                            transport.headsign
+                                        }
+                                    </div>
+                                </>
+                            }
+
                             <div className="text-sm text-gray-600">
                                 Exit at <span className="font-semibold">{section.arrival.place.name}</span>
                             </div>

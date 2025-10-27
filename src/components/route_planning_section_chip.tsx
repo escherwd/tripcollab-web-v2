@@ -44,7 +44,7 @@ export default function RoutePlanningSectionChip({ section }: { section: HereMul
                 {
                     <RoutePlanningTransitTransportModeIcon mode={transport.mode} />
                 }
-                <div className="" >
+                <div className="font-label" >
                     {transport.shortName ?? transport.name}
                 </div>
             </div>

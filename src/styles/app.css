@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-plex-sans);
+  --font-sans: var(--font-plex-sans), "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-plex-mono);
   --font-display: var(--font-dm-sans);
+  --font-label: var(--font-inter), "Helvetica Neue", Arial, sans-serif;
 
   --spacing-navbar: 4rem;
 }

@@ -2,7 +2,7 @@
 
 import { AppleMapsSearchResult, searchAppleMaps } from "@/app/api/maps/search";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { mapController, MapProject } from "./global_map";
+import { mapController, MapMarker, MapProject } from "./global_map";
 import { LngLatBounds } from "mapbox-gl";
 import {
   AppleMapsAutocompleteResponse,
@@ -21,6 +21,7 @@ import { MdRefresh } from "react-icons/md";
 import PanelIconButton from "./panel_icon_button";
 import { DateTime } from "luxon";
 import SearchAutocompleteComponent from "./search_autocomplete";
+import { AppleMapsPlace } from "@/app/api/maps/place";
 
 export default function GeneralSearchComponent({
   project,
@@ -122,16 +123,7 @@ export default function GeneralSearchComponent({
 
       mapController.setMarkers(
         data.results.map((result) => {
-          const existingPin = project?.pins.find(
-            (p) => p.appleMapsMuid === result.muid,
-          );
-          return {
-            id: existingPin?.id,
-            ephemeralId:
-              existingPin?.id ?? result.muid ?? self.crypto.randomUUID(),
-            coordinate: result.coordinate,
-            appleMapsPlace: result,
-          };
+          return resultToPlace(result);
         }),
       );
 
@@ -165,11 +157,11 @@ export default function GeneralSearchComponent({
       );
       if (!existingPin) {
         mapController.openMarker({
-            id: undefined,
-            ephemeralId: 'quicksearch-' + (result.place?.muid ?? ""),
-            coordinate: result.place.coordinate,
-            appleMapsPlace: result.place,
-          });
+          id: undefined,
+          ephemeralId: 'quicksearch-' + (result.place?.muid ?? ""),
+          coordinate: result.place.coordinate,
+          appleMapsPlace: result.place,
+        });
       } else {
         mapController.openMarker(existingPin.id);
       }
@@ -184,13 +176,26 @@ export default function GeneralSearchComponent({
     }
   };
 
+  const resultToPlace = (result: AppleMapsSearchResult["results"][number]):MapMarker<AppleMapsPlace> => {
+    const existingPin = project?.pins.find(
+      (p) => p.appleMapsMuid === result.muid,
+    );
+    return {
+      id: existingPin?.id,
+      ephemeralId:
+        existingPin?.id ?? result.muid ?? self.crypto.randomUUID(),
+      coordinate: result.coordinate,
+      appleMapsPlace: result,
+    };
+  }
+
   const handleSearchResultClick = (
     result: AppleMapsSearchResult["results"][number],
   ) => {
     const existingPin = project?.pins.find(
       (p) => p.appleMapsMuid === result.muid,
     );
-    mapController.openMarker(existingPin?.id ?? result.muid);
+    mapController.openMarker(existingPin?.id ?? resultToPlace(result));
   };
 
   const isShowingResults = useMemo(() => {

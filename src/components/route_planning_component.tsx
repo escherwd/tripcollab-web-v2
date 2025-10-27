@@ -34,6 +34,7 @@ import { herePlatformDefaultSectionColors, herePlatformRouteGetStyleForSection }
 import * as turf from "@turf/turf";
 import MapPlaceIcon from "./map_place_icon";
 import RoutePlanningStepRow from "./route_planning_step_row";
+import { serverAddRoute } from "@/app/api/project/add_route";
 
 export default function RoutePlanningComponent({
   project,
@@ -347,6 +348,16 @@ export default function RoutePlanningComponent({
     return routeOptions.find(route => route.id === selectedRouteId) || null;
   }, [routeOptions, selectedRouteId]);
 
+  const addRouteToProject = async (route: HereMultimodalRoute) => {
+    if (!project.id || !from || !to) return;
+
+    try {
+      await serverAddRoute(project.id, from, to, route.modality, route)
+    } catch (err) {
+      console.error("Error adding route to project:", err);
+    }
+
+  }
 
 
   return (
@@ -415,7 +426,7 @@ export default function RoutePlanningComponent({
 
                   </div>
                   <div className="p-4 border-t border-gray-100 flex-none">
-                    <button className="tc-button tc-button-primary w-full">
+                    <button onClick={() => {addRouteToProject(selectedRoute)}} className="tc-button tc-button-primary w-full">
                       Add to Project
                     </button>
                   </div>
