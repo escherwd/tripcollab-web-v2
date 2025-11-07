@@ -8,8 +8,22 @@ import MapPlaceIcon, {
 import { act, useEffect, useMemo, useRef, useState } from "react";
 import _ from "lodash";
 import { DateTime, Duration } from "luxon";
+import { projectController } from "@/app/utils/controllers/project_controller";
 
 type ActivityType = "place" | "transit" | "lodging" | "activity";
+
+type ActivityListItem = {
+  id: string;
+        name: string;
+        subtitle?: string;
+        type: string;
+        activityType: ActivityType;
+        pin: MapPin | null;
+        numDays: number;
+        key: string;
+        color: string; // take from styledata
+        iconId: string; // take from styledata
+}
 
 export default function ActivityListComponent({
   project,
@@ -27,18 +41,7 @@ export default function ActivityListComponent({
 
     const groups: Record<
       string,
-      {
-        id: string;
-        name: string;
-        subtitle?: string;
-        type: string;
-        activityType: ActivityType;
-        pin: MapPin | null;
-        numDays: number;
-        key: string;
-        color: string; // take from styledata
-        iconId: string; // take from styledata
-      }[]
+      ActivityListItem[]
     > = {};
 
     for (const pin of project?.pins
@@ -248,9 +251,17 @@ export default function ActivityListComponent({
     animateDurationTracks(activeTab);
   }, [activeTab, scheduledActivities]);
 
-  const openActivity = (activity: MapPin) => {
-    mapController.openMarker(activity.id);
-  }
+  const openActivity = (activity: ActivityListItem) => {
+    console.log("Opening activity:", activity);
+    if (activity.pin) {
+      mapController.openMarker(activity.pin.id);
+    } else if (activity.activityType == "transit") {
+      const route = project?.routes.find((r) => r.id === activity.id);
+      if (route) {
+        projectController.openExistingRoute(route);
+      }
+    }
+  };
 
   return (
     <div className="tc-panel flex flex-col pointer-events-auto h-full w-full">
@@ -352,8 +363,7 @@ export default function ActivityListComponent({
                             key={activity.key}
                             id={activity.key}
                             onClick={() => {
-                              if (activity.pin)
-                                openActivity(activity.pin)
+                              openActivity(activity);
                             }}
                             className={`tc-activity-list-item ${activity.activityType === activeTab
                               ? ""

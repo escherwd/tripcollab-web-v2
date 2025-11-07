@@ -78,4 +78,6 @@ export const serverAddRoute = async (
       ),
     },
   });
+
+  return newRoute;
 };

@@ -35,13 +35,19 @@ import * as turf from "@turf/turf";
 import MapPlaceIcon from "./map_place_icon";
 import RoutePlanningStepRow from "./route_planning_step_row";
 import { serverAddRoute } from "@/app/api/project/add_route";
+import { hereMultimodalRouteSectionsToFeatures } from "@/app/utils/backend/here_route_sections_to_features";
+import RoutePlanningCustomizer from "./route_planning_customizer";
+import { Prisma } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 export default function RoutePlanningComponent({
   project,
   initialFrom,
+  showingDbRoute,
 }: {
   project: MapProject;
   initialFrom?: MapMarker;
+  showingDbRoute?: Prisma.RouteGetPayload<any>;
 }) {
   const [fromSearchQuery, setFromSearchQuery] = useState<string | null>(null);
   const [toSearchQuery, setToSearchQuery] = useState<string | null>(null);
@@ -71,6 +77,8 @@ export default function RoutePlanningComponent({
 
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null)
 
+  const [isAddingRoute, setIsAddingRoute] = useState(false);
+
   const modalityOptions: {
     value: HereMultimodalRouteModality;
     icon: React.ReactNode;
@@ -82,6 +90,51 @@ export default function RoutePlanningComponent({
 
   const [selectedModality, setSelectedModality] = useState<HereMultimodalRouteModality>("transit")
 
+  useEffect(() => {
+    if (showingDbRoute) {
+      const route: HereMultimodalRoute = {
+        id: showingDbRoute.id,
+        modality: showingDbRoute.modality as HereMultimodalRouteModality,
+        sections: showingDbRoute.segments as HereMultimodalRouteSection[],
+      };
+      setFrom({
+        coordinate: {
+          lat: showingDbRoute.originLat,
+          lng: showingDbRoute.originLng,
+        },
+        ephemeralId: route.id+"-route-from",
+        appleMapsPlace: {
+          name: showingDbRoute.originName,
+          muid: showingDbRoute.originAppleMapsMuid ?? "mapbox-feature-needs-muid-" + randomUUID(),
+          coordinate: {
+            lat: showingDbRoute.originLat,
+            lng: showingDbRoute.originLng,
+          },
+        }
+      })
+      setTo({
+        coordinate: {
+          lat: showingDbRoute.destLat,
+          lng: showingDbRoute.destLng,
+        },
+        ephemeralId: route.id+"-route-to",
+        appleMapsPlace: {
+          name: showingDbRoute.destName,
+          muid: showingDbRoute.destAppleMapsMuid ?? "mapbox-feature-needs-muid-" + randomUUID(),
+          coordinate: {
+            lat: showingDbRoute.destLat,
+            lng: showingDbRoute.destLng,
+          },
+        }
+      })
+      displayRoute(route);
+      setRouteOptions([route]);
+      setTimeout(() => {
+        setSelectedRouteId(route.id);
+      }, 100);
+    }
+  }, [showingDbRoute])
+
   const swap = () => {
     const temp = from;
     setFrom(to);
@@ -92,12 +145,16 @@ export default function RoutePlanningComponent({
 
   useEffect(() => {
     if (!from && !to) mapController.setMarkers([]);
+
+    // Don't need to set markers when just showing existing route
+    if (showingDbRoute) return;
     mapController.setMarkers([from, to].filter(m => m !== null));
     mapController.openMarker(null);
   }, [to, from]);
 
   // Update the initial from if it changes
   useEffect(() => {
+    if (!initialFrom) return;
     setFrom(initialFrom ?? null);
   }, [initialFrom]);
 
@@ -145,13 +202,16 @@ export default function RoutePlanningComponent({
   useEffect(() => {
     if (!to || !from) return;
 
+    // Don't need to search if just showing existing route
+    if (showingDbRoute) return;
+
     console.log(
       "should calculate route between",
       from.coordinate,
       to.coordinate,
     );
     calculateRoutes(from.coordinate, to.coordinate, selectedModality);
-  }, [to, from, selectedModality]);
+  }, [to, from, selectedModality, showingDbRoute]);
 
   useEffect(() => {
     if (!toSearchQuery || toSearchQuery.length < 3) {
@@ -194,65 +254,7 @@ export default function RoutePlanningComponent({
 
   const displayRoute = (route: HereMultimodalRoute) => {
 
-    const features = route.sections.map((section) => {
-      const id = route.id + "-" + section.id;
-
-
-
-      const polyline = decode(section.polyline).polyline.map((coord) => [
-        coord[1],
-        coord[0],
-      ])
-
-      // if (section.type === 'pedestrian') {
-      //   const line = turf.lineString(polyline);
-      //   const length = turf.length(line, { units: 'meters' });
-      //   if (length < 400) return null; // Skip very short pedestrian sections
-      // }
-
-      const styleSpec = herePlatformRouteGetStyleForSection(section);
-
-      const feature: MapFeatureWithLayerSpec = {
-        id,
-        feature: {
-          id,
-          type: "Feature",
-          geometry: {
-            type: "LineString",
-            coordinates: polyline
-          },
-          properties: {}
-        },
-        layer: {
-          ...styleSpec as any,
-          id,
-          source: id,
-          type: "line",
-          layout: {
-            "line-cap": "round",
-            "line-join": "round",
-          }
-        },
-      };
-
-      if (section.type === "transit") {
-        const line = turf.lineString(polyline);
-        const length = turf.length(line, { units: 'meters' });
-        const center = turf.along(line, length / 2, { units: 'meters' });
-
-        feature.marker = {
-          coordinate: {
-            lat: center.geometry.coordinates[1],
-            lng: center.geometry.coordinates[0],
-          },
-          element: (
-            <RoutePlanningSectionChip section={section} />
-          )
-        }
-      }
-
-      return feature;
-    }).filter(f => f !== null) as MapFeatureWithLayerSpec[];
+    const features = hereMultimodalRouteSectionsToFeatures(route.id, route.sections);
 
     mapController.setFeatures("temporary", features);
 
@@ -348,16 +350,7 @@ export default function RoutePlanningComponent({
     return routeOptions.find(route => route.id === selectedRouteId) || null;
   }, [routeOptions, selectedRouteId]);
 
-  const addRouteToProject = async (route: HereMultimodalRoute) => {
-    if (!project.id || !from || !to) return;
-
-    try {
-      await serverAddRoute(project.id, from, to, route.modality, route)
-    } catch (err) {
-      console.error("Error adding route to project:", err);
-    }
-
-  }
+  
 
 
   return (
@@ -385,7 +378,7 @@ export default function RoutePlanningComponent({
         <div className="flex flex-col flex-1 min-h-0 relative overflow-hidden">
           <div id="route-info-panel" className={`absolute inset-0 bg-white z-30 shadow-lg duration-300 flex flex-col transition-transform ${selectedRoute ? 'translate-x-0' : 'translate-x-[100%]'}`}>
             {
-              selectedRoute && (
+              selectedRoute && from && to && (
                 <>
                   <div className="flex-1 overflow-y-scroll">
                     <div className="p-4 border-b border-gray-100 pt-8 ">
@@ -403,10 +396,10 @@ export default function RoutePlanningComponent({
                     <div className="flex flex-col">
                         <div className="flex gap-3 px-4 py-3 items-center">
                           <div className="flex-none">
-                            <MapPlaceIcon appleMapsCategoryId={from?.appleMapsPlace?.categoryId} />
+                            <MapPlaceIcon appleMapsCategoryId={from.appleMapsPlace?.categoryId} />
                           </div>
                           <div className="">
-                            <div className="font-semibold">{from?.appleMapsPlace?.name}</div>
+                            <div className="font-semibold">{from.appleMapsPlace?.name}</div>
                             <div className="text-sm text-gray-500">Start</div>
                           </div>
                         </div>
@@ -415,21 +408,17 @@ export default function RoutePlanningComponent({
                         })}
                         <div className="flex gap-3 px-4 py-3 items-center even:bg-gray-50">
                           <div className="flex-none">
-                            <MapPlaceIcon appleMapsCategoryId={to?.appleMapsPlace?.categoryId} />
+                            <MapPlaceIcon appleMapsCategoryId={to.appleMapsPlace?.categoryId} />
                           </div>
                           <div className="">
-                            <div className="font-semibold">{to?.appleMapsPlace?.name}</div>
+                            <div className="font-semibold">{to.appleMapsPlace?.name}</div>
                             <div className="text-sm text-gray-500">Destination</div>
                           </div>
                         </div>
                     </div>
 
                   </div>
-                  <div className="p-4 border-t border-gray-100 flex-none">
-                    <button onClick={() => {addRouteToProject(selectedRoute)}} className="tc-button tc-button-primary w-full">
-                      Add to Project
-                    </button>
-                  </div>
+                  <RoutePlanningCustomizer project={project} route={selectedRoute} from={from} to={to} />
                 </>
               )
             }

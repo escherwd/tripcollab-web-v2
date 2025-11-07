@@ -17,6 +17,10 @@ export const herePlatformRouteGetStyleForSection = (section: HereMultimodalRoute
         "line-width": 6,
         "line-border-color": "#FBFBFB",
         "line-border-width": 1,
+        'line-opacity-transition': {
+            duration: 300,
+            delay: 0,
+        }
     }
 
     if (section.type === "transit") {

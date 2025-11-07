@@ -1,5 +1,5 @@
 import { MapMarker } from "@/components/global_map";
-import { randomUUID } from "crypto";
+import { randomBytes, randomUUID } from "crypto";
 import { GeoJSONFeature, MapMouseEvent } from "mapbox-gl";
 import { vectorPlaceSearchQuery } from "./vector_place_search_query";
 import { mapboxPlaceClassToAppleType } from "./place_class_to_apple_type";
@@ -20,7 +20,7 @@ export const renderFeatureToMarker = (feature: GeoJSONFeature, e: MapMouseEvent)
       }
     const marker: MapMarker = {
       id: undefined,
-      ephemeralId: feature.id?.toString() ?? randomUUID(),
+      ephemeralId: feature.id?.toString() ?? randomBytes(8).toString("hex"),
       coordinate: coordinate,
       appleMapsPlace: {
         name: properties?.name_en ?? feature.properties?.name ?? "Dropped Pin",

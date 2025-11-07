@@ -2,7 +2,7 @@
 
 import Map, { Layer, MapRef, Marker, Source } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
-import React, { useEffect, useRef, useState } from "react";
+import React, { Fragment, useEffect, useRef, useState } from "react";
 import {
   EasingOptions,
   GeoJSONFeature,
@@ -19,6 +19,9 @@ import { AppleMapsPlace } from "@/app/api/maps/place";
 import { projectPinToMarker } from "@/app/utils/backend/project_pin_to_marker";
 // import { Feature } from "geojson";
 import { Prisma } from "@prisma/client";
+import { hereMultimodalRouteSectionsToFeatures } from "@/app/utils/backend/here_route_sections_to_features";
+import { HereMultimodalRouteSection } from "@/app/api/routes/here_multimodal";
+import { projectController } from "@/app/utils/controllers/project_controller";
 
 // Create a global event emitter for the map
 const mapEmitter = new EventTarget();
@@ -264,8 +267,14 @@ export default function GlobalAppMap() {
     mapEmitter.addEventListener("open-marker", listenerOpenMarker);
 
     const listenerSetProject = (e: CustomEventInit<MapProject>) => {
-      console.log("set-project", e.detail);
+      // Set the project
       setProject(e.detail ?? null);
+      // Set the permanent features (routes)
+      if (e.detail) {
+        const routeFeatures: MapFeatureWithLayerSpec[] = e.detail.routes
+          .map((r) => hereMultimodalRouteSectionsToFeatures(r.id, (r.segments ?? []) as HereMultimodalRouteSection[], false)).flat();
+        setPermanentFeatures(routeFeatures);
+      }
     };
 
     mapEmitter.addEventListener("set-project", listenerSetProject);
@@ -280,7 +289,6 @@ export default function GlobalAppMap() {
         setPermanentFeatures(e.detail.features);
       }
       if (e.detail?.type === "temporary" || e.detail?.type === "all") {
-        console.log("Setting temporary features", e.detail.features);
         setTemporaryFeatures(e.detail.features);
       }
     };
@@ -325,6 +333,15 @@ export default function GlobalAppMap() {
     if (!feature) return;
 
     console.log(feature);
+    if (feature.layer?.type == 'line') {
+      // Open a route segment
+      const id = feature.layer?.id?.substring(0, 36);
+      const route = project?.routes.find(f => f.id === id);
+      if (route) {
+        projectController.openExistingRoute(route)
+      }
+      return
+    }
 
     // Create a marker from the feature
     const marker = renderFeatureToMarker(feature, e);
@@ -449,8 +466,8 @@ export default function GlobalAppMap() {
               {marker.appleMapsPlace ? (
                 <div
                   className={`bg-white expand-from-origin relative border-2 border-white shadow-md rounded-full transition-transform cursor-pointer ${openMarker?.ephemeralId === marker.ephemeralId
-                      ? "scale-140 tc-marker-caret"
-                      : ""
+                    ? "scale-140 tc-marker-caret"
+                    : ""
                     } ${openMarker?.ephemeralId &&
                       openMarker.ephemeralId !== marker.ephemeralId
                       ? "opacity-50 scale-80"
@@ -483,20 +500,31 @@ export default function GlobalAppMap() {
             </div>
           </Marker>
         ))}
-        {temporaryFeatures.map((feature) => (
-          <Source key={feature.id} type="geojson" data={feature.feature}>
-            <Layer
-              {...feature.layer}
-            />
-          </Source>
-        ))}
         {
-          temporaryFeatures.filter(f => f.marker).map((feature) => (
-            <Marker key={feature.id + "-feature-marker"} latitude={feature.marker!.coordinate.lat} longitude={feature.marker!.coordinate.lng}>
-              {feature.marker!.element}
-            </Marker>
-          ))
+          [{ type: "temporary", features: temporaryFeatures }, { type: "permanent", features: permanentFeatures }].map((featureset) => <Fragment key={featureset.type}>
+            {featureset.features.map((feature) => {
+              feature.layer.paint = {
+                ...feature.layer.paint,
+                "line-opacity": (featureset.type == "permanent" && temporaryFeatures.length > 0) ? 0.2 : 1.0,
+              };
+              return (
+                <Source key={featureset.type + "-" + feature.id} type="geojson" data={feature.feature}>
+                  <Layer
+                    {...feature.layer}
+                  />
+                </Source>
+              )
+            })}
+            {
+              featureset.features.filter(f => f.marker).map((feature) => (
+                <Marker key={feature.id + "-" + featureset.type + "-feature-marker"} latitude={feature.marker!.coordinate.lat} longitude={feature.marker!.coordinate.lng}>
+                  {feature.marker!.element}
+                </Marker>
+              ))
+            }
+          </Fragment>)
         }
+
       </Map>
       {openMarker && openMarkerPopupBounds && project && (
         <div
