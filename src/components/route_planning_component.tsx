@@ -8,7 +8,6 @@ import {
 } from "@heroicons/react/16/solid";
 import { mapController, MapFeatureWithLayerSpec, MapMarker, MapProject } from "./global_map";
 import PanelIconButton from "./panel_icon_button";
-import { projectController } from "@/app/utils/controllers/project_controller";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AppleMapsAutocompleteResponse,
@@ -39,15 +38,20 @@ import { hereMultimodalRouteSectionsToFeatures } from "@/app/utils/backend/here_
 import RoutePlanningCustomizer from "./route_planning_customizer";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { ProjectFunctionOpenRoutePlanner, ProjectFunctionUpdateProject } from "@/app/(layout-map)/t/[slug]/content";
 
 export default function RoutePlanningComponent({
   project,
   initialFrom,
   showingDbRoute,
+  openRoutePlanner,
+  updateProject
 }: {
-  project: MapProject;
-  initialFrom?: MapMarker;
-  showingDbRoute?: Prisma.RouteGetPayload<any>;
+  project: MapProject,
+  initialFrom?: MapMarker,
+  showingDbRoute?: Prisma.RouteGetPayload<any>,
+  openRoutePlanner: ProjectFunctionOpenRoutePlanner,
+  updateProject: ProjectFunctionUpdateProject,
 }) {
   const [fromSearchQuery, setFromSearchQuery] = useState<string | null>(null);
   const [toSearchQuery, setToSearchQuery] = useState<string | null>(null);
@@ -67,7 +71,8 @@ export default function RoutePlanningComponent({
     // Opening the route planner with nothing will close it
     mapController.setFeatures("temporary", []);
     mapController.setMarkers([]);
-    projectController.openRoutePlanner(null);
+    // projectController.openRoutePlanner(null);
+    openRoutePlanner(null);
   };
 
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
@@ -91,6 +96,9 @@ export default function RoutePlanningComponent({
   const [selectedModality, setSelectedModality] = useState<HereMultimodalRouteModality>("transit")
 
   useEffect(() => {
+
+    console.log("showingDbRoute changed:", showingDbRoute);
+
     if (showingDbRoute) {
       const route: HereMultimodalRoute = {
         id: showingDbRoute.id,
@@ -110,6 +118,8 @@ export default function RoutePlanningComponent({
             lat: showingDbRoute.originLat,
             lng: showingDbRoute.originLng,
           },
+          categoryId: showingDbRoute.originExtendedMetadata?.categoryId,
+          categoryName: showingDbRoute.originExtendedMetadata?.categoryName,
         }
       })
       setTo({
@@ -125,6 +135,8 @@ export default function RoutePlanningComponent({
             lat: showingDbRoute.destLat,
             lng: showingDbRoute.destLng,
           },
+          categoryId: showingDbRoute.destExtendedMetadata?.categoryId,
+          categoryName: showingDbRoute.destExtendedMetadata?.categoryName,
         }
       })
       displayRoute(route);
@@ -252,9 +264,30 @@ export default function RoutePlanningComponent({
     });
   };
 
+  const updateCurrentRouteId = (id: string) => {
+    if (!selectedRouteId || !routeOptions || routeOptions.length === 0) return;
+  
+
+    console.log("Updating current route id to:", id);
+
+    setRouteOptions(routeOptions.map(route => {
+      if (route.id === selectedRouteId) {
+        return {
+          ...route,
+          id: id,
+        }
+      }
+      return route;
+    }));
+    setSelectedRouteId(id);
+
+  }
+
   const displayRoute = (route: HereMultimodalRoute) => {
 
-    const features = hereMultimodalRouteSectionsToFeatures(route.id, route.sections);
+    console.log("displayRoute called")
+
+    const features = hereMultimodalRouteSectionsToFeatures(route.id, route.sections, true, !route.id.startsWith("route-deleted") ? (showingDbRoute?.styleData ?? undefined) : undefined);
 
     mapController.setFeatures("temporary", features);
 
@@ -357,6 +390,7 @@ export default function RoutePlanningComponent({
     <div className="absolute slide-in-from-left left-2 bottom-9 w-72 top-navbar">
       <div className="h-full tc-panel flex min-h-0 flex-col overflow-hidden">
         <div className="tc-panel-header flex-none transition-all">
+          { !showingDbRoute &&
           <div className={`${selectedRoute ? 'opacity-100 mr-0' : 'opacity-0 pointer-events-none -mr-[40px]'} transition-all w-6 flex-none`}>
             <PanelIconButton
               icon={<ArrowLeftIcon />}
@@ -365,6 +399,7 @@ export default function RoutePlanningComponent({
               }}
             />
           </div>
+          }
           <div className="tc-panel-title flex-1">Browse Route{selectedRoute ? '' : 's'}</div>
           <div>
             <PanelIconButton
@@ -376,7 +411,7 @@ export default function RoutePlanningComponent({
           </div>
         </div>
         <div className="flex flex-col flex-1 min-h-0 relative overflow-hidden">
-          <div id="route-info-panel" className={`absolute inset-0 bg-white z-30 shadow-lg duration-300 flex flex-col transition-transform ${selectedRoute ? 'translate-x-0' : 'translate-x-[100%]'}`}>
+          <div id="route-info-panel" className={`absolute inset-0 bg-white z-30 shadow-lg duration-300 flex flex-col transition-transform ${(selectedRoute || showingDbRoute) ? 'translate-x-0' : 'translate-x-[100%]'}`}>
             {
               selectedRoute && from && to && (
                 <>
@@ -418,7 +453,7 @@ export default function RoutePlanningComponent({
                     </div>
 
                   </div>
-                  <RoutePlanningCustomizer project={project} route={selectedRoute} from={from} to={to} />
+                  <RoutePlanningCustomizer updateRouteId={updateCurrentRouteId} project={project} route={selectedRoute} from={from} to={to} initialDBRoute={showingDbRoute} updateProject={updateProject} />
                 </>
               )
             }
@@ -481,6 +516,7 @@ export default function RoutePlanningComponent({
                 onChange={(e) => {
                   setToSearchQuery(e.target.value);
                 }}
+                autoFocus={!!initialFrom}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     if (toAutocompleteResults?.results[0]) {

@@ -1,3 +1,5 @@
+'use client';
+
 import MapPlaceIcon, { mapIcons } from "@/components/map_place_icon";
 
 export default function IconsViewingPage() {

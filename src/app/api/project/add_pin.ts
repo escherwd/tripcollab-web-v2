@@ -64,7 +64,7 @@ export const addPin = async (projectId: string, marker: MapMarker<AppleMapsPlace
             },
             styleData: {
                 iconId: icon.categoryId,
-                iconColor: icon.color,
+                // iconColor: icon.color,
             }
         },
     })

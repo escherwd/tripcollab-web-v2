@@ -4,31 +4,35 @@ import { MdHotel, MdLocationCity, MdRoute, MdStar } from "react-icons/md";
 import { mapController, MapPin, MapProject } from "./global_map";
 import MapPlaceIcon, {
   getMapIconFromAppleMapsCategoryId,
+  mapIcons,
 } from "./map_place_icon";
 import { act, useEffect, useMemo, useRef, useState } from "react";
 import _ from "lodash";
 import { DateTime, Duration } from "luxon";
-import { projectController } from "@/app/utils/controllers/project_controller";
+import { ProjectFunctionOpenExistingRoute } from "@/app/(layout-map)/t/[slug]/content";
+import colors from "tailwindcss/colors";
 
 type ActivityType = "place" | "transit" | "lodging" | "activity";
 
 type ActivityListItem = {
   id: string;
-        name: string;
-        subtitle?: string;
-        type: string;
-        activityType: ActivityType;
-        pin: MapPin | null;
-        numDays: number;
-        key: string;
-        color: string; // take from styledata
-        iconId: string; // take from styledata
-}
+  name: string;
+  subtitle?: string;
+  type: string;
+  activityType: ActivityType;
+  pin: MapPin | null;
+  numDays: string;
+  key: string;
+  color?: string; // take from styledata
+  iconId: string; // take from styledata
+};
 
 export default function ActivityListComponent({
   project,
+  openExistingRoute,
 }: {
   project?: MapProject | null;
+  openExistingRoute: ProjectFunctionOpenExistingRoute;
 }) {
   // const unscheduledActivities = useMemo(
   //   () => project?.pins.filter((pin) => !pin.dateStart),
@@ -38,16 +42,31 @@ export default function ActivityListComponent({
   //   const scheduledActivities = _.groupBy(project?.pins.filter((pin) => pin.dateStart),;
 
   const scheduledActivities = useMemo(() => {
-
-    const groups: Record<
-      string,
-      ActivityListItem[]
-    > = {};
+    const groups: Record<string, ActivityListItem[]> = {};
 
     for (const pin of project?.pins
       .filter((pin) => pin.dateStart)
       .sort((a, b) => (a.timeStart ?? 0) - (b.timeStart ?? 0)) ?? []) {
       const date = pin.dateStart!.toISOString().split("T")[0];
+
+      const pinColor =
+        pin.styleData?.iconColor ??
+        mapIcons[pin.styleData?.iconId ?? "address"]?.color;
+      const pinIconId = pin.styleData?.iconId ?? "address";
+
+      const numDays =
+        pin.dateStart && pin.duration
+          ? DateTime.fromJSDate(pin.dateStart)
+              .startOf("day")
+              .diff(
+                DateTime.fromJSDate(pin.dateStart)
+                  .plus({ minutes: pin.duration ?? 0 })
+                  .startOf("day"),
+                "days"
+              )
+              .negate()
+              .toHuman()
+          : "0 Days";
 
       if (!groups[date]) {
         groups[date] = [];
@@ -57,10 +76,9 @@ export default function ActivityListComponent({
         pin: pin,
         id: pin.id,
         activityType: pin.type as ActivityType,
-        numDays:
-          pin.dateStart && pin.duration ? Math.ceil(pin.duration / 1440) : 0,
+        numDays: numDays,
         key: `activity-start-${pin.id}`,
-        color: (pin.styleData as any)["iconColor"] ?? "bg-gray-500",
+        color: pinColor,
         iconId: (pin.styleData as any)["iconId"] ?? "address",
         name: pin.name,
       });
@@ -75,14 +93,11 @@ export default function ActivityListComponent({
             type: "end",
             pin: null,
             activityType: pin.type as ActivityType,
-            numDays:
-              pin.dateStart && pin.duration
-                ? Math.ceil(pin.duration / 1440)
-                : 0,
+            numDays: numDays,
             id: pin.id,
             key: `activity-end-${pin.id}`,
-            color: (pin.styleData as any)["iconColor"] ?? "bg-gray-500",
-            iconId: (pin.styleData as any)["iconId"] ?? "address",
+            color: pinColor,
+            iconId: pinIconId,
             name: pin.name,
           },
           ...(groups[endDate] ?? []),
@@ -96,38 +111,71 @@ export default function ActivityListComponent({
 
       if (!date) continue;
 
-      console.log("adding route", route, date);
+      // console.log("adding route", route, date);
+      const numDays = route.dateStart && DateTime.fromJSDate(route.dateStart).plus({ minutes: route.duration ?? 0 })
+              .startOf("day")
+              .diff(DateTime.fromJSDate(route.dateStart).startOf("day"), "days")
+              .toHuman() || "0 Days";
 
       if (!groups[date]) {
         groups[date] = [];
       }
-      const durationString = Duration.fromObject({ minutes: (route.duration ?? 0) % 60, hours: Math.floor((route.duration ?? 0) / 60) }).toHuman({ unitDisplay: 'short', showZeros: false });
+      const durationString = Duration.fromObject({
+        minutes: (route.duration ?? 0) % 60,
+        hours: Math.floor((route.duration ?? 0) / 60),
+      }).toHuman({ unitDisplay: "short", showZeros: false });
       groups[date].push({
         type: "start",
         pin: null,
         id: route.id,
         activityType: "transit" as ActivityType,
-        numDays: 0,
-        color: "bg-blue-500",
+        numDays: numDays,
+        color:
+          route.styleData?.color ??
+          getMapIconFromAppleMapsCategoryId("transportation").color,
         key: `activity-start-${route.id}`,
-        name: `${route.originName} to ${route.destName}`,
+        name: route.name ?? `${route.originName} to ${route.destName}`,
         subtitle: durationString,
         iconId: "public_transit",
       });
+      if (route.dateStart && route.duration && route.duration > 1440) {
+        const endDate = DateTime.fromJSDate(route.dateStart).plus({
+          minutes: route.duration ?? 0,
+        });
+
+        const endDateISO = endDate
+          .toISO({ precision: "day" })
+          ?.substring(0, 10);
+        if (!endDateISO) continue;
+        groups[endDateISO] = [
+          {
+            type: "end",
+            pin: null,
+            activityType: "transit" as ActivityType,
+            id: route.id,
+            numDays: numDays,
+            key: `activity-end-${route.id}`,
+            color:
+              route.styleData?.color ??
+              getMapIconFromAppleMapsCategoryId("transportation").color,
+            iconId: "public_transit",
+            name: route.name ?? `${route.originName} to ${route.destName}`,
+          },
+          ...(groups[endDateISO] ?? []),
+        ];
+      }
     }
-
-
 
     return groups;
   }, [project]);
 
-
   const datesToDisplay = useMemo(() => {
-    let sortedDates = project?.pins
-      .filter((pin) => pin.dateStart)
-      .map((pin) => pin.dateStart!.toISOString().split("T")[0]) ?? [];
+    let sortedDates =
+      project?.pins
+        .filter((pin) => pin.dateStart)
+        .map((pin) => pin.dateStart!.toISOString().split("T")[0]) ?? [];
 
-      // Also include any route dates
+    // Also include any route dates
     for (const route of project?.routes ?? []) {
       const date = route.dateStart?.toISOString().split("T")[0];
       if (date && !sortedDates.includes(date)) {
@@ -159,7 +207,6 @@ export default function ActivityListComponent({
         DateTime.fromISO(start).plus({ days: 1 }).toISO()?.split("T")[0] ??
         null;
     }
-    console.log("dates:", dates);
     return {
       start: sortedDates[0],
       end: end,
@@ -194,16 +241,10 @@ export default function ActivityListComponent({
     };
   }, [activityScrollView, activityListContainer, activeTab]);
 
-
-
   useEffect(() => {
-
     const animateDurationTracks = (activeTab: ActivityType) => {
-
       // Method for calculating the track height of an activity
       const calculateHeightForActivity = (id: string) => {
-
-
         // const dateEnd = DateTime.fromJSDate(activity.dateStart)
         //   .plus({ minutes: activity.duration ?? 0 })
         //   .toISO({ precision: "day" })
@@ -231,14 +272,17 @@ export default function ActivityListComponent({
             `#activity-duration-track-${activity.key}`
           ) as HTMLDivElement | null | undefined,
           activity: activity,
-        })).filter((track) => track.track && track.activity.pin !== null);
+        }))
+        .filter((track) => track.track);
 
       // Run the animation
       let i = 0;
       const tickLimit = 4;
       const interval = setInterval(() => {
         for (const track of durationTracks) {
-          track.track!.style.height = `${calculateHeightForActivity(track.activity.id)}px`;
+          track.track!.style.height = `${calculateHeightForActivity(
+            track.activity.id
+          )}px`;
         }
         i++;
         if (i >= tickLimit) {
@@ -246,7 +290,6 @@ export default function ActivityListComponent({
         }
       }, 75);
     };
-
 
     animateDurationTracks(activeTab);
   }, [activeTab, scheduledActivities]);
@@ -258,60 +301,83 @@ export default function ActivityListComponent({
     } else if (activity.activityType == "transit") {
       const route = project?.routes.find((r) => r.id === activity.id);
       if (route) {
-        projectController.openExistingRoute(route);
+        // projectController.openExistingRoute(route);
+        openExistingRoute(route);
       }
     }
   };
 
   return (
     <div className="tc-panel flex flex-col pointer-events-auto h-full w-full">
-      <div className="tc-panel-header flex-none">
+      <div className="tc-panel-header flex-none bg-gray-50">
         <div className="tc-panel-title">Itinerary</div>
       </div>
-      <div className="border-b border-gray-100 px-4 py-2 flex gap-2">
+      <div className="pt-2 flex bg-gray-50">
+        <div className="w-2 border-b border-gray-100" />
         <div
-          className={`border-gray-100 tc-activity-toggler ${activeTab === "place"
-            ? "active bg-gray-500"
-            : "bg-gray-100 !text-gray-500"
-            }`}
+          className={`tc-activity-toggler text-gray-500 ${
+            activeTab === "place" ? "active" : ""
+          }`}
+          style={
+            {
+              "--unfocused-bg": colors.gray[100],
+              "--hover-bg": colors.gray[200],
+            } as React.CSSProperties
+          }
           onClick={() => setActiveTab("place")}
         >
           <MdLocationCity className="" />
           <span className="">Places</span>
         </div>
         <div
-          className={`border-blue-100 tc-activity-toggler ${activeTab === "transit"
-            ? "active bg-blue-500"
-            : "bg-blue-100 !text-blue-500"
-            }`}
+          className={`tc-activity-toggler text-blue-500 ${
+            activeTab === "transit" ? "active " : ""
+          }`}
+          style={
+            {
+              "--unfocused-bg": colors.blue[100],
+              "--hover-bg": colors.blue[200],
+            } as React.CSSProperties
+          }
           onClick={() => setActiveTab("transit")}
         >
           <MdRoute className="" />
           <span className="">Transit</span>
         </div>
         <div
-          className={`border-purple-100 tc-activity-toggler ${activeTab === "lodging"
-            ? "active bg-purple-500"
-            : "bg-purple-100 !text-purple-500"
-            }`}
+          className={`tc-activity-toggler text-purple-500 ${
+            activeTab === "lodging" ? "active " : ""
+          }`}
+          style={
+            {
+              "--unfocused-bg": colors.purple[100],
+              "--hover-bg": colors.purple[200],
+            } as React.CSSProperties
+          }
           onClick={() => setActiveTab("lodging")}
         >
           <MdHotel className="" />
           <span className="">Lodging</span>
         </div>
         <div
-          className={` border-pink-100 tc-activity-toggler ${activeTab === "activity"
-            ? "active bg-pink-500"
-            : "bg-pink-100 !text-pink-500"
-            }`}
+          className={` tc-activity-toggler text-pink-500 ${
+            activeTab === "activity" ? "active " : ""
+          }`}
+          style={
+            {
+              "--unfocused-bg": colors.pink[100],
+              "--hover-bg": colors.pink[200],
+            } as React.CSSProperties
+          }
           onClick={() => setActiveTab("activity")}
         >
           <MdStar className="" />
           <span className="">Activities</span>
         </div>
+        <div className="w-2 border-b border-gray-100" />
       </div>
       <div
-        className="flex-1 min-h-0 relative h-auto"
+        className="flex-1 min-h-0 relative h-auto z-10 bg-white"
         ref={activityListContainer}
       >
         <div
@@ -326,7 +392,7 @@ export default function ActivityListComponent({
                     <span className="text-gray-800">
                       {DateTime.fromISO(date).toLocaleString({
                         weekday: "short",
-                      })}{' '}
+                      })}{" "}
                     </span>
                     <span className="text-gray-400 float-right">
                       {DateTime.fromISO(date).toLocaleString({
@@ -343,16 +409,18 @@ export default function ActivityListComponent({
                           <div
                             key={activity.key}
                             id={activity.key}
-                            className={`tc-activity-list-item-end ${activity.activityType === activeTab
-                              ? ""
-                              : "tc-activity-list-item-end-unfocused"
-                              }`}
+                            className={`tc-activity-list-item-end ${
+                              activity.activityType === activeTab
+                                ? ""
+                                : "tc-activity-list-item-end-unfocused"
+                            }`}
                           >
                             <div
-                              className={`${activity.color} ml-[12px] size-4 rounded-full relative border-3 border-white z-20`}
+                              className={`ml-[12px] size-4 rounded-full relative border-3 border-white z-20 transition-colors`}
+                              style={{ backgroundColor: activity.color }}
                             ></div>
                             <div className="text-xs text-gray-400">
-                              {activity.numDays} days
+                              {activity.numDays}
                             </div>
                           </div>
                         );
@@ -365,24 +433,34 @@ export default function ActivityListComponent({
                             onClick={() => {
                               openActivity(activity);
                             }}
-                            className={`tc-activity-list-item ${activity.activityType === activeTab
-                              ? ""
-                              : "tc-activity-list-item-unfocused"
-                              }`}
+                            className={`tc-activity-list-item ${
+                              activity.activityType === activeTab
+                                ? ""
+                                : "tc-activity-list-item-unfocused"
+                            }`}
                           >
                             <div
                               id={`activity-duration-track-${activity.key}`}
-                              className={`tc-activity-list-item-duration-track ${activity.color}`}
+                              key={`duration-track-${activeTab}-${activity.key}`}
+                              className={`tc-activity-list-item-duration-track`}
+                              style={{ backgroundColor: activity.color }}
                             ></div>
                             <div className="tc-activity-list-item-icon">
                               <MapPlaceIcon
                                 tcCategoryId={activity.iconId}
+                                customColor={activity.color}
                               />
                             </div>
                             <div className="tc-activity-list-item-text">
                               {activity.name}
                               {activity.subtitle && (
-                                <div className={` text-gray-400 duration-300 mt-px transition-all ${activity.activityType === activeTab ? 'opacity-100 h-4 text-xs' : 'opacity-0 h-0 text-[0px]'}`}>
+                                <div
+                                  className={` text-gray-400 duration-300 mt-px transition-all ${
+                                    activity.activityType === activeTab
+                                      ? "opacity-100 h-4 text-xs"
+                                      : "opacity-0 h-0 text-[0px]"
+                                  }`}
+                                >
                                   {activity.subtitle}
                                 </div>
                               )}

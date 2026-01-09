@@ -1560,6 +1560,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@prisma/debug@npm:6.19.0":
+  version: 6.19.0
+  resolution: "@prisma/debug@npm:6.19.0"
+  checksum: 10c0/0e63ac170da1f5d6be7773a7865bc8475970f867608ae2fe1df27db118231687114b0f615e6c2ed4c764c413c2bb8eb8bd8ac27633997555b53997a5b7aaefa8
+  languageName: node
+  linkType: hard
+
+"@prisma/dmmf@npm:6.19.0":
+  version: 6.19.0
+  resolution: "@prisma/dmmf@npm:6.19.0"
+  checksum: 10c0/a68de35db23fa029b5d8764a28afc068789de78c888ffaee1cc54f4ffb83db145df309f87de5d986de79712fd01c4ea718d979718fbcb92dd70df72b60c08d5a
+  languageName: node
+  linkType: hard
+
 "@prisma/engines-version@npm:6.15.0-5.85179d7826409ee107a6ba334b5e305ae3fba9fb":
   version: 6.15.0-5.85179d7826409ee107a6ba334b5e305ae3fba9fb
   resolution: "@prisma/engines-version@npm:6.15.0-5.85179d7826409ee107a6ba334b5e305ae3fba9fb"
@@ -1587,6 +1601,24 @@ __metadata:
     "@prisma/engines-version": "npm:6.15.0-5.85179d7826409ee107a6ba334b5e305ae3fba9fb"
     "@prisma/get-platform": "npm:6.15.0"
   checksum: 10c0/1e549df0700da72e3255e4f12a637a37835fd1b9e626422de4e23d72a411c0661006d32cbf079e01170e286f74049477393c3f45f3e6754b9548232e9db294f1
+  languageName: node
+  linkType: hard
+
+"@prisma/generator-helper@npm:^6.16.1":
+  version: 6.19.0
+  resolution: "@prisma/generator-helper@npm:6.19.0"
+  dependencies:
+    "@prisma/debug": "npm:6.19.0"
+    "@prisma/dmmf": "npm:6.19.0"
+    "@prisma/generator": "npm:6.19.0"
+  checksum: 10c0/a366ff4f07258b9eb4953254c41af243059e3d2fd85cb7469f911651fc12f4956067b142b83491f71dd7724358456620e395aaae7ecf13e11deabf3d0f93d5ef
+  languageName: node
+  linkType: hard
+
+"@prisma/generator@npm:6.19.0":
+  version: 6.19.0
+  resolution: "@prisma/generator@npm:6.19.0"
+  checksum: 10c0/4b725bfb3deef0bedd7a4d5d6ae6c69da68172b75000a5d75e2405b0186194f5f12434ec2e33263cbaa8943fbd7ae301134660a66eca475d5401c35f95140c32
   languageName: node
   linkType: hard
 
@@ -4664,6 +4696,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"a11y-contrast-color@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "a11y-contrast-color@npm:1.1.0"
+  checksum: 10c0/69aaab7a94c9b1b0d80af5e9d3ee4dbcdcd863a2f604f86c0e1351178178d744240f49d90265abcf9559c02e422d587d54af8dce0206a9bfcd6a3b87effcd371
+  languageName: node
+  linkType: hard
+
 "abbrev@npm:^3.0.0":
   version: 3.0.1
   resolution: "abbrev@npm:3.0.1"
@@ -5471,6 +5510,13 @@ __metadata:
     color-convert: "npm:^2.0.1"
     color-string: "npm:^1.9.0"
   checksum: 10c0/7fbe7cfb811054c808349de19fb380252e5e34e61d7d168ec3353e9e9aacb1802674bddc657682e4e9730c2786592a4de6f8283e7e0d3870b829bb0b7b2f6118
+  languageName: node
+  linkType: hard
+
+"colorizr@npm:^3.0.8":
+  version: 3.0.8
+  resolution: "colorizr@npm:3.0.8"
+  checksum: 10c0/0ce32668193991bf8cd0340b08d72a3b94fb39d7bef0f9afb97e19953bcca153f4b1b9bb1ebfbacb4a60541bd8dfbdf75a120a9d60ab7dafb22d2b3a6c4ad3d1
   languageName: node
   linkType: hard
 
@@ -9537,6 +9583,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"prisma-json-types-generator@npm:^3.6.2":
+  version: 3.6.2
+  resolution: "prisma-json-types-generator@npm:3.6.2"
+  dependencies:
+    "@prisma/generator-helper": "npm:^6.16.1"
+    semver: "npm:^7.7.2"
+    tslib: "npm:^2.8.1"
+  peerDependencies:
+    "@prisma/client": ^6.14
+    prisma: ^6.14
+    typescript: ^5.9.2
+  bin:
+    prisma-json-types-generator: index.js
+  checksum: 10c0/1ffc19b0c0935fbb681f0e4e2d84b5b2f4f4d2da4ca12cb6b6aec85c361775a7ad78b3f5b0b7cf4d963ade926ae3ac497ac4233d609c2e524ef79d153950b60f
+  languageName: node
+  linkType: hard
+
 "prisma@npm:6.15.0":
   version: 6.15.0
   resolution: "prisma@npm:6.15.0"
@@ -10911,6 +10974,8 @@ __metadata:
     "@workos-inc/authkit-nextjs": "npm:^2.4.6"
     "@workos-inc/node": "npm:^7.65.0"
     "@yarnpkg/pnpify": "npm:^4.1.6"
+    a11y-contrast-color: "npm:^1.1.0"
+    colorizr: "npm:^3.0.8"
     eslint: "npm:^9"
     eslint-config-next: "npm:15.4.5"
     jest: "npm:^30.2.0"
@@ -10920,6 +10985,7 @@ __metadata:
     mapbox-gl: "npm:^3.14.0"
     next: "npm:15.4.5"
     prisma: "npm:6.15.0"
+    prisma-json-types-generator: "npm:^3.6.2"
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
     react-icons: "npm:^5.5.0"

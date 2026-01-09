@@ -1,0 +1,13 @@
+.tc-input-group {
+
+    @apply flex flex-col gap-2.5;
+
+    .tc-input-group-label {
+        @apply text-sm text-gray-500;
+
+    }
+
+    input {
+        @apply text-base bg-gray-100 rounded-lg relative px-4 py-1.5;
+    }
+}

@@ -1,25 +1,150 @@
 "use client";
 
+import { serverDeleteRoute } from "@/app/api/project/delete_route";
+import { serverUpdatePin } from "@/app/api/project/update_pin";
+import { serverUpdateRoute } from "@/app/api/project/update_route";
 import { projectEmitter } from "@/app/utils/controllers/project_controller";
+import { AppUser } from "@/backend/auth/get_user";
 import { mapController, MapMarker, MapProject } from "@/components/global_map";
 import ItineraryComponent from "@/components/itinerary_component";
+import Navbar from "@/components/navbar";
 import RoutePlanningComponent from "@/components/route_planning_component";
 import GeneralSearchComponent from "@/components/search_general";
 import { Prisma } from "@prisma/client";
-import { EasingOptions } from "mapbox-gl";
+import { RiLoaderFill } from "@remixicon/react";
+import _, { set } from "lodash";
 import { useEffect, useState } from "react";
+
+export type ProjectFunctionOpenRoutePlanner = (from: MapMarker | null) => void;
+export type ProjectFunctionOpenExistingRoute = (
+  route: Prisma.RouteGetPayload<any>
+) => void;
+export type ProjectFunctionUpdateProject = (updatedProject: MapProject) => void;
+
+const clientThrottleTimeMs = 200;
+const serverThrottleTimeMs = 1000;
+
+let serverUpdateKey = 1;
+let clientUpdateKey = 1;
+
+let projectLastServerCopy: MapProject | null = null;
 
 export default function ProjectPageContent({
   project,
+  user,
 }: {
   project: MapProject;
+  user: AppUser | null;
 }) {
+  // TODO: This should always be the most up-to-date instance of the project
+  const [currentProject, setCurrentProject] = useState<MapProject>(project);
 
-  const [routePlannerOrigin, setRoutePlannerOrigin] = useState<MapMarker | null>(null);
+  const [serverOperationsInProgress, setServerOperationsInProgress] =
+    useState<number>(0);
 
-  const [routePlannerExistingRoute, setRoutePlannerExistingRoute] = useState<Prisma.RouteGetPayload<any> | null>(null);
+  const [routePlannerOrigin, setRoutePlannerOrigin] =
+    useState<MapMarker | null>(null);
+
+  const [routePlannerExistingRoute, setRoutePlannerExistingRoute] =
+    useState<Prisma.RouteGetPayload<any> | null>(null);
+
+  const openRoutePlanner: ProjectFunctionOpenRoutePlanner = (
+    from: MapMarker | null
+  ) => {
+    setRoutePlannerExistingRoute(null);
+    setRoutePlannerOrigin(from);
+  };
+
+  const openExistingRoute: ProjectFunctionOpenExistingRoute = (
+    route: Prisma.RouteGetPayload<any>
+  ) => {
+    setRoutePlannerOrigin(null);
+    setRoutePlannerExistingRoute(route);
+  };
+
+  const clientUpdate = (updatedProject: MapProject) => {
+    setCurrentProject(updatedProject);
+    mapController.setProject(updatedProject);
+    console.log("updating project");
+  };
+
+  const serverUpdate = async (updatedProject: MapProject) => {
+    if (_.isEqual(projectLastServerCopy, updatedProject)) {
+      return;
+    }
+
+    setServerOperationsInProgress((v) => v + 1);
+    console.log("Syncing project to server...");
+
+    try {
+      // Determine changes to pins
+      for (const updatedPin of updatedProject.pins) {
+        const lastPin = projectLastServerCopy?.pins.find(
+          (p) => p.id === updatedPin.id
+        );
+        if (lastPin && !_.isEqual(lastPin, updatedPin)) {
+          // Sync this pin to the server
+          console.log("Updating pin on the server:", updatedPin.name);
+          await serverUpdatePin(updatedPin.id, updatedPin);
+        }
+      }
+      // TODO: Handle deleting pins
+      // Handle Updating Routes
+      for (const updatedRoute of updatedProject.routes) {
+        const lastRoute = projectLastServerCopy?.routes.find(
+          (r) => r.id === updatedRoute.id
+        );
+        if (lastRoute && !_.isEqual(lastRoute, updatedRoute)) {
+          // Sync this route to the server
+          console.log("Updating route on the server:", updatedRoute.name);
+          await serverUpdateRoute(updatedRoute.id, updatedRoute);
+        }
+      }
+      // Handle Deleting Routes
+      for (const lastRoute of projectLastServerCopy?.routes || []) {
+        const updatedRoute = updatedProject.routes.find(
+          (r) => r.id === lastRoute.id
+        );
+        if (!updatedRoute) {
+          // This route was deleted
+          console.log("Deleting route on the server:", lastRoute.name);
+          // await serverDeleteRoute(lastRoute.id);
+          await serverDeleteRoute(updatedProject.id, lastRoute.id);
+        }
+      }
+    } catch (err) {
+      console.error("Error syncing project to server:", err);
+    }
+
+    console.log("Finished syncing project to server");
+    setServerOperationsInProgress((v) => v - 1);
+    // console.log(JSON.stringify(updatedProject));
+    // console.log(JSON.stringify(projectLastServerCopy));
+    projectLastServerCopy = updatedProject;
+  };
+
+  const updateProject = (updatedProject: MapProject) => {
+    // console.log("Updating project in ProjectPageContent", updatedProject);
+    // TODO: This is where we sync with the map controller as well
+
+    console.log("updateProject called", updatedProject);
+
+    clientUpdateKey = (clientUpdateKey + 1) % 0xfff;
+    const clientKey = clientUpdateKey;
+    setTimeout(() => {
+      if (clientKey === clientUpdateKey) clientUpdate(updatedProject);
+    }, clientThrottleTimeMs);
+
+    serverUpdateKey += (clientUpdateKey + 1) % 0xfff;
+    const serverKey = serverUpdateKey;
+    setTimeout(() => {
+      if (serverKey === serverUpdateKey) serverUpdate(updatedProject);
+    }, serverThrottleTimeMs);
+  };
 
   useEffect(() => {
+    projectLastServerCopy = project;
+
     mapController.setProject(project);
 
     mapController.flyTo({
@@ -36,38 +161,98 @@ export default function ProjectPageContent({
       },
     });
 
-    const openRoutePlanner = (event: CustomEventInit<MapMarker | null>) => {
-      console.log("open-route-planner", event.detail);
-      setRoutePlannerExistingRoute(null);
-      setRoutePlannerOrigin(event.detail ?? null);
+    // Listen for project events
+    // These events will only be dispatched from the map component and its children
+    // because they exist in a different context and cannot directly call functions here
+    const openExistingRouteProxy = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      openExistingRoute(customEvent.detail);
     };
+    projectEmitter.addEventListener(
+      "open-existing-route",
+      openExistingRouteProxy
+    );
 
-    projectEmitter.addEventListener("open-route-planner", openRoutePlanner);
+    const openRoutePlannerProxy = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      openRoutePlanner(customEvent.detail);
+    };
+    projectEmitter.addEventListener(
+      "open-route-planner",
+      openRoutePlannerProxy
+    );
 
-
-    const openExistingRoute = (event: CustomEventInit<Prisma.RouteGetPayload<any>>) => {
-      console.log("open-existing-route", event.detail);
-      setRoutePlannerOrigin(null);
-      setRoutePlannerExistingRoute(event.detail ?? null);
-    }
-
-    projectEmitter.addEventListener("open-existing-route", openExistingRoute);
+    const didUpdateProjectProxy = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      updateProject(customEvent.detail);
+    };
+    projectEmitter.addEventListener("update-project", didUpdateProjectProxy);
 
     return () => {
       projectEmitter.removeEventListener(
+        "open-existing-route",
+        openExistingRouteProxy
+      );
+      projectEmitter.removeEventListener(
         "open-route-planner",
-        openRoutePlanner
+        openRoutePlannerProxy
+      );
+      projectEmitter.removeEventListener(
+        "update-project",
+        didUpdateProjectProxy
       );
     };
   }, [project]);
 
+  // Functions that this component provides to its children
+  // - updateProject
+  // - setProject
+  // - openRoutePlanner
+  // - closeRoutePlanner
+  // - openExistingRoute
+  // - closeExistingRoute
+
   return (
     <>
+      <div className="fade-in fixed top-0 left-0 right-0 z-40">
+        <Navbar user={user}>
+          <div className="flex gap-4 justify-between items-center -ml-2">
+            <span className="font-mono text-sm font-medium text-gray-400">
+              /
+            </span>
+            <span className="text-gray-700">{project.name}</span>
+            <div className="flex-1"></div>
+            <div
+              className={`flex gap-2 items-center text-gray-400 transition-opacity ${
+                serverOperationsInProgress > 0 ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              <RiLoaderFill className="animate-spin size-4" />
+              <div className="text-sm">Saving Changes</div>
+            </div>
+            <div className="tc-nav-button tc-nav-button-primary">Share</div>
+          </div>
+        </Navbar>
+      </div>
+
       <div className="fixed size-full pointer-events-none [&>*]:pointer-events-auto fade-in">
-        <GeneralSearchComponent hide={routePlannerOrigin != null || routePlannerExistingRoute != null} project={project} />
-        <ItineraryComponent project={project} />
+        <GeneralSearchComponent
+          hide={routePlannerOrigin != null || routePlannerExistingRoute != null}
+          project={currentProject}
+        />
+        <ItineraryComponent
+          project={currentProject}
+          openExistingRoute={openExistingRoute}
+        />
         {(routePlannerOrigin || routePlannerExistingRoute) && (
-          <RoutePlanningComponent project={project} initialFrom={routePlannerOrigin ?? undefined} showingDbRoute={routePlannerExistingRoute ?? undefined} />
+          <RoutePlanningComponent
+            key={`${routePlannerOrigin?.id}-${routePlannerExistingRoute?.id}`}
+            project={currentProject}
+            initialFrom={routePlannerOrigin ?? undefined}
+            showingDbRoute={routePlannerExistingRoute ?? undefined}
+            openRoutePlanner={openRoutePlanner}
+            updateProject={updateProject}
+          />
         )}
       </div>
     </>

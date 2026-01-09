@@ -60,10 +60,23 @@ export const serverAddRoute = async (
         `Pin at (${destination.coordinate.lat.toFixed(
           4
         )}, ${destination.coordinate.lng.toFixed(4)})`,
+      name: origin.appleMapsPlace?.name && destination.appleMapsPlace?.name
+        ? `${origin.appleMapsPlace.name} to ${destination.appleMapsPlace.name}`
+        : "New Route",
       originAppleMapsMuid: origin.appleMapsPlace?.muid,
       originMapboxFeatureId: origin.mapboxFeatureId,
       destAppleMapsMuid: destination.appleMapsPlace?.muid,
       destMapboxFeatureId: destination.mapboxFeatureId,
+      originExtendedMetadata: {
+        address: origin.appleMapsPlace?.address,
+        categoryId: origin.appleMapsPlace?.categoryId,
+        categoryName: origin.appleMapsPlace?.categoryName,
+      },
+      destExtendedMetadata: {
+        address: destination.appleMapsPlace?.address,
+        categoryId: destination.appleMapsPlace?.categoryId,
+        categoryName: destination.appleMapsPlace?.categoryName,
+      },
       modality: route.modality,
       segments: route.sections,
       dateStart: date?.toJSDate(),

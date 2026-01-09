@@ -8,7 +8,7 @@ import { herePlatformRouteGetStyleForSection } from "../here_maps/route_styles"
 
 import * as turf from "@turf/turf";
 
-export const hereMultimodalRouteSectionsToFeatures = (routeId: string, sections: HereMultimodalRouteSection[], includeMarkers: boolean = true): MapFeatureWithLayerSpec[] => {
+export const hereMultimodalRouteSectionsToFeatures = (routeId: string, sections: HereMultimodalRouteSection[], includeMarkers: boolean = true, styleData?: PrismaJson.RouteStyleType): MapFeatureWithLayerSpec[] => {
   return sections.map((section) => {
     const id = routeId + "-" + section.id;
 
@@ -25,7 +25,7 @@ export const hereMultimodalRouteSectionsToFeatures = (routeId: string, sections:
     //   if (length < 400) return null; // Skip very short pedestrian sections
     // }
 
-    const styleSpec = herePlatformRouteGetStyleForSection(section);
+    const styleSpec = herePlatformRouteGetStyleForSection(section, styleData);
 
     const feature: MapFeatureWithLayerSpec = {
       id,
@@ -61,7 +61,7 @@ export const hereMultimodalRouteSectionsToFeatures = (routeId: string, sections:
           lng: center.geometry.coordinates[0],
         },
         element: (
-          <RoutePlanningSectionChip section={section} />
+          <RoutePlanningSectionChip section={section} styleData={styleData} />
         )
       }
     }

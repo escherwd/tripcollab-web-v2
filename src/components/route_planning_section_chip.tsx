@@ -1,8 +1,51 @@
 import { HereMultimodalRouteSection, HereMultimodalRouteSectionTransport } from "@/app/api/routes/here_multimodal";
+import { serverGetAgencyIconUrl } from "@/app/utils/here_maps/agency_icon";
 import { herePlatformDefaultSectionColors } from "@/app/utils/here_maps/route_styles";
+import { contrastingWhiteOrBlack } from "@/app/utils/ui/contrastingWhiteOrBlack";
+import { useEffect, useState } from "react";
 import { MdDirectionsBike, MdDirectionsBoat, MdDirectionsBus, MdDirectionsCar, MdDirectionsRailway, MdDirectionsSubway, MdDirectionsTransit, MdDirectionsTransitFilled, MdDirectionsWalk, MdFlight } from "react-icons/md";
 
-export function RoutePlanningTransitTransportModeIcon({ mode }: { mode: string }) {
+export function RoutePlanningTransitTransportModeIcon({ mode, agency }: { mode: string, agency?: {
+    id: string;
+    name: string;
+    website?: string;
+} }) {
+
+    const [agencyImage, setAgencyImage] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchAgencyImage = async () => {
+
+             if (!agency?.name) return;
+
+            // Check local storage first
+            if (localStorage.getItem('agencyIcon-' + agency?.name)) {
+                const cachedImage = localStorage.getItem('agencyIcon-' + agency?.name);
+
+                if (cachedImage === 'null') return;
+
+                setAgencyImage(cachedImage!);
+                return;
+            }
+
+            // Fetch from server
+            const serverImageUrl = await serverGetAgencyIconUrl(agency!.name);
+            // Cache result in local storage, even if null
+            localStorage.setItem('agencyIcon-' + agency!.name, serverImageUrl || 'null');
+            if (!serverImageUrl) return;
+
+            // Update state and cache in local storage
+            setAgencyImage(serverImageUrl);
+        };
+        if (agency?.name) {
+            fetchAgencyImage();
+        }
+    }, [mode, agency]);
+
+    if (agencyImage) {
+        return <img src={agencyImage} alt={agency?.name + " Logo"} title={agency?.name} className="h-full w-auto aspect-square object-contain" />
+    }
+
     return <>
         {
             mode === "ferry" ? <MdDirectionsBoat title="Ferry Section" /> :
@@ -26,7 +69,7 @@ export function RoutePlanningTransitTransportModeIcon({ mode }: { mode: string }
     </>
 }
 
-export default function RoutePlanningSectionChip({ section }: { section: HereMultimodalRouteSection }) {
+export default function RoutePlanningSectionChip({ section, styleData }: { section: HereMultimodalRouteSection, styleData?: PrismaJson.RouteStyleType }) {
 
     if (section.type === "pedestrian") {
         return (
@@ -39,12 +82,28 @@ export default function RoutePlanningSectionChip({ section }: { section: HereMul
 
     if (section.type === "transit") {
         const transport = section.transport as HereMultimodalRouteSectionTransport<"transit">;
+
+        // let backgroundColor = transport.color ?? herePlatformDefaultSectionColors.transit;
+        // let textColor = transport.textColor ?? "#fff";
+
+        // if (styleData?.color) {
+        //     backgroundColor = styleData.color;
+        //     textColor = contrastingWhiteOrBlack(backgroundColor);
+        // }
+
         return (
-            <div className="flex gap-1.5 items-center text-xs font-bold px-2 py-1 rounded-md" style={{ backgroundColor: `${transport.color ?? herePlatformDefaultSectionColors.transit}`, color: `${transport.textColor ?? "#fff"}` }}>
+            <div style={{ ['--tw-gradient-to' as string]: `color-mix(in oklab,${transport.color ?? 'grey'}, 95% white)` }} className="flex gap-1.5 items-center text-xs font-bold px-2 py-1 rounded-lg shadow bg-linear-to-b from-white to-gray-100/10 text-gray-800">
                 {
-                    <RoutePlanningTransitTransportModeIcon mode={transport.mode} />
+                    transport.color && (
+                        <div className="h-3.5 w-1 flex items-center rounded-full" style={{ backgroundColor: transport.color }} />
+                    )
                 }
-                <div className="font-label" >
+                {
+                    <div className="h-3.75 flex items-center">
+                        <RoutePlanningTransitTransportModeIcon mode={transport.mode} agency={section.agency} />
+                    </div>
+                }
+                <div className="font-label font-medium" >
                     {transport.shortName ?? transport.name}
                 </div>
             </div>

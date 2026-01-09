@@ -1,24 +1,46 @@
 'use client'
 
-import { MapMarker } from "@/components/global_map";
+import { MapMarker, MapProject } from "@/components/global_map";
 import { Prisma } from "@prisma/client";
 
 // Create a global event emitter for projects
 export const projectEmitter = new EventTarget();
 
-class ProjectController {
-  openRoutePlanner(fromOrigin: MapMarker | null) {
+// class ProjectController {
+//   openRoutePlanner(fromOrigin: MapMarker | null) {
+//     projectEmitter.dispatchEvent(
+//       new CustomEvent("open-route-planner", { detail: fromOrigin })
+//     );
+//   }
+
+//   openExistingRoute(dbRoute: Prisma.RouteGetPayload<any>) {
+//     projectEmitter.dispatchEvent(
+//       new CustomEvent("open-existing-route", { detail: dbRoute })
+//     );
+//   }
+// }
+
+// // Simply acts as an interface between components and the current ProjectPage instance (whatever (if any) is currently mounted)
+// export const projectController = new ProjectController();
+
+class ProjectEventReceiver {
+  didClickExistingRoute(dbRoute: Prisma.RouteGetPayload<any>) {
+    projectEmitter.dispatchEvent(
+      new CustomEvent("open-existing-route", { detail: dbRoute })
+    );
+  }
+
+  didClickRoutePlanner(fromOrigin: MapMarker | null) {
     projectEmitter.dispatchEvent(
       new CustomEvent("open-route-planner", { detail: fromOrigin })
     );
   }
 
-  openExistingRoute(dbRoute: Prisma.RouteGetPayload<any>) {
+  didUpdateProject(updatedProject: MapProject) {
     projectEmitter.dispatchEvent(
-      new CustomEvent("open-existing-route", { detail: dbRoute })
+      new CustomEvent("update-project", { detail: updatedProject })
     );
   }
 }
 
-// Simply acts as an interface between components and the current ProjectPage instance (whatever (if any) is currently mounted)
-export const projectController = new ProjectController();
+export const projectEventReceiver = new ProjectEventReceiver();

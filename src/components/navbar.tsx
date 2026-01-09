@@ -1,13 +1,13 @@
-import { withAuth } from "@workos-inc/authkit-nextjs";
+import { AppUser } from "@/backend/auth/get_user";
 import Link from "next/link";
 
-export default async function Navbar({
+export default function Navbar({
     children,
+    user,
   }: Readonly<{
     children?: React.ReactNode;
+    user: AppUser | null
   }>) {
-
-    const { user } = await withAuth();
 
     return (
         <div className="absolute h-navbar inset-0 z-50 w-full p-2 flex items-center justify-stretch">

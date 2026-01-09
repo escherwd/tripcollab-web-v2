@@ -4,9 +4,9 @@ import { getUser } from "@/backend/auth/get_user";
 import prisma from "@/backend/prisma";
 import { Prisma } from "@prisma/client";
 
-export const serverUpdatePin = async (
-  pinId: string,
-  pin: Prisma.PinGetPayload<any>,
+export const serverUpdateRoute = async (
+  routeId: string,
+  route: Prisma.RouteGetPayload<any>,
 ) => {
   const user = await getUser();
 
@@ -14,26 +14,26 @@ export const serverUpdatePin = async (
     throw new Error("Unauthorized");
   }
 
-  const existingPin = await prisma.pin.findUnique({
-    where: { id: pinId },
+  const existingRoute = await prisma.route.findUnique({
+    where: { id: routeId },
   });
 
-  if (!existingPin) {
-    throw new Error("Pin not found");
+  if (!existingRoute) {
+    throw new Error("Route not found");
   }
 
   const project = await prisma.project.findUnique({
-    where: { id: existingPin.projectId, userId: user.id },
+    where: { id: existingRoute.projectId, userId: user.id },
   });
 
   if (!project) {
     throw new Error("Project not found or you do not have access to it.");
   }
 
-  pin = await prisma.pin.update({
-    where: { id: pinId },
-    data: pin as any,
+  route = await prisma.route.update({
+    where: { id: routeId },
+    data: route as any,
   });
 
-  return pin;
+  return route;
 };

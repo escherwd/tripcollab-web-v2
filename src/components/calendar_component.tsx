@@ -3,7 +3,7 @@
 import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/16/solid";
 import { MapProject } from "./global_map";
 import PanelIconButton from "./panel_icon_button";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
 
 const offset = (arr: any[], offset: number) => [
@@ -26,10 +26,31 @@ export default function CalendarComponent({
   onDateChange?: (date?: DateTime | null) => void;
   readonly?: boolean;
 }) {
-  const dateRange = {
-    start: 13,
-    end: 26,
-  };
+
+  const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
+
+  useEffect(() => {
+    if (!project) return;
+    // Calculate the date range based on pins
+    const pinDates = project.pins
+      .map((pin) => {
+        if (!pin.dateStart) return [];
+        if (pin.duration && pin.duration > 0)
+          return [DateTime.fromJSDate(pin.dateStart), DateTime.fromJSDate(pin.dateStart).plus({ minutes: pin.duration })];
+        else
+          return [DateTime.fromJSDate(pin.dateStart)];
+      })
+      .flat()
+      .sort((a, b) => a.toMillis() - b.toMillis());
+
+      if (pinDates.length > 1 && !pinDates[0].hasSame(pinDates[pinDates.length - 1], 'day')) {
+        const start = pinDates[0].toISODate();
+        const end = pinDates[pinDates.length - 1].toISODate();
+        if (start && end)
+          setDateRange({ start, end });
+      }
+    
+  }, [project]);
 
   const [anchorDate, setAnchorDate] = useState(initialAnchorDate);
 
@@ -156,11 +177,11 @@ export default function CalendarComponent({
             >
               {day.day}
             </div>
-            {index >= dateRange.start && index <= dateRange.end && (
+            {dateRange && (day.isoDate ?? "") >= dateRange.start && (day.isoDate ?? "") <= dateRange.end && (
               <div
-                className={`absolute inset-x-0 inset-y-auto h-6 bg-gray-100 ${
-                  index === dateRange.start ? "rounded-l-full" : ""
-                } ${index === dateRange.end ? "rounded-r-full" : ""}`}
+                className={`absolute inset-x-0 inset-y-auto h-6 bg-gray-200 ${
+                  day.isoDate === dateRange.start ? "rounded-l-full" : ""
+                } ${day.isoDate === dateRange.end ? "rounded-r-full" : ""}`}
               />
             )}
           </div>

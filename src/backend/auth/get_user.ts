@@ -1,7 +1,11 @@
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import prisma from '../prisma';
+import { Prisma } from '@prisma/client';
+import { User } from '@workos-inc/node';
 
-export const getUser = async () => {
+export type AppUser = Prisma.UserGetPayload<{ include: { pins: false, projects: false } }> & { workos: User }
+
+export const getUser = async (): Promise<AppUser | null> => {
     try {
         const { user } = await withAuth({ ensureSignedIn: true });
 

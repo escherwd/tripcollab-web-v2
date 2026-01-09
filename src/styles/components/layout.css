@@ -3,11 +3,11 @@
 }
 
 .tc-panel {
-  @apply bg-white rounded-lg shadow-md outline-2 outline-white/50;
+  @apply bg-white rounded-lg shadow-md outline-2 outline-white/50 overflow-hidden;
 }
 
 .tc-panel-header {
-  @apply py-2 px-4 flex-none flex gap-4 items-center justify-between border-b border-gray-100;
+  @apply py-2 px-4 flex-none flex gap-4 items-center justify-between border-b border-gray-100 bg-gray-50;
 
 
 }

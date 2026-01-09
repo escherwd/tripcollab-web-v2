@@ -28,19 +28,21 @@ import { addPin } from "@/app/api/project/add_pin";
 import { deletePin } from "@/app/api/project/delete_pin";
 import CalendarComponent from "./calendar_component";
 import { DateTime } from "luxon";
-import { updatePin } from "@/app/api/project/update_pin";
 import PopupScheduleComponent from "./popup_schedule_component";
-import { projectController } from "@/app/utils/controllers/project_controller";
+import { projectEventReceiver } from "@/app/utils/controllers/project_controller";
+import ColorInput from "./color_input";
 
 export default function MapPlacePopup({
   marker,
   onClose,
   onMarkerUpdate,
+  // onStyleUpdate,
   project,
 }: {
   marker: MapMarker;
   onClose: () => void;
   onMarkerUpdate?: (marker: MapMarker) => void;
+  // onStyleUpdate?: (style: PrismaJson.PinStyleType) => void;
   project: MapProject;
 }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +50,10 @@ export default function MapPlacePopup({
   const [place, setPlace] = useState<AppleMapsPlace | null>(null);
 
   const [tempId, setTempId] = useState<string | null>(null);
+
+  const [iconColor, setIconColor] = useState<string | null>(
+    marker.customColor ?? null,
+  );
 
   const [scheduleWidgetExpanded, setScheduleWidgetExpanded] = useState(false);
 
@@ -135,6 +141,8 @@ export default function MapPlacePopup({
     return project.pins.some((p) => p.id === (tempId ?? marker.id));
   }, [project.pins, marker.id, tempId]);
 
+  const [wasAddedThisRender, setWasAddedThisRender] = useState(false);
+
   const categoryName = useMemo(() => {
     return (
       place?.containmentPlace?.text ??
@@ -175,14 +183,24 @@ export default function MapPlacePopup({
       return;
     }
     console.log("Updated pin", pin.id, data);
-    mapController.setProject({
+    projectEventReceiver.didUpdateProject({
       ...project,
       pins: project.pins.map((p) =>
         p.id === pin.id ? { ...p, ...(data as any) } : p,
       ),
     });
+
+    console.log("Calling onMarkerUpdate for pin", pin.id, data);
+
+    // if (!wasAddedThisRender) return;
+
+    // This is only necessary if the pin being displayed is still the temporary one
+    // onMarkerUpdate?.({
+    //   ...marker,
+    //   customColor: (data.styleData as PrismaJson.PinStyleType)?.['iconColor'],
+    // })
     // TODO: Do not cast to any
-    await updatePin(pin.id, data as any);
+    // await updatePin(pin.id, data as any);
   };
 
   const toggleInProject = async () => {
@@ -190,6 +208,7 @@ export default function MapPlacePopup({
 
     try {
       if (isInProject) {
+        // Remove from project
         if (!(tempId ?? marker.id)) {
           throw new Error("No pin ID found");
         }
@@ -203,6 +222,7 @@ export default function MapPlacePopup({
         setTempId("deleted-" + self.crypto.randomUUID());
         onClose();
       } else {
+        // Add to project
         const pin = await addPin(project.id, {
           ...marker,
           appleMapsPlace: place ?? undefined,
@@ -212,7 +232,9 @@ export default function MapPlacePopup({
           ...project,
           pins: [...project.pins, pin],
         });
+        mapController.closeMarker(marker);
         console.log("Added to project", pin);
+        setWasAddedThisRender(true);
       }
     } catch (error) {
       console.error(error);
@@ -221,8 +243,25 @@ export default function MapPlacePopup({
   };
 
   const openRoutePlanner = () => {
-    projectController.openRoutePlanner(marker);
+    projectEventReceiver.didClickRoutePlanner(marker);
   };
+
+  const onPinColorChange = (color: string | null) => {
+    if (!pin || pin.styleData?.iconColor === color) {
+      return;
+    }
+
+    setIconColor(color);
+
+
+      savePinUpdates({
+        styleData: {
+          ...pin.styleData ?? {},
+          iconColor: color ?? undefined,
+        },
+      });
+
+  }
 
   return (
     <div className="size-full flex flex-col bg-white rounded-lg shadow-lg z-40 relative">
@@ -243,7 +282,13 @@ export default function MapPlacePopup({
           </div>
         </div>
         {isInProject && pin && (
+          <>
+          <div className="p-4 pt-0 rounded-lg">
+            <ColorInput initialColor={iconColor ?? undefined} onColorChange={onPinColorChange} />
+          </div>
           <PopupScheduleComponent project={project} pin={pin} />
+          
+          </>
         )}
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center pt-24">

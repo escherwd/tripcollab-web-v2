@@ -1,3 +1,4 @@
+import { contrastingWhiteOrBlack } from "@/app/utils/ui/contrastingWhiteOrBlack";
 import {
   BookOpenIcon,
   BuildingOffice2Icon,
@@ -28,6 +29,8 @@ import {
   RiStarFill,
   RiTreeFill,
 } from "@remixicon/react";
+import { getContrastColor } from "a11y-contrast-color";
+import Colorizr from "colorizr";
 import {
   MdAccountBalance,
   MdAttractions,
@@ -86,6 +89,7 @@ import {
 } from "react-icons/md";
 import { PiBridgeFill } from "react-icons/pi";
 import { TbBuildingBridge } from "react-icons/tb";
+import colors from "tailwindcss/colors";
 
 export class MapIcon {
   categoryId: string;
@@ -99,84 +103,120 @@ export class MapIcon {
   }
 }
 
-export const mapIcons = {
-  skiing: new MapIcon("skiing", <MdDownhillSkiing />, "bg-green-600"),
-  hotel: new MapIcon("hotel", <MdHotel />, "bg-purple-500"),
-  park: new MapIcon("park", <MdPark />, "bg-green-600"),
-  beach: new MapIcon("beach", <MdBeachAccess />, "bg-green-600"),
-  church: new MapIcon("church", <MdChurch />, "bg-pink-500"),
-  mosque: new MapIcon("mosque", <MdMosque />, "bg-pink-500"),
-  museum: new MapIcon("museum", <MdMuseum />, "bg-pink-500"),
+export const mapIcons: Record<string, MapIcon> = {
+  skiing: new MapIcon("skiing", <MdDownhillSkiing />, colors["green"][600]),
+  hotel: new MapIcon("hotel", <MdHotel />, colors["purple"][500]),
+  park: new MapIcon("park", <MdPark />, colors["green"][600]),
+  beach: new MapIcon("beach", <MdBeachAccess />, colors["green"][600]),
+  church: new MapIcon("church", <MdChurch />, colors["pink"][500]),
+  mosque: new MapIcon("mosque", <MdMosque />, colors["pink"][500]),
+  museum: new MapIcon("museum", <MdMuseum />, colors["pink"][500]),
   grocery_store: new MapIcon(
     "grocery_store",
     <MdShoppingBasket />,
-    "bg-yellow-500"
+    colors["yellow"][500]
   ),
-  drugstore: new MapIcon("drugstore", <RiCapsuleFill />, "bg-red-500"),
-  parking_lot: new MapIcon("parking_lot", <MdLocalParking />, "bg-blue-500"),
+  drugstore: new MapIcon("drugstore", <RiCapsuleFill />, colors["red"][500]),
+  parking_lot: new MapIcon(
+    "parking_lot",
+    <MdLocalParking />,
+    colors["blue"][500]
+  ),
   amusement_park: new MapIcon(
     "amusement_park",
     <MdAttractions />,
-    "bg-pink-500"
+    colors["pink"][500]
   ),
-  nightclub: new MapIcon("nightclub", <MdNightlife />, "bg-pink-500"),
-  stadium: new MapIcon("stadium", <MdStadium />, "bg-green-600"),
-  train_station: new MapIcon("train_station", <MdTrain />, "bg-blue-500"),
+  nightclub: new MapIcon("nightclub", <MdNightlife />, colors["pink"][500]),
+  stadium: new MapIcon("stadium", <MdStadium />, colors["green"][600]),
+  train_station: new MapIcon("train_station", <MdTrain />, colors["blue"][500]),
   light_rail_station: new MapIcon(
     "light_rail_station",
     <MdTram />,
-    "bg-blue-500"
+    colors["blue"][500]
   ),
-  bus_service: new MapIcon("bus_service", <MdDirectionsBus />, "bg-blue-500"),
-  bridge: new MapIcon("bridge", <TbBuildingBridge />, "bg-pink-500"),
-  public_transit: new MapIcon("public_transit", <MdCommute />, "bg-blue-500"),
-  airport: new MapIcon("airport", <MdLocalAirport />, "bg-blue-500"),
+  bus_service: new MapIcon(
+    "bus_service",
+    <MdDirectionsBus />,
+    colors["blue"][500]
+  ),
+  bridge: new MapIcon("bridge", <TbBuildingBridge />, colors["pink"][500]),
+  public_transit: new MapIcon(
+    "public_transit",
+    <MdCommute />,
+    colors["blue"][500]
+  ),
+  airport: new MapIcon("airport", <MdLocalAirport />, colors["blue"][500]),
   bubble_tea_shop: new MapIcon(
     "bubble_tea_shop",
     <RiDrinks2Fill />,
-    "bg-orange-500"
+    colors["orange"][500]
   ),
-  cafe: new MapIcon("cafe", <MdLocalCafe />, "bg-orange-500"),
-  bakery: new MapIcon("bakery", <MdBakeryDining className="scale-130" />, "bg-orange-500"),
-  bar_lounge: new MapIcon("bar_lounge", <MdLocalBar />, "bg-orange-500"),
-  bar: new MapIcon("bar", <MdSportsBar />, "bg-orange-500"),
-  ferry_service: new MapIcon("ferry_service", <MdDirectionsBoat />, "bg-blue-500"),
-  bookstore: new MapIcon("bookstore", <MdLocalLibrary />, "bg-purple-500"),
+  cafe: new MapIcon("cafe", <MdLocalCafe />, colors["orange"][500]),
+  bakery: new MapIcon(
+    "bakery",
+    <MdBakeryDining className="scale-130" />,
+    colors["orange"][500]
+  ),
+  bar_lounge: new MapIcon("bar_lounge", <MdLocalBar />, colors["orange"][500]),
+  bar: new MapIcon("bar", <MdSportsBar />, colors["orange"][500]),
+  ferry_service: new MapIcon(
+    "ferry_service",
+    <MdDirectionsBoat />,
+    colors["blue"][500]
+  ),
+  bookstore: new MapIcon(
+    "bookstore",
+    <MdLocalLibrary />,
+    colors["purple"][500]
+  ),
   movie_theater: new MapIcon(
     "movie_theater",
     <MdTheaters />,
-    "bg-purple-500"
+    colors["purple"][500]
   ),
-  art_center: new MapIcon("art_center", <MdTheaterComedy />, "bg-purple-500"),
-  school: new MapIcon("school", <MdSchool />, "bg-amber-700"),
+  art_center: new MapIcon(
+    "art_center",
+    <MdTheaterComedy />,
+    colors["purple"][500]
+  ),
+  school: new MapIcon("school", <MdSchool />, colors["amber"][700]),
   government_office: new MapIcon(
     "government_office",
     <MdAccountBalance />,
-    "bg-gray-500"
+    colors["gray"][500]
   ),
-  cities: new MapIcon("cities", <MdLocationCity />, "bg-gray-500"),
-  countries: new MapIcon("countries", <MdFlag />, "bg-gray-500"),
-  states: new MapIcon("states", <MdFlag />, "bg-gray-500"),
+  cities: new MapIcon("cities", <MdLocationCity />, colors["gray"][500]),
+  countries: new MapIcon("countries", <MdFlag />, colors["gray"][500]),
+  states: new MapIcon("states", <MdFlag />, colors["gray"][500]),
   neighborhoods: new MapIcon(
     "neighborhoods",
     <MdHolidayVillage />,
-    "bg-gray-500"
+    colors["gray"][500]
   ),
-  water_feature: new MapIcon("water_feature", <MdWater />, "bg-blue-500"),
-  hill: new MapIcon("hill", <MdLandscape />, "bg-gray-500"),
-  golf_club: new MapIcon("golf_club", <MdGolfCourse />, "bg-green-600"),
+  water_feature: new MapIcon("water_feature", <MdWater />, colors["blue"][500]),
+  hill: new MapIcon("hill", <MdLandscape />, colors["gray"][500]),
+  golf_club: new MapIcon("golf_club", <MdGolfCourse />, colors["green"][600]),
   travel_and_leisure: new MapIcon(
     "travel_and_leisure",
     <MdStar />,
-    "bg-indigo-500"
+    colors["indigo"][500]
   ),
-  shopping: new MapIcon("shopping", <MdShoppingBag />, "bg-purple-500"),
-  health_care: new MapIcon("health_care", <MdLocalHospital />, "bg-red-500"),
-  dining: new MapIcon("dining", <MdRestaurant />, "bg-orange-500"),
-  territories: new MapIcon("territories", <MdPinDrop />, "bg-gray-500"),
-  business: new MapIcon("business", <MdStore />, "bg-purple-500"),
-  address: new MapIcon("address", <MdLocationOn />, "bg-red-500"),
-  query: new MapIcon("query", <MagnifyingGlassIcon className="text-gray-600" />, "bg-gray-100"),
+  shopping: new MapIcon("shopping", <MdShoppingBag />, colors["purple"][500]),
+  health_care: new MapIcon(
+    "health_care",
+    <MdLocalHospital />,
+    colors["red"][500]
+  ),
+  dining: new MapIcon("dining", <MdRestaurant />, colors["orange"][500]),
+  territories: new MapIcon("territories", <MdPinDrop />, colors["gray"][500]),
+  business: new MapIcon("business", <MdStore />, colors["purple"][500]),
+  address: new MapIcon("address", <MdLocationOn />, colors["red"][500]),
+  query: new MapIcon(
+    "query",
+    <MagnifyingGlassIcon className="text-gray-600" />,
+    colors["gray"][100]
+  ),
 };
 
 export const getMapIconFromAppleMapsCategoryId = (categoryId: string) => {
@@ -228,19 +268,20 @@ export const getMapIconFromAppleMapsCategoryId = (categoryId: string) => {
     "natural_features.physical_feature.mountain": mapIcons.hill,
     "natural_features.physical_feature.volcano": mapIcons.hill,
     "travel_and_leisure.golf_club": mapIcons.golf_club,
-    "travel_and_leisure": mapIcons.travel_and_leisure,
-    "region": mapIcons.cities, // only returned in apple maps autocomplete
-    "country": mapIcons.countries, // only returned in apple maps autocomplete
-    "sub_locality": mapIcons.neighborhoods, // only returned in apple maps autocomplete
-    "administrative_area": mapIcons.states, // only returned in apple maps autocomplete
-    "locality": mapIcons.cities,
-    "shopping": mapIcons.shopping,
-    "health_care": mapIcons.health_care,
-    "dining": mapIcons.dining,
-    "territories": mapIcons.territories,
-    "business": mapIcons.business,
-    "address": mapIcons.address,
-    "query": mapIcons.query,
+    travel_and_leisure: mapIcons.travel_and_leisure,
+    region: mapIcons.cities, // only returned in apple maps autocomplete
+    country: mapIcons.countries, // only returned in apple maps autocomplete
+    sub_locality: mapIcons.neighborhoods, // only returned in apple maps autocomplete
+    administrative_area: mapIcons.states, // only returned in apple maps autocomplete
+    locality: mapIcons.cities,
+    shopping: mapIcons.shopping,
+    health_care: mapIcons.health_care,
+    dining: mapIcons.dining,
+    territories: mapIcons.territories,
+    business: mapIcons.business,
+    address: mapIcons.address,
+    transportation: mapIcons.public_transit,
+    query: mapIcons.query,
   };
   for (const categoryKey in appleMapsIconMatches) {
     if (categoryId.toLowerCase().startsWith(categoryKey)) {
@@ -253,9 +294,13 @@ export const getMapIconFromAppleMapsCategoryId = (categoryId: string) => {
 export default function MapPlaceIcon({
   appleMapsCategoryId,
   tcCategoryId,
+  customColor,
+  border = false,
 }: {
   appleMapsCategoryId?: string;
   tcCategoryId?: string;
+  customColor?: string;
+  border?: boolean;
 }) {
   // First, check by categoryId
 
@@ -266,10 +311,33 @@ export default function MapPlaceIcon({
   }
 
   if (appleMapsCategoryId) {
-    mapIcon = getMapIconFromAppleMapsCategoryId(appleMapsCategoryId ?? "address");
+    mapIcon = getMapIconFromAppleMapsCategoryId(
+      appleMapsCategoryId ?? "address"
+    );
   }
 
+  const color = new Colorizr(customColor ?? mapIcon.color);
+
+  // Use YIQ formula to determine if icon should be light or dark
+  const iconColor = contrastingWhiteOrBlack(color.css);
+
+  // const iconColor = color.luminance > 0.5 ? "#000000" : "#FFFFFF";
+  // const contrastingTextColor = getContrastColor()
+
   return (
-    <div className={`tc-map-place-icon ${mapIcon.color} text-white`}>{mapIcon.icon}</div>
+    <div
+      className={`tc-map-place-icon rounded-full transition-colors duration-300 bg-linear-to-b from-white/25 to-black/5 ${
+        border ? "border-2 border-white" : ""
+      }`}
+      style={{
+        backgroundColor: color.css,
+        color: iconColor,
+        borderColor: `color-mix(in oklab, ${color.css}, 85% white)`,
+        ['--tw-gradient-from' as string]: `color-mix(in oklab, ${color.css}, 20% white)`,
+        ['--tw-gradient-to' as string]: `color-mix(in oklab, ${color.css}, 5% black)`,
+      }}
+    >
+      {mapIcon.icon}
+    </div>
   );
 }

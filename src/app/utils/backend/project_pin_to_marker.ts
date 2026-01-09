@@ -24,5 +24,6 @@ export function projectPinToMarker(
       address: (pin.extendedMetadata as any)["address"],
     },
     mapboxFeatureId: pin.mapboxFeatureId ?? undefined,
+    customColor: pin.styleData?.iconColor ?? undefined,
   };
 }

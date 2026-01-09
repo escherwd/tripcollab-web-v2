@@ -23,7 +23,7 @@ export default async function Home() {
 
   return (
     <>
-      <Navbar />
+      <Navbar user={user} />
       <HomePageMapAnimator />
       <div className="h-screen tc-page-padding flex flex-col items-center justify-start fade-in">
         <style>{`

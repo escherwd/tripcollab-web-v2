@@ -3,10 +3,10 @@ import { mapController, MapPin, MapProject } from "./global_map";
 import { DateTime } from "luxon";
 import { useMemo, useState } from "react";
 import CalendarComponent from "./calendar_component";
-import { updatePin } from "@/app/api/project/update_pin";
 import { Prisma } from "@prisma/client";
 import { debounce } from "@/app/utils/ui/debounce";
 import _ from "lodash";
+import { projectEventReceiver } from "@/app/utils/controllers/project_controller";
 
 export default function PopupScheduleComponent({
   project,
@@ -24,19 +24,19 @@ export default function PopupScheduleComponent({
       return;
     }
     console.log("Updated pin", pin.id, data);
-    mapController.setProject({
+    projectEventReceiver.didUpdateProject({
       ...project,
       pins: project.pins.map((p) =>
         p.id === pin.id ? { ...p, ...(data as any) } : p,
       ),
     });
 
-    const sendUpdate = async () => {
-      // TODO: do not cast data to any
-      await updatePin(pin.id, data as any);
-    };
+    // const sendUpdate = async () => {
+    //   // TODO: do not cast data to any
+    //   await updatePin(pin.id, data as any);
+    // };
     // Debounce this request
-    debounce(sendUpdate, "schedule-component-update", 300);
+    // debounce(sendUpdate, "schedule-component-update", 300);
   };
 
   // Convert minutes to HH:MM string
@@ -78,6 +78,27 @@ export default function PopupScheduleComponent({
     savePinUpdates({ duration: newDuration });
   };
 
+  const calendarAnchor = useMemo(() => {
+    if (pin?.dateStart) {
+      // Best case: use the pin's dateStart
+      return DateTime.fromJSDate(pin.dateStart);
+    }
+    // Second best: use the first scheduled pin's date
+    if (project.pins.length > 0) {
+      const scheduledPins = project.pins.filter((p) => p.dateStart);
+      if (scheduledPins.length > 0) {
+        const firstScheduledPin = scheduledPins.sort(
+          (a, b) =>
+            (a.dateStart ? a.dateStart.getTime() : 0) -
+            (b.dateStart ? b.dateStart.getTime() : 0),
+        )[0];
+        return DateTime.fromJSDate(firstScheduledPin.dateStart!);
+      }
+    }
+    // Fallback: use current date
+    return DateTime.now();
+  }, [pin, project])
+
   return (
     <div className="pb-4 px-4 flex flex-col gap-1">
       <div className="bg-gray-100 rounded-lg overflow-hidden">
@@ -113,6 +134,7 @@ export default function PopupScheduleComponent({
               dense={true}
               project={project}
               date={pin?.dateStart ? DateTime.fromJSDate(pin.dateStart) : null}
+              initialAnchorDate={calendarAnchor}
               onDateChange={(d) => savePinUpdates({ dateStart: d?.toJSDate() })}
             />
           </div>
