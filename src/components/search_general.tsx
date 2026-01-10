@@ -289,8 +289,8 @@ export default function GeneralSearchComponent({
                   {/* <div className="w-1 h-16 rounded-r-full bg-green-500 shrink-0" /> */}
 
                   <div className="flex-none size-16 relative rounded-lg shadow-md aspect-square bg-gray-100">
-                    <div className="absolute -bottom-1.5 -right-1.5 origin-bottom-right rounded-full scale-75 border-2 shadow border-white overflow-hidden">
-                      <MapPlaceIcon appleMapsCategoryId={result.categoryId} />
+                    <div className="absolute -bottom-1.5 -right-1.5 origin-bottom-right rounded-full scale-80 shadow overflow-hidden">
+                      <MapPlaceIcon border appleMapsCategoryId={result.categoryId} />
                     </div>
                     <img
                       src={result.photos?.[0]?.url}
