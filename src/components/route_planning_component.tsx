@@ -388,7 +388,7 @@ export default function RoutePlanningComponent({
 
   return (
     <div className="absolute slide-in-from-left left-2 bottom-9 w-72 top-navbar">
-      <div className="h-full tc-panel flex min-h-0 flex-col overflow-hidden">
+      <div className="h-full tc-panel flex min-h-0 flex-col overflow-hidden pointer-events-auto">
         <div className="tc-panel-header flex-none transition-all">
           { !showingDbRoute &&
           <div className={`${selectedRoute ? 'opacity-100 mr-0' : 'opacity-0 pointer-events-none -mr-[40px]'} transition-all w-6 flex-none`}>

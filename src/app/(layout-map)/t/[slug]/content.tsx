@@ -7,6 +7,7 @@ import { projectEmitter } from "@/app/utils/controllers/project_controller";
 import { AppUser } from "@/backend/auth/get_user";
 import { mapController, MapMarker, MapProject } from "@/components/global_map";
 import ItineraryComponent from "@/components/itinerary_component";
+import MapControlsComponent from "@/components/map_controls_component";
 import Navbar from "@/components/navbar";
 import RoutePlanningComponent from "@/components/route_planning_component";
 import GeneralSearchComponent from "@/components/search_general";
@@ -47,6 +48,10 @@ export default function ProjectPageContent({
 
   const [routePlannerExistingRoute, setRoutePlannerExistingRoute] =
     useState<Prisma.RouteGetPayload<any> | null>(null);
+
+  const [mapRotation, setMapRotation] = useState<number>(0);
+
+  const [sideBarOpen, setSidebarOpen] = useState<boolean>(true);
 
   const openRoutePlanner: ProjectFunctionOpenRoutePlanner = (
     from: MapMarker | null
@@ -188,6 +193,12 @@ export default function ProjectPageContent({
     };
     projectEmitter.addEventListener("update-project", didUpdateProjectProxy);
 
+    const didUpdateRotationProxy = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      setMapRotation(customEvent.detail);
+    };
+    projectEmitter.addEventListener("rotate-map", didUpdateRotationProxy);
+
     return () => {
       projectEmitter.removeEventListener(
         "open-existing-route",
@@ -201,6 +212,7 @@ export default function ProjectPageContent({
         "update-project",
         didUpdateProjectProxy
       );
+      projectEmitter.removeEventListener("rotate-map", didUpdateRotationProxy);
     };
   }, [project]);
 
@@ -235,14 +247,20 @@ export default function ProjectPageContent({
         </Navbar>
       </div>
 
-      <div className="fixed size-full pointer-events-none [&>*]:pointer-events-auto fade-in">
+      <div className="fixed size-full pointer-events-none fade-in">
+        <div className="absolute size-full pointer-events-none transition-transform duration-300" style={{ transform: sideBarOpen ? "translateX(0)" : "translateX(calc(272px + 8px))" }}>
+          <MapControlsComponent mapRotation={mapRotation} setSidebarOpen={setSidebarOpen} sidebarOpen={sideBarOpen} />
+          <div className={`transition-opacity ${sideBarOpen ? 'opacity-100' : 'opacity-0 delay-150'}`}>
+          <ItineraryComponent
+            project={currentProject}
+            openExistingRoute={openExistingRoute}
+          />
+          </div>
+        </div>
+
         <GeneralSearchComponent
           hide={routePlannerOrigin != null || routePlannerExistingRoute != null}
           project={currentProject}
-        />
-        <ItineraryComponent
-          project={currentProject}
-          openExistingRoute={openExistingRoute}
         />
         {(routePlannerOrigin || routePlannerExistingRoute) && (
           <RoutePlanningComponent

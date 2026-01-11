@@ -14,13 +14,28 @@ export const GET = handleAuth({
         });
 
         if (!user) {
+            // Check if username is taken
+            let newUsername = data.user.metadata.username ?? data.user.email.split('@')[0];
+            while (true) {
+                const existingUser = await prisma.user.findUnique({
+                    where: {
+                        username: newUsername,
+                    },
+                });
+                if (!existingUser) {
+                    break;
+                }
+                // Append a random number to the username
+                const randomNum = Math.floor(Math.random() * 1000);
+                newUsername = `${newUsername}-${randomNum}`;
+            }
             // Create a new user
             const newUser = await prisma.user.create({
                 data: {
                     workosId: data.user.id,
                     firstName: data.user.firstName ?? 'Traveler',
                     email: data.user.email,
-                    username: data.user.metadata.username ?? data.user.email.split('@')[0],
+                    username: newUsername,
                     profilePictureUrl: data.user.profilePictureUrl ?? '',
                 },
             });

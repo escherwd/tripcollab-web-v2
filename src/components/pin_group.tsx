@@ -25,7 +25,7 @@ export default function PinGroup({
         {pins.slice(0, 3).map((pin, idx) => (
           <div
             key={idx}
-            className="scale-75 -ml-5 first:ml-0 rounded-full inline-block shadow-md"
+            className="scale-80 -ml-6 first:ml-0 rounded-full inline-block shadow-md"
           >
             <MapPlaceIcon
               customColor={pin.styleData?.iconColor}

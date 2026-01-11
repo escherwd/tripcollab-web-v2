@@ -1,0 +1,3 @@
+.tc-map-control-button {
+    @apply hover:bg-gray-50 cursor-pointer transition-colors p-2.5;
+}

@@ -23,7 +23,7 @@ import { hereMultimodalRouteSectionsToFeatures } from "@/app/utils/backend/here_
 import { HereMultimodalRouteSection } from "@/app/api/routes/here_multimodal";
 import { projectEventReceiver } from "@/app/utils/controllers/project_controller";
 import _ from "lodash";
-import { center, points } from "@turf/turf";
+import { center, distance, point, points } from "@turf/turf";
 import PinGroup from "./pin_group";
 // import { projectController } from "@/app/utils/controllers/project_controller";
 
@@ -228,6 +228,22 @@ class MapController {
       new CustomEvent("set-geojson-features", { detail: { type, features } })
     );
   }
+
+  async resetMapRotation() {
+    await this.waitForMap();
+
+    this.map?.flyTo({ bearing: 0, duration: 500 });
+  }
+
+  async zoomIn() {
+    await this.waitForMap();
+    this.map?.zoomIn({ duration: 250 });
+  }
+
+  async zoomOut() {
+    await this.waitForMap();
+    this.map?.zoomOut({ duration: 250 });
+  }
 }
 
 export const mapController = new MapController();
@@ -246,7 +262,7 @@ export default function GlobalAppMap() {
     height: number;
     marginTop: number;
     marginBottom: number;
-    transformOrigin: string;
+    transformOrigin: string | undefined;
   } | null>(null);
   const openMarkerRef = useRef<HTMLDivElement>(null);
 
@@ -266,6 +282,19 @@ export default function GlobalAppMap() {
   const [permanentFeatures, setPermanentFeatures] = useState<
     MapFeatureWithLayerSpec[]
   >([]);
+
+  const mapZoomStartEndListener = (e: { type: string }) => {
+    if (e.type === "zoomstart" || e.type === "movestart") {
+      openMarkerRef.current?.classList.add("scale-30","pointer-events-none");
+    } else if (e.type === "zoomend" || e.type === "moveend") {
+      openMarkerRef.current?.classList.remove("scale-30","pointer-events-none");
+    }
+  }
+
+  const mapRotationListener = (e: { target: MapRef; type: "rotate" }) => {
+    const map = e.target;
+    projectEventReceiver.didUpdateMapRotation(map.getBearing());
+  }
 
   useEffect(() => {
     console.log("Project updated in map component:", project);
@@ -291,67 +320,89 @@ export default function GlobalAppMap() {
     }
 
     const mapZoomThrottler = _.throttle(zoomListener as any, 250);
+    const mapRotationThrottler = _.throttle(mapRotationListener as any, 50);
+
+    const unsubscribe = () => {
+      map.current?.off("zoom", mapZoomThrottler);
+      map.current?.off("zoomstart", mapZoomStartEndListener);
+      map.current?.off("zoomend", mapZoomStartEndListener);
+      map.current?.off("movestart", mapZoomStartEndListener);
+      map.current?.off("moveend", mapZoomStartEndListener);
+      map.current?.off("rotate", mapRotationThrottler);
+    }
+
 
     if (!project) {
-      map.current?.off("zoom", mapZoomThrottler);
+      unsubscribe();
     } else {
       map.current?.on("zoom", mapZoomThrottler);
+      map.current?.on("zoomstart", mapZoomStartEndListener);
+      map.current?.on("zoomend", mapZoomStartEndListener);
+      map.current?.on("movestart", mapZoomStartEndListener);
+      map.current?.on("moveend", mapZoomStartEndListener);
+      map.current?.on("rotate", mapRotationThrottler);
     }
 
     return () => {
-      map.current?.off("zoom", mapZoomThrottler);
+      unsubscribe();
     };
   }, [project]);
 
-  const consolidatedPins = React.useMemo(() => {
+  const consolidatedPins = React.useMemo<
+    {
+      lngLat: [number, number];
+      pins: MapPin[];
+      key: string;
+    }[]
+  >(() => {
     if (!project) return [];
     if (!map.current) return [];
 
-    const positions: Record<number, Record<number, MapPin[]>> = {};
+    const pinGroups: MapPin[][] = [];
 
-    const MERGE_DISTANCE = 30; // pixels
-
-    // Bin pins by their projected position
-    for (const pin of project?.pins ?? []) {
-      const pos = map.current?.project([pin.longitude, pin.latitude]);
-      let x = Math.round(pos.x / MERGE_DISTANCE);
-      let y = Math.round(pos.y / MERGE_DISTANCE);
-      // Check neighboring bins to see if we can merge
-      if (positions[x-1]) x -= 1;
-      else if (positions[x+1]) x += 1;
-      if (positions[x]?.[y-1]) y -= 1;
-      else if (positions[x]?.[y+1]) y += 1;
-      // If not, create a new bin or add to exact square
-      if (!positions[x]) positions[x] = {};
-      if (!positions[x][y]) {
-        positions[x][y] = [pin];
-      } else {
-        positions[x][y].push(pin);
+    for (const pin of project.pins ?? []) {
+      let foundGroup = false;
+      for (const group of pinGroups) {
+        for (const memberPin of group) {
+          // Calculating distance with turf accounts for earth curvature
+          // more consistant as opposed to lat/long delta which varies
+          const dist = distance(
+            point([pin.longitude, pin.latitude]),
+            point([memberPin.longitude, memberPin.latitude]),
+            { units: "kilometers" }
+          );
+          // Fancy grouping formula, using exponential decay based on zoom level
+          if (dist < 450 * Math.pow(0.43, (zoomLevel - 2) / 1.4)) {
+            group.push(pin);
+            foundGroup = true;
+            break;
+          }
+        }
+        if (foundGroup) break;
       }
+      if (foundGroup) continue;
+      // If not added to any group, create a new group
+      pinGroups.push([pin]);
     }
 
-    // Flatten the positions dictionary to extract the consolidated groups
-    const consolidatedPositions: {
+    // Iterate through pin groups to create consolidated positions based on center of bounding box
+    const consolidatedGroups: {
       lngLat: [number, number];
       pins: MapPin[];
       key: string;
     }[] = [];
-    for (const x in positions) {
-      for (const y in positions[x]) {
-        consolidatedPositions.push({
-          lngLat: center(
-            points(positions[x][y].map((p) => [p.longitude, p.latitude]))
-          ).geometry.coordinates as [number, number],
-          pins: positions[x][y],
-          // Prevents unecessary re-renders
-          key: `pin-group-` + positions[x][y].map((p) => p.id).join("-"),
-        });
-      }
+    for (const group of pinGroups) {
+      consolidatedGroups.push({
+        lngLat: center(points(group.map((p) => [p.longitude, p.latitude])))
+          .geometry.coordinates as [number, number],
+        pins: group,
+        // Prevents unecessary re-renders
+        key: `pin-group-` + group.map((p) => p.id).join("-"),
+      });
     }
 
-    console.log("Consolidated positions:", consolidatedPositions);
+    return consolidatedGroups;
 
-    return consolidatedPositions;
   }, [project, zoomLevel]);
 
   const zoomToPinGroup = (pins: MapPin[]) => async () => {
@@ -387,7 +438,7 @@ export default function GlobalAppMap() {
     bounds._ne.lng += scalarX;
 
     mapController.flyToBounds(bounds, 1000);
-  }
+  };
 
   const zoomListener = (e: { target: MapRef; type: "zoom" }) => {
     const map = e.target;
@@ -548,7 +599,10 @@ export default function GlobalAppMap() {
     mapController.openMarker(projectPinToMarker(pin));
   };
 
-  const updateOpenMarkerPopupBounds = (marker: MapMarker, mapRef: MapRef | null) => {
+  const updateOpenMarkerPopupBounds = (
+    marker: MapMarker,
+    mapRef: MapRef | null
+  ) => {
     if (!mapRef) return null;
     const point = mapRef.project(marker.coordinate);
     if (!point || !mapRef) return null;
@@ -589,9 +643,12 @@ export default function GlobalAppMap() {
       bottom: canvasSize.height - y - size.height - padding.bottom,
     };
 
+    const transformOrigin = placedAbove ? "bottom center" : "top center";
+
     // Update popup position directly through ref (needs to be fast)
     openMarkerRef.current?.style.setProperty("left", `${x}px`);
     openMarkerRef.current?.style.setProperty("top", `${y}px`);
+    openMarkerRef.current?.style.setProperty("transform-origin", transformOrigin);
 
     // Configure rest of style through react state (slower to update)
     setOpenMarkerPopupBounds({
@@ -602,7 +659,7 @@ export default function GlobalAppMap() {
       height: size.height - 30,
       marginTop: placedAbove ? 0 : 30,
       marginBottom: placedAbove ? 30 : 0,
-      transformOrigin: placedAbove ? "bottom center" : "top center",
+      transformOrigin: openMarkerRef.current ? undefined : transformOrigin,
     });
 
     return Object.values(overflow).some((value) => value < 0);
@@ -610,6 +667,9 @@ export default function GlobalAppMap() {
 
   return (
     <div className="fixed size-full bg-gray-900">
+      <div className="absolute top-navbar text-red-500 left-[300px] z-20">
+        Zoom: {zoomLevel.toFixed(2)}
+      </div>
       <Map
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
         ref={map}
@@ -675,7 +735,11 @@ export default function GlobalAppMap() {
             latitude={group.lngLat[1]}
           >
             {group.pins.length > 1 ? (
-              <PinGroup key={group.key} pins={group.pins} onClick={zoomToPinGroup(group.pins)} />
+              <PinGroup
+                key={group.key}
+                pins={group.pins}
+                onClick={zoomToPinGroup(group.pins)}
+              />
             ) : (
               <div
                 onClick={(e) => handlePinClick(e, group.pins[0])}
@@ -778,7 +842,7 @@ export default function GlobalAppMap() {
       </Map>
       {openMarker && openMarkerPopupBounds && project && (
         <div
-          className="absolute z-40 expand-from-origin"
+        className="absolute z-40 expand-from-origin transition-[scale]"
           style={{
             ...openMarkerPopupBounds,
           }}

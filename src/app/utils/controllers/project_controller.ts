@@ -41,6 +41,12 @@ class ProjectEventReceiver {
       new CustomEvent("update-project", { detail: updatedProject })
     );
   }
+
+  didUpdateMapRotation(rotation: number) {
+    projectEmitter.dispatchEvent(
+      new CustomEvent("rotate-map", { detail: rotation })
+    );
+  }
 }
 
 export const projectEventReceiver = new ProjectEventReceiver();
