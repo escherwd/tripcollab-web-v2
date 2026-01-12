@@ -1,13 +1,13 @@
 'use client'
 
-import { signOut } from "@workos-inc/authkit-nextjs";
+import { serverLogOut } from "@/app/api/auth/logout";
 import { useEffect } from "react";
 
 export default function LogOutPage() {
 
     const doSignOut = async () => {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        await signOut({ returnTo: '/' })
+        await serverLogOut();
     }
 
     useEffect(() => {
