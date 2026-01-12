@@ -60,10 +60,11 @@ export default function ActivityListComponent({
               .startOf("day")
               .diff(
                 DateTime.fromJSDate(pin.dateStart)
-                  .plus({ minutes: pin.duration ?? 0 })
+                  .plus({ minutes: (pin.timeStart ?? 0) + (pin.duration ?? 0) })
                   .startOf("day"),
                 "days"
               )
+              .minus({ days: 1})
               .negate()
               .toHuman()
           : "0 Days";
@@ -84,7 +85,7 @@ export default function ActivityListComponent({
       });
       if (pin.dateStart && pin.duration && pin.duration > 1440) {
         const endDate = DateTime.fromJSDate(pin.dateStart)
-          .plus({ minutes: pin.duration ?? 0 })
+          .plus({ minutes: (pin.timeStart ?? 0) + (pin.duration ?? 0) })
           .toISO({ precision: "day" })
           ?.substring(0, 10);
         if (!endDate) continue;
@@ -258,10 +259,13 @@ export default function ActivityListComponent({
         ) as HTMLDivElement | undefined;
 
         if (!startEl || !endEl) {
-          return 0;
+          return { top: 0, height: 0};
         }
 
-        return endEl.offsetTop - startEl.offsetTop;
+        return {
+          top: startEl.clientHeight / 2,
+          height: endEl.offsetTop + (endEl.clientHeight / 2) - startEl.offsetTop - (startEl.clientHeight/2)
+        } 
       };
 
       // Determine which elements need to be animated
@@ -280,9 +284,9 @@ export default function ActivityListComponent({
       const tickLimit = 4;
       const interval = setInterval(() => {
         for (const track of durationTracks) {
-          track.track!.style.height = `${calculateHeightForActivity(
-            track.activity.id
-          )}px`;
+          const calculated = calculateHeightForActivity(track.activity.id);
+          track.track!.style.height = `${calculated.height}px`;
+          track.track!.style.top = `${calculated.top}px`;
         }
         i++;
         if (i >= tickLimit) {
@@ -452,7 +456,8 @@ export default function ActivityListComponent({
                               />
                             </div>
                             <div className="tc-activity-list-item-text">
-                              {activity.name}
+                              <span>
+                              <div>{activity.name}</div>
                               {activity.subtitle && (
                                 <div
                                   className={` text-gray-400 duration-300 mt-px transition-all ${
@@ -464,6 +469,12 @@ export default function ActivityListComponent({
                                   {activity.subtitle}
                                 </div>
                               )}
+                              </span>
+                              {
+                                <div className="tc-activity-list-item-time">
+                                  12:34
+                                </div>
+                              }
                             </div>
                           </button>
                         );

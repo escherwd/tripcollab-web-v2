@@ -18,12 +18,24 @@
 }
 
 .tc-activity-list-item {
-    @apply h-10 pl-0 pr-2 bg-gray-50 py-2 mb-1 flex items-center gap-1 text-left cursor-pointer rounded-lg relative;
+    @apply min-h-10 pl-0 pr-2 py-1 mb-1 flex items-center gap-1 text-left cursor-pointer rounded-lg relative;
     @apply transition-all duration-300;
     @apply z-10;
 
     .tc-activity-list-item-text {
-        @apply text-sm text-gray-500 leading-tight;
+        @apply text-sm text-gray-500 w-full leading-tight flex gap-1 items-center;
+
+        .tc-activity-list-item-time {
+            @apply text-gray-400 text-xs;
+        }
+
+        > span {
+            @apply block flex-1;
+
+            > * {
+                @apply line-clamp-2 overflow-hidden overflow-ellipsis;
+            }
+        }
     }
 
     .tc-activity-list-item-icon {
@@ -35,14 +47,14 @@
     }
 
     .tc-activity-list-item-duration-track {
-        @apply z-20 absolute left-[17px] top-4 h-0 w-1.5 rounded-full transition-all delay-200 duration-300;
+        @apply z-20 absolute left-[17px] top-0 h-0 w-1.5 rounded-full transition-[height,opacity] delay-200 duration-300;
 
         animation: growTrack 0.5s forwards;
         /* animation-delay: 0.2s; */
     }
 
     &.tc-activity-list-item-unfocused {
-        @apply h-6 mb-1 z-20 bg-transparent;
+        @apply min-h-0 h-6 mb-1 z-20 bg-transparent bg-none shadow-none;
 
         .tc-activity-list-item-text {
             @apply text-xs opacity-50 -ml-[3px];
@@ -50,6 +62,10 @@
 
         .tc-activity-list-item-duration-track {
             @apply opacity-0 delay-0 duration-150; 
+        }
+
+        .tc-activity-list-item-text > span > * {
+            @apply line-clamp-1;
         }
 
         .tc-activity-list-item-icon {

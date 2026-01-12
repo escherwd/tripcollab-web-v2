@@ -667,9 +667,9 @@ export default function GlobalAppMap() {
 
   return (
     <div className="fixed size-full bg-gray-900">
-      <div className="absolute top-navbar text-red-500 left-[300px] z-20">
+      {/* <div className="absolute top-navbar text-red-500 left-[300px] z-20">
         Zoom: {zoomLevel.toFixed(2)}
-      </div>
+      </div> */}
       <Map
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
         ref={map}
@@ -785,7 +785,7 @@ export default function GlobalAppMap() {
           { type: "permanent", features: permanentFeatures },
         ].map((featureset) => (
           <Fragment key={featureset.type}>
-            {featureset.features.map((feature) => {
+            {featureset?.features?.map((feature) => {
               feature.layer.paint = {
                 ...feature.layer.paint,
                 "line-opacity":
