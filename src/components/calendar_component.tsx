@@ -278,7 +278,7 @@ export default function CalendarComponent({
               (day.isoDate ?? "") >= dateRange.start &&
               (day.isoDate ?? "") <= dateRange.end && (
                 <div
-                  className={`absolute inset-x-0 inset-y-auto h-6 bg-gray-200 ${
+                  className={`absolute inset-x-0 inset-y-auto h-6 bg-gray-200/50 ${
                     day.isoDate === dateRange.start ? "rounded-l-full" : ""
                   } ${day.isoDate === dateRange.end ? "rounded-r-full" : ""}`}
                 />

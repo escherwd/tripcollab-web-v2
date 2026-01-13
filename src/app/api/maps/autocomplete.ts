@@ -6,6 +6,8 @@ import {
   appleMapsGenerateClientTimeInfo,
   AppleMapsPlaceResult,
 } from "./apple_maps";
+import { MapPin } from "@/components/global_map";
+import { SEARCH_LOCAL_RESULTS_MAX } from "@/app/utils/consts";
 
 export type AppleMapsAutocompleteResponse = {
   query: string;
@@ -15,6 +17,7 @@ export type AppleMapsAutocompleteResponse = {
     highlight: string;
     extra?: string;
     type: "QUERY" | "ADDRESS" | "BUSINESS";
+    localProjectId?: string;
     place?: AppleMapsPlaceResult;
   }[];
 };
@@ -22,8 +25,39 @@ export type AppleMapsAutocompleteResponse = {
 export async function autocompleteAppleMaps(
   query: string,
   loc: { lng: number; lat: number; deltaLng: number; deltaLat: number },
-  routePlanningPreviousLocation?: { lng: number; lat: number }
+  routePlanningPreviousLocation?: { lng: number; lat: number },
+  includeProjectPins?: {
+    id: string;
+    appleMapsMuid?: string;
+    name: string;
+  }[]
 ): Promise<AppleMapsAutocompleteResponse> {
+
+  // Generate project pin results
+  const projectPinsGenerator = () => {
+    return includeProjectPins
+      ?.filter((pin) => pin.name.toLowerCase().includes(query.toLowerCase()))
+      .map(
+        (pin) =>
+          <AppleMapsAutocompleteResponse["results"][number]>{
+            muid: pin.appleMapsMuid ?? `fake-muid-${pin.id}`,
+            highlight: pin.name,
+            type: "BUSINESS",
+            localProjectId: pin.id,
+          }
+      ).toSorted((a) => {
+        return a.highlight.toLowerCase().startsWith(query) ? -1 : 1;
+      }).slice(0, SEARCH_LOCAL_RESULTS_MAX);
+  };
+
+  if (query.trim().length < 3) {
+    // Only return project pins if the query is too short
+    return {
+      query: query,
+      results: projectPinsGenerator() ?? [],
+    }
+  }
+
   const body = {
     latlong: { lat: loc.lat, lng: loc.lng },
     span: {
@@ -55,11 +89,22 @@ export async function autocompleteAppleMaps(
 
   const data = await response.json();
 
+  const includedResults = projectPinsGenerator() ?? [];
+
   return {
     query: query,
-    results:
+    results: includedResults.concat(
       (data.globalResult.autocompleteResult.sections?.[2]?.entries ?? [])
         .filter((result: Record<string, any>) => {
+          // Filter out results that are already in the project pins
+          const muid: string | undefined =
+            result.business?.muid ??
+            result.address?.mapsId?.shardedId?.muid ??
+            result.address?.opaqueGeoId;
+          if (includeProjectPins?.map((p) => p.appleMapsMuid).includes(muid)) {
+            return false;
+          }
+
           // Remove collections and "search nearby" results
           // There is probably a better way to do the second one
           return (
@@ -107,18 +152,16 @@ export async function autocompleteAppleMaps(
               muid: muid,
             };
           } else if (result.type === "ADDRESS") {
-
             place = <AppleMapsPlaceResult>{
               name: result.highlightMain.line,
               coordinate: result.address.center,
               categoryId: result.address.placeType?.toLowerCase(),
-              muid: result.address.mapsId.shardedId.muid ?? result.address.opaqueGeoId ?? muid,
+              muid:
+                result.address?.mapsId?.shardedId?.muid ??
+                result.address?.opaqueGeoId ??
+                muid,
             };
-
-
           }
-
-
 
           return {
             muid: muid,
@@ -127,6 +170,7 @@ export async function autocompleteAppleMaps(
             type: result.type,
             place: place,
           };
-        }) ?? [],
+        }) ?? []
+    ),
   };
 }

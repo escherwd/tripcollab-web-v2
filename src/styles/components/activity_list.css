@@ -18,9 +18,26 @@
 }
 
 .tc-activity-list-item {
-    @apply min-h-10 pl-0 pr-2 py-1 mb-1 flex items-center gap-1 text-left cursor-pointer rounded-lg relative;
+    @apply min-h-10 pl-0 bg-gray-500/5 pr-2 py-1 mb-1 flex items-center gap-1 text-left cursor-pointer rounded-lg relative;
     @apply transition-all duration-300;
     @apply z-10;
+
+    
+
+    /* &:not(.tc-activity-list-item-unfocused):hover::after {
+        @apply bg-gray-100;
+    }
+
+    &:not(.tc-activity-list-item-unfocused)::after {
+        @apply content-[''] bg-gray-50 rounded-lg absolute left-0 inset-0 -z-20;
+    } */
+
+    &:not(.tc-activity-list-item-unfocused) {
+
+        .tc-activity-list-item-text {
+            /* @apply pl-3; */
+        }
+    }
 
     .tc-activity-list-item-text {
         @apply text-sm text-gray-500 w-full leading-tight flex gap-1 items-center;

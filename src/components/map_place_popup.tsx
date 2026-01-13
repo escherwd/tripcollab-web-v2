@@ -31,6 +31,7 @@ import { DateTime } from "luxon";
 import PopupScheduleComponent from "./popup_schedule_component";
 import { projectEventReceiver } from "@/app/utils/controllers/project_controller";
 import ColorInput from "./color_input";
+import PanelIconButton from "./panel_icon_button";
 
 export default function MapPlacePopup({
   marker,
@@ -265,12 +266,13 @@ export default function MapPlacePopup({
 
   return (
     <div className="size-full flex flex-col bg-white rounded-lg shadow-lg z-40 relative">
-      <button
+      {/* <button
         onClick={onClose}
         className="absolute z-50 top-4 right-4 bg-gray-100 hover:bg-gray-200 cursor-pointer rounded-full p-1 text-gray-500 hover:text-gray-700"
       >
         <XMarkIcon className="size-4" />
-      </button>
+      </button> */}
+      <PanelIconButton className=" absolute z-50 top-4 right-4" icon={<XMarkIcon className="size-4" />} onClick={onClose} />
 
       <div className="flex-1 overflow-y-auto">
         <div className="pl-4 pt-4 pb-3 border-b border-gray-100 mb-4 pr-14">

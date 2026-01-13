@@ -25,6 +25,10 @@ import { projectEventReceiver } from "@/app/utils/controllers/project_controller
 import _ from "lodash";
 import { center, distance, point, points } from "@turf/turf";
 import PinGroup from "./pin_group";
+import {
+  MAP_UI_POPOVER_MIN_HEIGHT,
+  MAP_UI_POPOVER_STAY_IN_FRAME,
+} from "@/app/utils/consts";
 // import { projectController } from "@/app/utils/controllers/project_controller";
 
 // Create a global event emitter for the map
@@ -87,8 +91,8 @@ class MapController {
     bottom: 0,
   };
 
-  setPadding(padding: MapPadding) {
-    this.padding = padding;
+  setPadding( updater: (currentPadding: MapPadding) => MapPadding) {
+    this.padding = updater(this.padding);
   }
 
   constructor() {
@@ -129,17 +133,23 @@ class MapController {
     return this.map?.getBounds();
   }
 
-  async flyTo(easingOptions: CustomEasingOptions) {
+  /**
+   *
+   * @param easingOptions
+   * @param offsetY Whether additional padding should be added to move the destination
+   * to the upper center of the screen as opposed to the dead center
+   */
+  async flyTo(easingOptions: CustomEasingOptions, offsetY: boolean = false) {
     // Wait for the map to be mounted
     await this.waitForMap();
-    // Update padding values if they're included here
-    if (easingOptions.padding) {
-      this.padding = easingOptions.padding as MapPadding;
-    }
+    
     // Fly to the new view state and wait for the duration
     this.map?.flyTo({
       ...easingOptions,
-      padding: this.padding,
+      padding: {
+        ...this.padding,
+        bottom: this.padding.bottom + (offsetY ? window.innerHeight / 4 : 0),
+      },
     });
     await new Promise((resolve) => setTimeout(resolve, easingOptions.duration));
   }
@@ -285,16 +295,19 @@ export default function GlobalAppMap() {
 
   const mapZoomStartEndListener = (e: { type: string }) => {
     if (e.type === "zoomstart" || e.type === "movestart") {
-      openMarkerRef.current?.classList.add("scale-30","pointer-events-none");
+      openMarkerRef.current?.classList.add("scale-30", "pointer-events-none");
     } else if (e.type === "zoomend" || e.type === "moveend") {
-      openMarkerRef.current?.classList.remove("scale-30","pointer-events-none");
+      openMarkerRef.current?.classList.remove(
+        "scale-30",
+        "pointer-events-none"
+      );
     }
-  }
+  };
 
   const mapRotationListener = (e: { target: MapRef; type: "rotate" }) => {
     const map = e.target;
     projectEventReceiver.didUpdateMapRotation(map.getBearing());
-  }
+  };
 
   useEffect(() => {
     console.log("Project updated in map component:", project);
@@ -329,8 +342,7 @@ export default function GlobalAppMap() {
       map.current?.off("movestart", mapZoomStartEndListener);
       map.current?.off("moveend", mapZoomStartEndListener);
       map.current?.off("rotate", mapRotationThrottler);
-    }
-
+    };
 
     if (!project) {
       unsubscribe();
@@ -402,7 +414,6 @@ export default function GlobalAppMap() {
     }
 
     return consolidatedGroups;
-
   }, [project, zoomLevel]);
 
   const zoomToPinGroup = (pins: MapPin[]) => async () => {
@@ -446,6 +457,8 @@ export default function GlobalAppMap() {
     setZoomLevel(map.getZoom());
   };
 
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
+
   useEffect(() => {
     const interval = setInterval(() => {
       if (map.current?.frameReady) {
@@ -454,8 +467,10 @@ export default function GlobalAppMap() {
           new CustomEvent("map-mount", { detail: map.current })
         );
         clearInterval(interval);
+        setIsMapLoaded(true);
       }
     }, 100);
+    
 
     const listenerSetMarkers = (e: CustomEventInit<MapMarker[]>) => {
       if (e.detail) setMarkers(e.detail);
@@ -468,12 +483,18 @@ export default function GlobalAppMap() {
       if (!e.detail) return;
       const overflow = updateOpenMarkerPopupBounds(e.detail, map.current);
       if (overflow) {
-        map.current?.flyTo({
-          padding: map.current?.getPadding(),
-          center: e.detail.coordinate,
+        mapController.flyTo({
+          // padding: map.current?.getPadding(),
+          center: [e.detail.coordinate.lng, e.detail.coordinate.lat],
           animate: true,
           duration: 1000,
-        });
+        }, true);
+        // map.current?.flyTo({
+        //   padding: map.current?.getPadding(),
+        //   center: e.detail.coordinate,
+        //   animate: true,
+        //   duration: 1000,
+        // });
       }
     };
 
@@ -606,6 +627,7 @@ export default function GlobalAppMap() {
     if (!mapRef) return null;
     const point = mapRef.project(marker.coordinate);
     if (!point || !mapRef) return null;
+
     const padding = {
       top: 16 + mapController.padding.top,
       left: 16 + mapController.padding.left,
@@ -619,22 +641,28 @@ export default function GlobalAppMap() {
     };
     const size = {
       width: 300,
-      height: (canvasSize.height - padding.top - padding.bottom) / 2,
+      height: Math.max(
+        MAP_UI_POPOVER_MIN_HEIGHT,
+        (canvasSize.height - padding.top - padding.bottom) / 2
+      ),
     };
 
     // If true, the popup will be placed above the marker
     const placedAbove =
       point.y + size.height + padding.bottom > canvasSize.height;
     let x = point.x - size.width / 2;
-    x = Math.min(
-      Math.max(x, padding.left),
-      canvasSize.width - size.width - padding.right
-    );
     let y = placedAbove ? point.y - size.height : point.y;
-    y = Math.min(
-      Math.max(y, padding.top - 30),
-      canvasSize.height - size.height - padding.bottom + 30
-    );
+    if (MAP_UI_POPOVER_STAY_IN_FRAME) {
+      // Clamp x and y to stay within the map frame with padding
+      x = Math.min(
+        Math.max(x, padding.left),
+        canvasSize.width - size.width - padding.right
+      );
+      y = Math.min(
+        Math.max(y, padding.top - 30),
+        canvasSize.height - size.height - padding.bottom + 30
+      );
+    }
 
     const overflow = {
       top: y - padding.top,
@@ -648,7 +676,10 @@ export default function GlobalAppMap() {
     // Update popup position directly through ref (needs to be fast)
     openMarkerRef.current?.style.setProperty("left", `${x}px`);
     openMarkerRef.current?.style.setProperty("top", `${y}px`);
-    openMarkerRef.current?.style.setProperty("transform-origin", transformOrigin);
+    openMarkerRef.current?.style.setProperty(
+      "transform-origin",
+      transformOrigin
+    );
 
     // Configure rest of style through react state (slower to update)
     setOpenMarkerPopupBounds({
@@ -780,7 +811,7 @@ export default function GlobalAppMap() {
           </Marker>
         ))} */}
 
-        {[
+        { isMapLoaded && [
           { type: "temporary", features: temporaryFeatures },
           { type: "permanent", features: permanentFeatures },
         ].map((featureset) => (
@@ -842,7 +873,7 @@ export default function GlobalAppMap() {
       </Map>
       {openMarker && openMarkerPopupBounds && project && (
         <div
-        className="absolute z-40 expand-from-origin transition-[scale]"
+          className="absolute z-40 expand-from-origin transition-[scale]"
           style={{
             ...openMarkerPopupBounds,
           }}

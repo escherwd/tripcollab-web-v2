@@ -22,6 +22,7 @@ type ActivityListItem = {
   activityType: ActivityType;
   pin: MapPin | null;
   numDays: string;
+  timeStart?: DateTime;
   key: string;
   color?: string; // take from styledata
   iconId: string; // take from styledata
@@ -54,20 +55,12 @@ export default function ActivityListComponent({
         mapIcons[pin.styleData?.iconId ?? "address"]?.color;
       const pinIconId = pin.styleData?.iconId ?? "address";
 
-      const numDays =
+      let numDays: string | number =
         pin.dateStart && pin.duration
-          ? DateTime.fromJSDate(pin.dateStart)
-              .startOf("day")
-              .diff(
-                DateTime.fromJSDate(pin.dateStart)
-                  .plus({ minutes: (pin.timeStart ?? 0) + (pin.duration ?? 0) })
-                  .startOf("day"),
-                "days"
-              )
-              .minus({ days: 1})
-              .negate()
-              .toHuman()
-          : "0 Days";
+          ? Math.floor(((pin.timeStart ?? 0) + pin.duration) / 1440)
+          : 0;
+
+      numDays = numDays >= 1 ? `${numDays + 1} Days` : "1 Day";
 
       if (!groups[date]) {
         groups[date] = [];
@@ -78,13 +71,15 @@ export default function ActivityListComponent({
         id: pin.id,
         activityType: pin.type as ActivityType,
         numDays: numDays,
+        timeStart: pin.timeStart ? DateTime.now().startOf('day').plus({ minutes: pin.timeStart }) : undefined,
         key: `activity-start-${pin.id}`,
         color: pinColor,
         iconId: (pin.styleData as any)["iconId"] ?? "address",
         name: pin.name,
       });
-      if (pin.dateStart && pin.duration && pin.duration > 1440) {
+      if (pin.dateStart && pin.duration && pin.duration + (pin.timeStart ?? 0) >= 1440) {
         const endDate = DateTime.fromJSDate(pin.dateStart)
+          .startOf("day")
           .plus({ minutes: (pin.timeStart ?? 0) + (pin.duration ?? 0) })
           .toISO({ precision: "day" })
           ?.substring(0, 10);
@@ -113,10 +108,14 @@ export default function ActivityListComponent({
       if (!date) continue;
 
       // console.log("adding route", route, date);
-      const numDays = route.dateStart && DateTime.fromJSDate(route.dateStart).plus({ minutes: route.duration ?? 0 })
-              .startOf("day")
-              .diff(DateTime.fromJSDate(route.dateStart).startOf("day"), "days")
-              .toHuman() || "0 Days";
+      const numDays =
+        (route.dateStart &&
+          DateTime.fromJSDate(route.dateStart)
+            .plus({ minutes: route.duration ?? 0 })
+            .startOf("day")
+            .diff(DateTime.fromJSDate(route.dateStart).startOf("day"), "days")
+            .toHuman()) ||
+        "0 Days";
 
       if (!groups[date]) {
         groups[date] = [];
@@ -130,6 +129,7 @@ export default function ActivityListComponent({
         pin: null,
         id: route.id,
         activityType: "transit" as ActivityType,
+        timeStart: route.timeStart ? DateTime.now().startOf('day').plus({ minutes: route.timeStart }) : undefined,
         numDays: numDays,
         color:
           route.styleData?.color ??
@@ -259,13 +259,17 @@ export default function ActivityListComponent({
         ) as HTMLDivElement | undefined;
 
         if (!startEl || !endEl) {
-          return { top: 0, height: 0};
+          return { height: 0 };
         }
 
         return {
           top: startEl.clientHeight / 2,
-          height: endEl.offsetTop + (endEl.clientHeight / 2) - startEl.offsetTop - (startEl.clientHeight/2)
-        } 
+          height:
+            endEl.offsetTop +
+            endEl.clientHeight / 2 -
+            startEl.offsetTop -
+            startEl.clientHeight / 2,
+        };
       };
 
       // Determine which elements need to be animated
@@ -457,22 +461,22 @@ export default function ActivityListComponent({
                             </div>
                             <div className="tc-activity-list-item-text">
                               <span>
-                              <div>{activity.name}</div>
-                              {activity.subtitle && (
-                                <div
-                                  className={` text-gray-400 duration-300 mt-px transition-all ${
-                                    activity.activityType === activeTab
-                                      ? "opacity-100 h-4 text-xs"
-                                      : "opacity-0 h-0 text-[0px]"
-                                  }`}
-                                >
-                                  {activity.subtitle}
-                                </div>
-                              )}
+                                <div>{activity.name}</div>
+                                {activity.subtitle && (
+                                  <div
+                                    className={` text-gray-400 duration-300 mt-px transition-all ${
+                                      activity.activityType === activeTab
+                                        ? "opacity-100 h-4 text-xs"
+                                        : "opacity-0 h-0 text-[0px]"
+                                    }`}
+                                  >
+                                    {activity.subtitle}
+                                  </div>
+                                )}
                               </span>
-                              {
+                              { activity.timeStart &&
                                 <div className="tc-activity-list-item-time">
-                                  12:34
+                                  {activity.timeStart.toLocaleString(DateTime.TIME_SIMPLE)}
                                 </div>
                               }
                             </div>

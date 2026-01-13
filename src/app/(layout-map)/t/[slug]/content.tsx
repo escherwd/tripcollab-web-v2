@@ -3,6 +3,8 @@
 import { serverDeleteRoute } from "@/app/api/project/delete_route";
 import { serverUpdatePin } from "@/app/api/project/update_pin";
 import { serverUpdateRoute } from "@/app/api/project/update_route";
+import { HereMultimodalRouteSection } from "@/app/api/routes/here_multimodal";
+import { MAP_UI_PADDING_VALUES } from "@/app/utils/consts";
 import { projectEmitter } from "@/app/utils/controllers/project_controller";
 import { AppUser } from "@/backend/auth/get_user";
 import { mapController, MapMarker, MapProject } from "@/components/global_map";
@@ -11,9 +13,12 @@ import MapControlsComponent from "@/components/map_controls_component";
 import Navbar from "@/components/navbar";
 import RoutePlanningComponent from "@/components/route_planning_component";
 import GeneralSearchComponent from "@/components/search_general";
+import { decode } from "@here/flexpolyline";
 import { Prisma } from "@prisma/client";
 import { RiLoaderFill } from "@remixicon/react";
+import { bbox, points } from "@turf/turf";
 import _, { set } from "lodash";
+import { LngLatBounds } from "mapbox-gl";
 import { useEffect, useState } from "react";
 
 export type ProjectFunctionOpenRoutePlanner = (from: MapMarker | null) => void;
@@ -52,6 +57,14 @@ export default function ProjectPageContent({
   const [mapRotation, setMapRotation] = useState<number>(0);
 
   const [sideBarOpen, setSidebarOpen] = useState<boolean>(true);
+
+  useEffect(() => {
+    // Update the map padding
+    mapController.setPadding((p) => ({
+      ...p,
+      right: sideBarOpen ? MAP_UI_PADDING_VALUES.ITINERARY_PANEL : 0,
+    }));
+  }, [sideBarOpen]);
 
   const openRoutePlanner: ProjectFunctionOpenRoutePlanner = (
     from: MapMarker | null
@@ -152,19 +165,52 @@ export default function ProjectPageContent({
 
     mapController.setProject(project);
 
-    mapController.flyTo({
-      center: [4.996, 52.26],
-      zoom: 10,
-      bearing: 0,
-      pitch: 0,
-      duration: 5000,
-      padding: {
-        top: 64,
-        left: 0,
-        right: 8 + 272 + 8,
-        bottom: 0,
-      },
-    });
+    // Set initial map padding
+    mapController.setPadding(() => ({
+      right: MAP_UI_PADDING_VALUES.ITINERARY_PANEL,
+      left: 0,
+      top: MAP_UI_PADDING_VALUES.NAVBAR,
+      bottom: 0,
+    }));
+
+    // Calculate project bounds
+    const boundingBox = bbox(
+      points([
+        ...project.pins.map((pin) => [pin.longitude, pin.latitude]),
+        ...project.routes.flatMap((route) =>
+          (route.segments as HereMultimodalRouteSection[]).flatMap(
+            (seg) => decode(seg.polyline).polyline.map(coord => [coord[1], coord[0]])
+          )
+        ),
+      ])
+    );
+
+    // Apply scalar padding to the bounding box
+    const scalarX = (boundingBox[2] - boundingBox[0]) * 0.1;
+    const scalarY = (boundingBox[3] - boundingBox[1]) * 0.1;
+    boundingBox[0] -= scalarX;
+    boundingBox[2] += scalarX;
+    boundingBox[1] -= scalarY;
+    boundingBox[3] += scalarY;
+
+    if (project.pins.length === 0) {
+      // Default pan
+      mapController.flyTo({
+        center: [4.996, 52.26],
+        zoom: 10,
+        bearing: 0,
+        pitch: 0,
+        duration: 5000,
+      });
+    } else {
+      mapController.flyToBounds(
+        new LngLatBounds(
+          [boundingBox[0], boundingBox[1]],
+          [boundingBox[2], boundingBox[3]]
+        ),
+        5000
+      );
+    }
 
     // Listen for project events
     // These events will only be dispatched from the map component and its children
@@ -248,13 +294,28 @@ export default function ProjectPageContent({
       </div>
 
       <div className="fixed size-full pointer-events-none fade-in">
-        <div className="absolute size-full pointer-events-none transition-transform duration-300" style={{ transform: sideBarOpen ? "translateX(0)" : "translateX(calc(272px + 8px))" }}>
-          <MapControlsComponent mapRotation={mapRotation} setSidebarOpen={setSidebarOpen} sidebarOpen={sideBarOpen} />
-          <div className={`transition-opacity ${sideBarOpen ? 'opacity-100' : 'opacity-0 delay-150'}`}>
-          <ItineraryComponent
-            project={currentProject}
-            openExistingRoute={openExistingRoute}
+        <div
+          className="absolute size-full pointer-events-none transition-transform duration-300"
+          style={{
+            transform: sideBarOpen
+              ? "translateX(0)"
+              : "translateX(calc(272px + 8px))",
+          }}
+        >
+          <MapControlsComponent
+            mapRotation={mapRotation}
+            setSidebarOpen={setSidebarOpen}
+            sidebarOpen={sideBarOpen}
           />
+          <div
+            className={`transition-opacity ${
+              sideBarOpen ? "opacity-100" : "opacity-0 delay-150"
+            }`}
+          >
+            <ItineraryComponent
+              project={currentProject}
+              openExistingRoute={openExistingRoute}
+            />
           </div>
         </div>
 

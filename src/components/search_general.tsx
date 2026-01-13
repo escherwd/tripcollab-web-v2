@@ -22,12 +22,13 @@ import PanelIconButton from "./panel_icon_button";
 import { DateTime } from "luxon";
 import SearchAutocompleteComponent from "./search_autocomplete";
 import { AppleMapsPlace } from "@/app/api/maps/place";
+import { MAP_UI_PADDING_VALUES, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS } from "@/app/utils/consts";
 
 export default function GeneralSearchComponent({
   project,
   hide,
 }: {
-  project?: MapProject | null;
+  project: MapProject;
   hide?: boolean;
 }) {
   const currentQuery = useRef("");
@@ -56,11 +57,11 @@ export default function GeneralSearchComponent({
         return;
       }
 
-      if (query.length < 3) return;
+      // if (query.length < 3) return;
 
       // Debounce the request
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      console.log(currentQuery.current, query);
+      await new Promise((resolve) => setTimeout(resolve, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS));
+
       if (currentQuery.current != query) return;
 
       const bounds = await mapController.getMapBounds();
@@ -73,7 +74,11 @@ export default function GeneralSearchComponent({
         lat: bounds.getCenter().lat,
         deltaLng: bounds.getNorthEast().lng - bounds.getSouthWest().lng,
         deltaLat: bounds.getNorthEast().lat - bounds.getSouthWest().lat,
-      });
+      }, undefined, project.pins.map((p) => ({
+        id: p.id,
+        name: p.name,
+        appleMapsMuid: p.appleMapsMuid ?? undefined,
+      })));
 
       data.timestamp = timestamp;
 
@@ -146,6 +151,17 @@ export default function GeneralSearchComponent({
   const handleAutocompleteResultClick = async (
     result: AppleMapsAutocompleteResponse["results"][number],
   ) => {
+
+    if (result.localProjectId) {
+      const pin = project?.pins.find((p) => p.id === result.localProjectId);
+      if (!pin) return;
+
+      mapController.openMarker(pin.id);
+
+      setTimeout(() => {
+        setAutocompleteResults(null);
+      }, 250);
+    }
     if (result.type == "QUERY") {
       // setSearchQuery(result.highlight);
       handleSearch(result.highlight);
@@ -203,14 +219,9 @@ export default function GeneralSearchComponent({
   }, [searchResults]);
 
   useEffect(() => {
-    console.log("isShowingResults", isShowingResults);
-    mapController.setPadding({
-      top: 64,
-      left: isShowingResults ? 8 + 288 + 8 : 0,
-      right: 8 + 272 + 8,
-      bottom: 0,
-    });
-  }, [searchResults]);
+    // Update the map padding
+    mapController.setPadding(p => ({ ...p, left: isShowingResults ? MAP_UI_PADDING_VALUES.SEARCH_PANEL : 0 }))
+  }, [isShowingResults]);
 
   return (
     <>
@@ -234,7 +245,7 @@ export default function GeneralSearchComponent({
           </div>
           <input
             type="text"
-            className="px-12 focus:outline-gray-300 size-full"
+            className="px-12 focus:outline-gray-300 rounded-lg size-full"
             placeholder="Search for a place"
             value={searchQuery}
             onChange={(e) => {
@@ -250,6 +261,7 @@ export default function GeneralSearchComponent({
         <SearchAutocompleteComponent
           results={autocompleteResults}
           onResultClick={handleAutocompleteResultClick}
+          project={project}
         />
 
         {isShowingResults && (
