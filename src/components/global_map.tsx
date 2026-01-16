@@ -23,12 +23,13 @@ import { hereMultimodalRouteSectionsToFeatures } from "@/app/utils/backend/here_
 import { HereMultimodalRouteSection } from "@/app/api/routes/here_multimodal";
 import { projectEventReceiver } from "@/app/utils/controllers/project_controller";
 import _ from "lodash";
-import { center, distance, point, points } from "@turf/turf";
+import { bbox, center, distance, point, points } from "@turf/turf";
 import PinGroup from "./pin_group";
 import {
   MAP_UI_POPOVER_MIN_HEIGHT,
   MAP_UI_POPOVER_STAY_IN_FRAME,
 } from "@/app/utils/consts";
+import padBbox from "@/app/utils/geo/pad_bbox";
 // import { projectController } from "@/app/utils/controllers/project_controller";
 
 // Create a global event emitter for the map
@@ -91,7 +92,7 @@ class MapController {
     bottom: 0,
   };
 
-  setPadding( updater: (currentPadding: MapPadding) => MapPadding) {
+  setPadding(updater: (currentPadding: MapPadding) => MapPadding) {
     this.padding = updater(this.padding);
   }
 
@@ -142,7 +143,7 @@ class MapController {
   async flyTo(easingOptions: CustomEasingOptions, offsetY: boolean = false) {
     // Wait for the map to be mounted
     await this.waitForMap();
-    
+
     // Fly to the new view state and wait for the duration
     this.map?.flyTo({
       ...easingOptions,
@@ -430,25 +431,16 @@ export default function GlobalAppMap() {
       return;
     }
 
-    const bounds = new LngLatBounds(
-      [pins[0].longitude, pins[0].latitude],
-      [pins[0].longitude, pins[0].latitude]
+    // Calculate bounds and add padding
+    const bounds = padBbox(
+      bbox(points(pins.map((p) => [p.longitude, p.latitude]))),
+      0.1
     );
 
-    for (const pin of pins) {
-      bounds.extend([pin.longitude, pin.latitude]);
-    }
-
-    // Expand the bbox by 10% on each side
-    const scalarY = Math.abs(bounds._ne.lat - bounds._sw.lat) / 10;
-    bounds._sw.lat -= scalarY;
-    bounds._ne.lat += scalarY;
-
-    const scalarX = Math.abs(bounds._ne.lng - bounds._sw.lng) / 10;
-    bounds._sw.lng -= scalarX;
-    bounds._ne.lng += scalarX;
-
-    mapController.flyToBounds(bounds, 1000);
+    mapController.flyToBounds(
+      new LngLatBounds([bounds[0], bounds[1]], [bounds[2], bounds[3]]),
+      1000
+    );
   };
 
   const zoomListener = (e: { target: MapRef; type: "zoom" }) => {
@@ -462,15 +454,20 @@ export default function GlobalAppMap() {
   useEffect(() => {
     const interval = setInterval(() => {
       if (map.current?.frameReady) {
-        // Map is ready
+        // Map (frame) is ready - doesn't guarentee all resources are loaded
         mapEmitter.dispatchEvent(
           new CustomEvent("map-mount", { detail: map.current })
         );
         clearInterval(interval);
-        setIsMapLoaded(true);
+
+        // Check if map is actually loaded
+        // Sources can only be added after the map is loaded
+        setIsMapLoaded(map.current.loaded());
+        map.current.once("load", () => {
+          setIsMapLoaded(true);
+        });
       }
     }, 100);
-    
 
     const listenerSetMarkers = (e: CustomEventInit<MapMarker[]>) => {
       if (e.detail) setMarkers(e.detail);
@@ -483,18 +480,14 @@ export default function GlobalAppMap() {
       if (!e.detail) return;
       const overflow = updateOpenMarkerPopupBounds(e.detail, map.current);
       if (overflow) {
-        mapController.flyTo({
-          // padding: map.current?.getPadding(),
-          center: [e.detail.coordinate.lng, e.detail.coordinate.lat],
-          animate: true,
-          duration: 1000,
-        }, true);
-        // map.current?.flyTo({
-        //   padding: map.current?.getPadding(),
-        //   center: e.detail.coordinate,
-        //   animate: true,
-        //   duration: 1000,
-        // });
+        mapController.flyTo(
+          {
+            center: [e.detail.coordinate.lng, e.detail.coordinate.lat],
+            animate: true,
+            duration: 1000,
+          },
+          true
+        );
       }
     };
 
@@ -811,65 +804,66 @@ export default function GlobalAppMap() {
           </Marker>
         ))} */}
 
-        { isMapLoaded && [
-          { type: "temporary", features: temporaryFeatures },
-          { type: "permanent", features: permanentFeatures },
-        ].map((featureset) => (
-          <Fragment key={featureset.type}>
-            {featureset?.features?.map((feature) => {
-              feature.layer.paint = {
-                ...feature.layer.paint,
-                "line-opacity":
-                  featureset.type == "permanent" &&
-                  temporaryFeatures.length > 0 &&
-                  !temporaryFeatures.find((f) => f.id === feature.id)
-                    ? 0.2
-                    : 1.0,
-              };
+        {isMapLoaded &&
+          [
+            { type: "temporary", features: temporaryFeatures },
+            { type: "permanent", features: permanentFeatures },
+          ].map((featureset) => (
+            <Fragment key={featureset.type}>
+              {featureset?.features?.map((feature) => {
+                feature.layer.paint = {
+                  ...feature.layer.paint,
+                  "line-opacity":
+                    featureset.type == "permanent" &&
+                    temporaryFeatures.length > 0 &&
+                    !temporaryFeatures.find((f) => f.id === feature.id)
+                      ? 0.2
+                      : 1.0,
+                };
 
-              if (
-                featureset.type == "temporary" &&
-                permanentFeatures.find((f) => f.id === feature.id)
-              ) {
-                // Automatically remove temporary features that are already permanent
-                // We'll just not dim them instead of adding them again
-                return null;
-              }
+                if (
+                  featureset.type == "temporary" &&
+                  permanentFeatures.find((f) => f.id === feature.id)
+                ) {
+                  // Automatically remove temporary features that are already permanent
+                  // We'll just not dim them instead of adding them again
+                  return null;
+                }
 
-              const isHighlighted =
-                featureset.type == "temporary" ||
-                temporaryFeatures.find((f) => f.id === feature.id);
+                const isHighlighted =
+                  featureset.type == "temporary" ||
+                  temporaryFeatures.find((f) => f.id === feature.id);
 
-              return (
-                <Source
-                  key={featureset.type + "-" + feature.id}
-                  type="geojson"
-                  data={feature.feature}
-                >
-                  <Layer
-                    id={feature.id}
-                    type={feature.layer.type as any}
-                    paint={{
-                      ...feature.layer.paint,
-                      "line-width": isHighlighted ? 8 : zoomLevel > 5 ? 6 : 4,
-                    }}
-                  />
-                </Source>
-              );
-            })}
-            {featureset.features
-              .filter((f) => f.marker)
-              .map((feature) => (
-                <Marker
-                  key={feature.id + "-" + featureset.type + "-feature-marker"}
-                  latitude={feature.marker!.coordinate.lat}
-                  longitude={feature.marker!.coordinate.lng}
-                >
-                  {feature.marker!.element}
-                </Marker>
-              ))}
-          </Fragment>
-        ))}
+                return (
+                  <Source
+                    key={featureset.type + "-" + feature.id}
+                    type="geojson"
+                    data={feature.feature}
+                  >
+                    <Layer
+                      id={feature.id}
+                      type={feature.layer.type as any}
+                      paint={{
+                        ...feature.layer.paint,
+                        "line-width": isHighlighted ? 8 : zoomLevel > 5 ? 6 : 4,
+                      }}
+                    />
+                  </Source>
+                );
+              })}
+              {featureset.features
+                .filter((f) => f.marker)
+                .map((feature) => (
+                  <Marker
+                    key={feature.id + "-" + featureset.type + "-feature-marker"}
+                    latitude={feature.marker!.coordinate.lat}
+                    longitude={feature.marker!.coordinate.lng}
+                  >
+                    {feature.marker!.element}
+                  </Marker>
+                ))}
+            </Fragment>
+          ))}
       </Map>
       {openMarker && openMarkerPopupBounds && project && (
         <div

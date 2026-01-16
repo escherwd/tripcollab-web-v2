@@ -13,3 +13,9 @@ export const MAP_UI_PADDING_VALUES = {
 export const SEARCH_LOCAL_RESULTS_MAX = 5;
 // Applies to search bar and route planning autocomplete
 export const SEARCH_AUTOCOMPLETE_DEBOUNCE_MS = 250;
+
+// ## ROUTE PLANNING ##
+export const ROUTE_ARRIVAL_SUGGESTION_BUFFER_MINUTES = 0; // MapBox will add enough buffer time
+export const ROUTE_DEPARTURE_SUGGESTION_BUFFER_MINUTES = 0;
+export const ROUTE_ARRIVAL_DEFAULT_TIME_OF_DAY_MINUTES = 18 * 60; // 6 PM
+export const ROUTE_DEPARTURE_DEFAULT_TIME_OF_DAY_MINUTES = 9 * 60; // 9 AM

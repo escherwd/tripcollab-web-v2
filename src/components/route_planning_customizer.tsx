@@ -8,6 +8,7 @@ import { TrashIcon } from "@heroicons/react/16/solid";
 import ColorInput from "./color_input";
 import { ProjectFunctionUpdateProject } from "@/app/(layout-map)/t/[slug]/content";
 import { hereMultimodalRouteSectionsToFeatures } from "@/app/utils/backend/here_route_sections_to_features";
+import { DateTime } from "luxon";
 
 export default function RoutePlanningCustomizer({
   project,
@@ -51,7 +52,8 @@ export default function RoutePlanningCustomizer({
         from,
         to,
         route.modality,
-        route
+        route,
+        route.departureTime
       );
       setDbRoute(newDbRoute);
       // Update the name and color state

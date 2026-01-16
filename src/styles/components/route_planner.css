@@ -1,11 +1,15 @@
 .tc-route-planner-input {
-    @apply bg-gray-50 border border-gray-100 rounded-lg px-4 py-2 relative;
+    @apply bg-gray-50 border border-gray-100 rounded-lg px-4 py-2 relative pointer-events-auto;
 
     & > span {
-        @apply block text-gray-400 text-sm w-10 text-right
+        @apply block text-gray-400 text-sm w-10 text-right;
     }
 
-    & > input {
-        @apply absolute inset-0 size-full pl-16 pr-4
+    & > input, & > .tc-route-planner-input-content {
+        @apply text-sm absolute bg-transparent inset-0 size-full text-gray-800 pl-16 pr-4 overflow-hidden;
+
+        &:not(input) {
+            @apply flex items-center pointer-events-none;
+        }
     }
 }

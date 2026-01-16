@@ -67,6 +67,13 @@ export default function CalendarComponent({
 
   const [selectedDate, setSelectedDate] = useState<DateTime | null>(date);
 
+  useEffect(() => {
+    setSelectedDate(date);
+    if (date) {
+      setAnchorDate(date.startOf("month"));
+    }
+  }, [date]);
+
   const locale = new Intl.Locale("en-US");
 
   const localeWeekStart = useCallback(() => {
@@ -162,6 +169,8 @@ export default function CalendarComponent({
         setNumDays(localNumDays);
         setDate(start.toISODate());
         selectedDate = start;
+      } else {
+        setDate(isoDate)
       }
       setIsoDateDragStart(null);
       if (onDateChange) onDateChange(selectedDate, localNumDays);
@@ -175,15 +184,15 @@ export default function CalendarComponent({
       if (!selectedDate) return "";
       if (!allowRange || numDays === 0) {
         return isoDate === selectedDate.toISODate()
-          ? "bg-gray-950 text-white"
+          ? "!bg-gray-950 text-white"
           : "";
       }
       const diff = DateTime.fromISO(isoDate).diff(selectedDate).as("days");
       const leftSideCap =
-        "bg-gray-950 text-white rounded-l-full rounded-none w-full";
+        "!bg-gray-950 text-white rounded-l-full rounded-none w-full";
       const rightSideCap =
-        "bg-gray-950 text-white rounded-r-full rounded-none w-full";
-      const middle = "bg-gray-950 text-white rounded-none w-full";
+        "!bg-gray-950 text-white rounded-r-full rounded-none w-full";
+      const middle = "!bg-gray-950 text-white rounded-none w-full";
       // Positive direction range
       if (diff >= 0 && diff <= numDays) {
         if (diff === 0) {
@@ -255,18 +264,18 @@ export default function CalendarComponent({
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 grid-rows-6 size-full cursor-pointer relative gap-y-0.5">
+      <div className="grid grid-cols-7 grid-rows-6 size-full relative gap-y-0.5">
         {dayArray.map((day, index) => (
           <div
             key={index}
-            className="flex items-center justify-center relative"
+            className={`flex items-center justify-center relative ${readonly ? 'cursor-default' : 'cursor-pointer hover:[&>div]:bg-gray-200'}`}
             // onClick={() => setDate(day.isoDate)}
             onMouseDown={() => startDrag(day.isoDate!)}
             onMouseEnter={() => whileDrag(day.isoDate!)}
             onMouseUp={() => whileDrag(day.isoDate!, true)}
           >
             <div
-              className={`text-xs font-mono rounded-full flex items-center justify-center  z-10 ${dateClasses(
+              className={`text-xs font-mono rounded-full flex items-center justify-center z-10 ${dateClasses(
                 day.isoDate!
               )} ${day.primaryMonth ? "text-gray-500" : "text-gray-400"} ${
                 dense ? "size-6" : "size-7"
@@ -277,7 +286,7 @@ export default function CalendarComponent({
             {dateRange &&
               (day.isoDate ?? "") >= dateRange.start &&
               (day.isoDate ?? "") <= dateRange.end && (
-                <div
+                <span
                   className={`absolute inset-x-0 inset-y-auto h-6 bg-gray-200/50 ${
                     day.isoDate === dateRange.start ? "rounded-l-full" : ""
                   } ${day.isoDate === dateRange.end ? "rounded-r-full" : ""}`}

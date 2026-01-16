@@ -21,7 +21,7 @@ export const serverAddRoute = async (
   destination: MapMarker,
   modality: HereMultimodalRouteModality,
   route: HereMultimodalRoute,
-  date?: DateTime
+  date?: string // ISO string
 ) => {
   const user = await getUser();
 
@@ -40,6 +40,8 @@ export const serverAddRoute = async (
   if (!project) {
     throw new Error("Project not found or you do not have access to it.");
   }
+
+  const dateObj = date ? DateTime.fromISO(date, { setZone: true }) : undefined;
 
   // Create the route
   const newRoute = await prisma.route.create({
@@ -79,8 +81,8 @@ export const serverAddRoute = async (
       },
       modality: route.modality,
       segments: route.sections,
-      dateStart: date?.toJSDate(),
-      timeStart: date ? date?.diff(date.startOf("day")).as("minutes") : null, // Store timeStart as minutes from midnight
+      dateStart: dateObj?.toJSDate(),
+      timeStart: dateObj ? dateObj.diff(dateObj.startOf("day")).as("minutes") : null, // Store timeStart as minutes from midnight
       duration: route.sections.reduce(
         (acc, section) =>
           acc +

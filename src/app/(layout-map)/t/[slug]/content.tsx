@@ -17,7 +17,7 @@ import { decode } from "@here/flexpolyline";
 import { Prisma } from "@prisma/client";
 import { RiLoaderFill } from "@remixicon/react";
 import { bbox, points } from "@turf/turf";
-import _, { set } from "lodash";
+import _, { initial, set } from "lodash";
 import { LngLatBounds } from "mapbox-gl";
 import { useEffect, useState } from "react";
 
@@ -38,9 +38,11 @@ let projectLastServerCopy: MapProject | null = null;
 export default function ProjectPageContent({
   project,
   user,
+  initialMapBounds,
 }: {
   project: MapProject;
   user: AppUser | null;
+  initialMapBounds?: number[];
 }) {
   // TODO: This should always be the most up-to-date instance of the project
   const [currentProject, setCurrentProject] = useState<MapProject>(project);
@@ -173,27 +175,18 @@ export default function ProjectPageContent({
       bottom: 0,
     }));
 
-    // Calculate project bounds
-    const boundingBox = bbox(
-      points([
-        ...project.pins.map((pin) => [pin.longitude, pin.latitude]),
-        ...project.routes.flatMap((route) =>
-          (route.segments as HereMultimodalRouteSection[]).flatMap(
-            (seg) => decode(seg.polyline).polyline.map(coord => [coord[1], coord[0]])
-          )
+    
+
+    if (initialMapBounds) {
+      mapController.flyToBounds(
+        new LngLatBounds(
+          [initialMapBounds[0], initialMapBounds[1]],
+          [initialMapBounds[2], initialMapBounds[3]]
         ),
-      ])
-    );
-
-    // Apply scalar padding to the bounding box
-    const scalarX = (boundingBox[2] - boundingBox[0]) * 0.1;
-    const scalarY = (boundingBox[3] - boundingBox[1]) * 0.1;
-    boundingBox[0] -= scalarX;
-    boundingBox[2] += scalarX;
-    boundingBox[1] -= scalarY;
-    boundingBox[3] += scalarY;
-
-    if (project.pins.length === 0) {
+        5000
+      );
+      
+    } else {
       // Default pan
       mapController.flyTo({
         center: [4.996, 52.26],
@@ -202,14 +195,6 @@ export default function ProjectPageContent({
         pitch: 0,
         duration: 5000,
       });
-    } else {
-      mapController.flyToBounds(
-        new LngLatBounds(
-          [boundingBox[0], boundingBox[1]],
-          [boundingBox[2], boundingBox[3]]
-        ),
-        5000
-      );
     }
 
     // Listen for project events

@@ -6,14 +6,15 @@ import {
   ChevronRightIcon,
   XMarkIcon,
 } from "@heroicons/react/16/solid";
-import {
-  mapController,
-  MapFeatureWithLayerSpec,
-  MapMarker,
-  MapProject,
-} from "./global_map";
+import { mapController, MapMarker, MapPin, MapProject } from "./global_map";
 import PanelIconButton from "./panel_icon_button";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   AppleMapsAutocompleteResponse,
   autocompleteAppleMaps,
@@ -22,31 +23,24 @@ import SearchAutocompleteComponent from "./search_autocomplete";
 import {
   HereMultimodalRoute,
   HereMultimodalRouteModality,
+  HereMultimodalRouteRequestResult,
   HereMultimodalRouteSection,
-  HereMultimodalRouteSectionTransport,
   serverCalculateMultimodalRoute,
 } from "@/app/api/routes/here_multimodal";
 import {
+  MdChevronRight,
   MdDirectionsCar,
   MdDirectionsTransit,
   MdDirectionsWalk,
-  MdRefresh,
 } from "react-icons/md";
 import { RiLoaderFill } from "react-icons/ri";
 import { DateTime, Duration } from "luxon";
-import { GeoJSONFeature, LngLatBounds } from "mapbox-gl";
+import { LngLatBounds } from "mapbox-gl";
 import { decode } from "@here/flexpolyline";
-import { MapGeoJSONFeature } from "react-map-gl/maplibre";
-import { set } from "lodash";
 import RoutePlanningSectionChip from "./route_planning_section_chip";
-import {
-  herePlatformDefaultSectionColors,
-  herePlatformRouteGetStyleForSection,
-} from "@/app/utils/here_maps/route_styles";
 import * as turf from "@turf/turf";
 import MapPlaceIcon from "./map_place_icon";
 import RoutePlanningStepRow from "./route_planning_step_row";
-import { serverAddRoute } from "@/app/api/project/add_route";
 import { hereMultimodalRouteSectionsToFeatures } from "@/app/utils/backend/here_route_sections_to_features";
 import RoutePlanningCustomizer from "./route_planning_customizer";
 import { Prisma } from "@prisma/client";
@@ -55,8 +49,15 @@ import {
   ProjectFunctionOpenRoutePlanner,
   ProjectFunctionUpdateProject,
 } from "@/app/(layout-map)/t/[slug]/content";
-import { MAP_UI_PADDING_VALUES, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS } from "@/app/utils/consts";
+import {
+  MAP_UI_PADDING_VALUES,
+  SEARCH_AUTOCOMPLETE_DEBOUNCE_MS,
+} from "@/app/utils/consts";
 import { projectPinToMarker } from "@/app/utils/backend/project_pin_to_marker";
+import padBbox from "@/app/utils/geo/pad_bbox";
+import RoutePlanningCalendarSubpage from "./route_planning_calendar_subpage";
+import TcButton from "./button";
+import { formatDistance } from "@/app/utils/geo/format_distance";
 
 export default function RoutePlanningComponent({
   project,
@@ -103,13 +104,10 @@ export default function RoutePlanningComponent({
   }, []);
 
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
-  const [routeOptions, setRouteOptions] = useState<
-    HereMultimodalRoute[] | null
-  >(null);
+  const [routeSearchResults, setRouteSearchResults] =
+    useState<HereMultimodalRouteRequestResult | null>(null);
 
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
-
-  const [isAddingRoute, setIsAddingRoute] = useState(false);
 
   const modalityOptions: {
     value: HereMultimodalRouteModality;
@@ -131,6 +129,9 @@ export default function RoutePlanningComponent({
         id: showingDbRoute.id,
         modality: showingDbRoute.modality as HereMultimodalRouteModality,
         sections: showingDbRoute.segments as HereMultimodalRouteSection[],
+        totalDistance: 0, // TODO: calculate total distance
+        duration: showingDbRoute.duration || 0,
+        departureTime: showingDbRoute.dateStart?.toISOString(),
       };
       setFrom({
         coordinate: {
@@ -171,7 +172,11 @@ export default function RoutePlanningComponent({
         },
       });
       displayRoute(route);
-      setRouteOptions([route]);
+      setRouteSearchResults({
+        routes: [route],
+        key: route.id,
+        time: undefined,
+      });
       setTimeout(() => {
         setSelectedRouteId(route.id);
       }, 100);
@@ -245,7 +250,9 @@ export default function RoutePlanningComponent({
 
     (async () => {
       // Very basic debounce
-      await new Promise((resolve) => setTimeout(resolve, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS));
+      await new Promise((resolve) =>
+        setTimeout(resolve, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS)
+      );
       if (currentSearch !== latestFromQuery.current) return;
 
       handleAutocomplete(
@@ -268,7 +275,12 @@ export default function RoutePlanningComponent({
       from.coordinate,
       to.coordinate
     );
-    calculateRoutes(from.coordinate, to.coordinate, selectedModality);
+    calculateRoutes(
+      from.coordinate,
+      to.coordinate,
+      selectedModality,
+      routeTime
+    );
   }, [to, from, selectedModality, showingDbRoute]);
 
   const latestToQuery = useRef("");
@@ -283,7 +295,9 @@ export default function RoutePlanningComponent({
 
     (async () => {
       // Very basic debounce
-      await new Promise((resolve) => setTimeout(resolve, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS));
+      await new Promise((resolve) =>
+        setTimeout(resolve, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS)
+      );
       if (currentSearch !== latestToQuery.current) return;
 
       handleAutocomplete(
@@ -304,8 +318,8 @@ export default function RoutePlanningComponent({
     if (result.localProjectId) {
       const pin = project.pins.find((pin) => pin.id === result.localProjectId);
       if (!pin) return;
-      setToSearchQuery(null);
-      setTo(projectPinToMarker(pin));
+      setFromSearchQuery(null);
+      setFrom(projectPinToMarker(pin));
       return;
     }
     // Handle Apple Maps results
@@ -340,12 +354,18 @@ export default function RoutePlanningComponent({
   };
 
   const updateCurrentRouteId = (id: string) => {
-    if (!selectedRouteId || !routeOptions || routeOptions.length === 0) return;
+    if (
+      !selectedRouteId ||
+      !routeSearchResults ||
+      routeSearchResults.routes.length === 0
+    )
+      return;
 
     console.log("Updating current route id to:", id);
 
-    setRouteOptions(
-      routeOptions.map((route) => {
+    setRouteSearchResults({
+      ...routeSearchResults,
+      routes: routeSearchResults.routes.map((route) => {
         if (route.id === selectedRouteId) {
           return {
             ...route,
@@ -353,8 +373,8 @@ export default function RoutePlanningComponent({
           };
         }
         return route;
-      })
-    );
+      }),
+    });
     setSelectedRouteId(id);
   };
 
@@ -381,16 +401,7 @@ export default function RoutePlanningComponent({
     );
 
     const line = turf.lineString(completePolyline);
-    const bbox = turf.bbox(line);
-
-    // Expand the bbox by 10% on each side
-    const scalarY = Math.abs(bbox[0] - bbox[2]) / 10;
-    bbox[0] -= scalarY;
-    bbox[2] += scalarY;
-
-    const scalarX = Math.abs(bbox[1] - bbox[3]) / 10;
-    bbox[1] -= scalarX;
-    bbox[3] += scalarX;
+    const bbox = padBbox(turf.bbox(line), 0.1);
 
     mapController.flyToBounds(
       new LngLatBounds([bbox[0], bbox[1]], [bbox[2], bbox[3]])
@@ -400,16 +411,19 @@ export default function RoutePlanningComponent({
   const calculateRoutes = async (
     from: { lat: number; lng: number },
     to: { lat: number; lng: number },
-    modality: HereMultimodalRouteModality
+    modality: HereMultimodalRouteModality,
+    time: typeof routeTime
   ) => {
     setIsCalculatingRoute(true);
     try {
-      const routes = await serverCalculateMultimodalRoute(from, to, modality);
-      setRouteOptions(routes);
+      const routes = await serverCalculateMultimodalRoute(from, to, modality, {
+        time,
+      });
+      setRouteSearchResults(routes);
       console.log(routes);
-      if (routes.length > 0) {
-        // setSelectedRouteId(routes[0].id)
-        displayRoute(routes[0]);
+      if (routes.routes.length > 0) {
+        // setSelectedRouteId(routes.routes[0].id)
+        displayRoute(routes.routes[0]);
       }
     } catch (err) {
       console.error("Error calculating route:", err);
@@ -418,14 +432,14 @@ export default function RoutePlanningComponent({
   };
 
   useEffect(() => {
-    if (!routeOptions) return;
-    const selectedRoute = routeOptions.find(
+    if (!routeSearchResults) return;
+    const selectedRoute = routeSearchResults.routes.find(
       (route) => route.id === selectedRouteId
     );
     if (selectedRoute) {
       displayRoute(selectedRoute);
     }
-  }, [selectedRouteId, routeOptions]);
+  }, [selectedRouteId, routeSearchResults]);
 
   const calculateTotalDuration = (route: HereMultimodalRoute): Duration => {
     return DateTime.fromISO(
@@ -451,9 +465,71 @@ export default function RoutePlanningComponent({
   };
 
   const selectedRoute = useMemo(() => {
-    if (!routeOptions || !selectedRouteId) return null;
-    return routeOptions.find((route) => route.id === selectedRouteId) || null;
-  }, [routeOptions, selectedRouteId]);
+    if (!routeSearchResults || !selectedRouteId) return null;
+    return (
+      routeSearchResults.routes.find((route) => route.id === selectedRouteId) ||
+      null
+    );
+  }, [routeSearchResults, selectedRouteId]);
+
+  const [calendarPageOpen, setCalendarPageOpen] = useState(false);
+
+  const associatedMapPins: {
+    from: MapPin | undefined;
+    to: MapPin | undefined;
+  } = useMemo(() => {
+    return {
+      from:
+        from && from.id
+          ? project.pins.find((pin) => pin.id === from.id)
+          : undefined,
+      to:
+        to && to.id ? project.pins.find((pin) => pin.id === to.id) : undefined,
+    };
+  }, [from, to, project.pins]);
+
+  const [routeTime, setRouteTime] = useState<{
+    type: "depart" | "arrive";
+    date: string;
+  }>({
+    type: "depart",
+    date: DateTime.now().toISO({ includeOffset: false }),
+  });
+
+  const onRouteTimeChange = useCallback((value: typeof routeTime) => {
+    console.log("Route time changed:", value);
+    if (value.date === routeTime.date && value.type === routeTime.type) return;
+    setRouteTime(value);
+  }, []);
+
+  const closeSubPage = () => {
+    if (calendarPageOpen) {
+      // Close calendar
+      setCalendarPageOpen(false);
+      // Early return if no route selected
+      if (!to || !from) return;
+      // Early return if time didn't change since prev. search results
+      if (
+        routeTime.date === routeSearchResults?.time?.date &&
+        routeTime.type === routeSearchResults?.time?.type
+      )
+        return;
+
+      // Recalculate route with new time
+      calculateRoutes(
+        from.coordinate,
+        to.coordinate,
+        selectedModality,
+        routeTime
+      );
+
+      return;
+    } else if (selectedRoute) {
+      // Close route details
+      setSelectedRouteId(null);
+      return;
+    }
+  };
 
   return (
     <div className="absolute slide-in-from-left left-2 bottom-9 w-72 top-navbar">
@@ -462,21 +538,23 @@ export default function RoutePlanningComponent({
           {!showingDbRoute && (
             <div
               className={`${
-                selectedRoute
+                selectedRoute || calendarPageOpen
                   ? "opacity-100 mr-0"
                   : "opacity-0 pointer-events-none -mr-[40px]"
               } transition-all w-6 flex-none`}
             >
               <PanelIconButton
                 icon={<ArrowLeftIcon />}
-                onClick={() => {
-                  setSelectedRouteId(null);
-                }}
+                onClick={closeSubPage}
               />
             </div>
           )}
           <div className="tc-panel-title flex-1">
-            Browse Route{selectedRoute ? "" : "s"}
+            {calendarPageOpen
+              ? "Select Time"
+              : selectedRoute
+              ? "Route Details"
+              : "Browse Routes"}
           </div>
           <div>
             <PanelIconButton
@@ -489,11 +567,26 @@ export default function RoutePlanningComponent({
         </div>
         <div className="flex flex-col flex-1 min-h-0 relative overflow-hidden">
           <div
+            id="route-calendar-panel"
+            className={`absolute inset-0 bg-white z-30 shadow-lg duration-300 flex flex-col transition-transform ${
+              calendarPageOpen
+                ? "translate-x-0"
+                : "translate-x-[100%] shadow-none"
+            }`}
+          >
+            <RoutePlanningCalendarSubpage
+              project={project}
+              pinTo={associatedMapPins.to}
+              pinFrom={associatedMapPins.from}
+              onChange={onRouteTimeChange}
+            />
+          </div>
+          <div
             id="route-info-panel"
             className={`absolute inset-0 bg-white z-30 shadow-lg duration-300 flex flex-col transition-transform ${
               selectedRoute || showingDbRoute
                 ? "translate-x-0"
-                : "translate-x-[100%]"
+                : "translate-x-[100%] shadow-none"
             }`}
           >
             {selectedRoute && from && to && (
@@ -524,7 +617,17 @@ export default function RoutePlanningComponent({
                         <div className="font-semibold">
                           {from.appleMapsPlace?.name}
                         </div>
-                        <div className="text-sm text-gray-500">Start</div>
+                        <div className="text-sm text-gray-500">
+                          Start
+                          {selectedRoute.departureTime && (
+                            <span>
+                              {" – "}
+                              {DateTime.fromISO(selectedRoute.departureTime, {
+                                setZone: true,
+                              }).toLocaleString(DateTime.TIME_SIMPLE)}
+                            </span>
+                          )}{" "}
+                        </div>
                       </div>
                     </div>
                     {selectedRoute.sections.map((section, index) => {
@@ -545,7 +648,18 @@ export default function RoutePlanningComponent({
                         <div className="font-semibold">
                           {to.appleMapsPlace?.name}
                         </div>
-                        <div className="text-sm text-gray-500">Destination</div>
+                        <div className="text-sm text-gray-500">
+                          Destination
+                          {selectedRoute.departureTime && (
+                            <span>{" – "}
+                              {DateTime.fromISO(selectedRoute.departureTime, {
+                                setZone: true,
+                              })
+                                .plus({ minutes: selectedRoute.duration })
+                                .toLocaleString(DateTime.TIME_SIMPLE)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -653,37 +767,53 @@ export default function RoutePlanningComponent({
                 </div>
               )}
             </div>
+
+            <div
+              onClick={() => setCalendarPageOpen(true)}
+              className={`mt-2 tc-route-planner-input transition-all hover:!bg-gray-200 cursor-pointer overflow-hidden`}
+            >
+              <span>{routeTime.type === "depart" ? "Depart" : "Arrive"}</span>
+              <div className="tc-route-planner-input-content !pr-2 flex items-center justify-between">
+                <span>
+                  {DateTime.fromISO(routeTime.date).toLocaleString({
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </span>
+                <MdChevronRight className="size-5 text-gray-400" />
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-2 p-4">
             {modalityOptions.map((option) => (
-              <button
-                className={`px-3 py-2 flex justify-center transition-colors text-lg bg-gray-50 hover:bg-gray-100 cursor-pointer rounded-lg ${
-                  selectedModality === option.value
-                    ? "!bg-black text-white"
-                    : ""
-                }`}
+              <TcButton
                 key={option.value}
+                primary={selectedModality === option.value}
                 onClick={() => setSelectedModality(option.value)}
+                className="!text-base"
               >
                 {option.icon}
-              </button>
+              </TcButton>
             ))}
           </div>
-          <div className="flex-1 relative overflow-scroll">
+          <div className="flex-1 relative overflow-scroll border-t border-gray-100">
             {isCalculatingRoute && (
               <div className="absolute inset-0 flex gap-2 items-start justify-center pt-4">
                 <RiLoaderFill className="text-gray-400 size-5 animate-spin" />
                 <div className="text-gray-400 text-sm">Finding routes...</div>
               </div>
             )}
-            {routeOptions && !isCalculatingRoute && (
+            {routeSearchResults && !isCalculatingRoute && (
               <div className="fade-in">
-                {routeOptions.length === 0 && (
+                {routeSearchResults.routes.length === 0 && (
                   <div className="p-4 text-sm text-center text-gray-400">
                     No routes found for the selected locations and modality.
                   </div>
                 )}
-                {routeOptions.map((route) => (
+                {routeSearchResults.routes.map((route) => (
                   <a
                     className={`block p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
                       selectedRouteId == route.id
@@ -695,24 +825,45 @@ export default function RoutePlanningComponent({
                       setSelectedRouteId(route.id);
                     }}
                   >
-                    <div className="font-medium flex items-center justify-between">
-                      <span>
-                        {calculateTotalDuration(route).toHuman({
-                          listStyle: "narrow",
-                          unitDisplay: "short",
-                          showZeros: false,
-                          maximumFractionDigits: 0,
-                        })}
-                      </span>
+                    <div className=" flex gap-2 items-center justify-between">
+                      <div className="flex flex-1 flex-col gap-2 items-stretch">
+                        <span className="font-medium text-lg">
+                          {calculateTotalDuration(route).toHuman({
+                            listStyle: "narrow",
+                            unitDisplay: "short",
+                            showZeros: false,
+                            maximumFractionDigits: 0,
+                          })}
+                        </span>
+                      </div>
+
                       <div>
                         <ChevronRightIcon
-                          className={`size-4 text-gray-400 transition-transform ${
+                          className={`size-5 text-gray-400 transition-transform ${
                             selectedRouteId == route.id ? "rotate-90" : ""
                           }`}
                         />
                       </div>
                     </div>
-                    <div className="mt-4 text-gray-500 text-sm flex items-center flex-wrap gap-x-2 gap-y-2 bg-gray-100 p-2 rounded-lg">
+
+                    {route.departureTime && (
+                      <div className="my-3 text-xs text-gray-400 flex items-center gap-2 w-full">
+                        {DateTime.fromISO(route.departureTime, {
+                          setZone: true,
+                        }).toLocaleString(DateTime.TIME_SIMPLE)}
+                        <div className="flex-1 border-t-2 border-gray-400 border-dotted" />
+                        {formatDistance(route.totalDistance)}
+                        <div className="flex-1 border-t-2 border-gray-400 border-dotted" />
+                        <span className="text-gray-700">
+                          {DateTime.fromISO(route.departureTime, {
+                            setZone: true,
+                          })
+                            .plus({ minutes: route.duration })
+                            .toLocaleString(DateTime.TIME_SIMPLE)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="mt-2 text-gray-500 text-sm flex items-center flex-wrap gap-x-2 gap-y-2 bg-gray-100 p-2 rounded-lg">
                       {route.sections
                         .filter((section) => shouldDisplay(section))
                         .map((section) => (

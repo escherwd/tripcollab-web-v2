@@ -22,7 +22,7 @@ import {
 } from "@heroicons/react/16/solid";
 import { RiFileCopyLine, RiLoaderFill, RiRouteFill } from "react-icons/ri";
 import { AppleMapsPlace, getPlaceAppleMaps } from "@/app/api/maps/place";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Prisma } from "@prisma/client";
 import { addPin } from "@/app/api/project/add_pin";
 import { deletePin } from "@/app/api/project/delete_pin";
@@ -56,7 +56,7 @@ export default function MapPlacePopup({
     marker.customColor ?? null,
   );
 
-  const [scheduleWidgetExpanded, setScheduleWidgetExpanded] = useState(false);
+  // const [scheduleWidgetExpanded, setScheduleWidgetExpanded] = useState(false);
 
   const coordinates = useMemo(() => {
     return place?.coordinate ?? marker.coordinate;
@@ -100,6 +100,9 @@ export default function MapPlacePopup({
     });
   };
 
+  // Prevent setting state with async requests after component has been unmounted
+  const isMounted = useRef(false);
+
   const fetchPlaceInfo = async () => {
     setIsLoading(true);
 
@@ -119,6 +122,9 @@ export default function MapPlacePopup({
       deltaLng: bounds.getNorthEast().lng - bounds.getSouthWest().lng,
       deltaLat: bounds.getNorthEast().lat - bounds.getSouthWest().lat,
     });
+
+    if (!isMounted.current) return;
+
     console.log(data);
     setPlace(data);
 
@@ -156,6 +162,7 @@ export default function MapPlacePopup({
   let hasRequested = false;
 
   useEffect(() => {
+    isMounted.current = true;
     if (pin) {
       setPlace({
         name: pin.name,
@@ -176,6 +183,10 @@ export default function MapPlacePopup({
     }
 
     hasRequested = true;
+
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   // This is not great

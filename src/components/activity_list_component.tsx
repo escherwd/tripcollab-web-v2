@@ -23,6 +23,7 @@ type ActivityListItem = {
   pin: MapPin | null;
   numDays: string;
   timeStart?: DateTime;
+  timeEnd?: DateTime;
   key: string;
   color?: string; // take from styledata
   iconId: string; // take from styledata
@@ -71,13 +72,19 @@ export default function ActivityListComponent({
         id: pin.id,
         activityType: pin.type as ActivityType,
         numDays: numDays,
-        timeStart: pin.timeStart ? DateTime.now().startOf('day').plus({ minutes: pin.timeStart }) : undefined,
+        timeStart: pin.timeStart
+          ? DateTime.now().startOf("day").plus({ minutes: pin.timeStart })
+          : undefined,
         key: `activity-start-${pin.id}`,
         color: pinColor,
         iconId: (pin.styleData as any)["iconId"] ?? "address",
         name: pin.name,
       });
-      if (pin.dateStart && pin.duration && pin.duration + (pin.timeStart ?? 0) >= 1440) {
+      if (
+        pin.dateStart &&
+        pin.duration &&
+        pin.duration + (pin.timeStart ?? 0) >= 1440
+      ) {
         const endDate = DateTime.fromJSDate(pin.dateStart)
           .startOf("day")
           .plus({ minutes: (pin.timeStart ?? 0) + (pin.duration ?? 0) })
@@ -94,6 +101,9 @@ export default function ActivityListComponent({
             key: `activity-end-${pin.id}`,
             color: pinColor,
             iconId: pinIconId,
+            timeEnd: DateTime.fromJSDate(pin.dateStart)
+              .startOf("day")
+              .plus({ minutes: (pin.timeStart ?? 0) + (pin.duration ?? 0) }),
             name: pin.name,
           },
           ...(groups[endDate] ?? []),
@@ -129,7 +139,12 @@ export default function ActivityListComponent({
         pin: null,
         id: route.id,
         activityType: "transit" as ActivityType,
-        timeStart: route.timeStart ? DateTime.now().startOf('day').plus({ minutes: route.timeStart }) : undefined,
+        timeStart: route.timeStart
+          ? DateTime.fromJSDate(new Date())
+              .setZone("utc")
+              .startOf("day")
+              .plus({ minutes: route.timeStart })
+          : undefined,
         numDays: numDays,
         color:
           route.styleData?.color ??
@@ -156,6 +171,7 @@ export default function ActivityListComponent({
             id: route.id,
             numDays: numDays,
             key: `activity-end-${route.id}`,
+            timeEnd: endDate,
             color:
               route.styleData?.color ??
               getMapIconFromAppleMapsCategoryId("transportation").color,
@@ -397,12 +413,12 @@ export default function ActivityListComponent({
               {datesToDisplay.dates.map((date) => (
                 <div key={date} id={`activity-list-${date}`}>
                   <div className={`tc-activity-list-header`}>
-                    <span className="text-gray-800">
+                    <span className="text-gray-800 font-medium">
                       {DateTime.fromISO(date).toLocaleString({
                         weekday: "short",
                       })}{" "}
                     </span>
-                    <span className="text-gray-400 float-right">
+                    <span className="text-gray-500 float-right">
                       {DateTime.fromISO(date).toLocaleString({
                         month: "short",
                         day: "numeric",
@@ -427,8 +443,19 @@ export default function ActivityListComponent({
                               className={`ml-[12px] size-4 rounded-full relative border-3 border-white z-20 transition-colors`}
                               style={{ backgroundColor: activity.color }}
                             ></div>
-                            <div className="text-xs text-gray-400">
-                              {activity.numDays}
+                            <div className="text-xs w-full text-gray-400 flex items-center justify-between">
+                              <span>
+                                {activity.activityType != "transit"
+                                  ? `Depart ${activity.name}`
+                                  : `Arrive at destination`}
+                              </span>
+                              {activity.timeEnd && (
+                                <span>
+                                  {activity.timeEnd.toLocaleString(
+                                    DateTime.TIME_SIMPLE
+                                  )}
+                                </span>
+                              )}
                             </div>
                           </div>
                         );
@@ -474,11 +501,13 @@ export default function ActivityListComponent({
                                   </div>
                                 )}
                               </span>
-                              { activity.timeStart &&
+                              {activity.timeStart && (
                                 <div className="tc-activity-list-item-time">
-                                  {activity.timeStart.toLocaleString(DateTime.TIME_SIMPLE)}
+                                  {activity.timeStart.toLocaleString(
+                                    DateTime.TIME_SIMPLE
+                                  )}
                                 </div>
-                              }
+                              )}
                             </div>
                           </button>
                         );
