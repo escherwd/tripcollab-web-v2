@@ -440,7 +440,7 @@ export default function ActivityListComponent({
                             }`}
                           >
                             <div
-                              className={`ml-[12px] size-4 rounded-full relative border-3 border-white z-20 transition-colors`}
+                              className={`ml-[12px] flex-shrink-0 !size-4 rounded-full relative border-3 border-white z-20 transition-colors`}
                               style={{ backgroundColor: activity.color }}
                             ></div>
                             <div className="text-xs w-full text-gray-400 flex items-center justify-between">
