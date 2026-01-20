@@ -10,6 +10,7 @@ import { encode } from "@here/flexpolyline";
 import * as turf from "@turf/turf";
 import { DateTime } from "luxon";
 import path from "path";
+import process from "process";
 
 export type TcFlightsAirport = {
   id: number;
@@ -21,6 +22,7 @@ export type TcFlightsAirport = {
   lat: number;
   lng: number;
   distance: number;
+  weight: number;
 };
 
 const greatCirclePointsBetween = (
@@ -80,9 +82,11 @@ const closestAirport = async (
   db: Database.Database
 ): Promise<TcFlightsAirport | null> => {
   const stmt = db.prepare(
-    "SELECT id, name, city, country, iata, type, lat, long AS lng, SQRT( POW(69.1 * (lat - ?) , 2) + POW(69.1 * (? - long) * COS(lat / 57.3) , 2)) AS distance FROM airports WHERE type = 'airport' AND iata IS NOT NULL ORDER BY distance ASC LIMIT 1;"
+    "SELECT id, name, city, country, iata, type, lat, long AS lng, weight, SQRT( POW(69.1 * (lat - ?) , 2) + POW(69.1 * (? - long) * COS(lat / 57.3) , 2)) AS distance FROM airports WHERE type = 'airport' AND iata IS NOT NULL ORDER BY distance ASC LIMIT 5;"
   );
-  const row = stmt.get(lat, lng) as TcFlightsAirport | undefined;
+  const rows = stmt.all(lat, lng) as TcFlightsAirport[] | undefined;
+
+  const row = rows?.sort((a, b) => b.weight - a.weight)[0];
 
   return row || null;
 };
@@ -93,14 +97,14 @@ export const tcFlightRoute = async (
   options: HereMultimodalRouteRequestOptions = {}
 ): Promise<HereMultimodalRoute> => {
   const dbFile = path.join(
-    __dirname,
+    process.cwd(),
     "data",
-    "airports.sqlite"
+    "airports-weighted.sqlite"
   );
 
   console.log("Using TC Flights database at:", dbFile);
 
-  const db = new Database('data/airports.sqlite', {
+  const db = new Database(dbFile, {
     readonly: true,
   });
 
