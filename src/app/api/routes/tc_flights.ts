@@ -93,13 +93,14 @@ export const tcFlightRoute = async (
   options: HereMultimodalRouteRequestOptions = {}
 ): Promise<HereMultimodalRoute> => {
   const dbFile = path.join(
-    new URL(import.meta.url).pathname,
-    "..",
+    __dirname,
     "data",
     "airports.sqlite"
   );
 
-  const db = new Database(dbFile, {
+  console.log("Using TC Flights database at:", dbFile);
+
+  const db = new Database('data/airports.sqlite', {
     readonly: true,
   });
 

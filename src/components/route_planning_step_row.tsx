@@ -156,8 +156,8 @@ export default function RoutePlanningStepRow({
             return (
               <div>
                 <div className="text-sm text-gray-600">
-                  {airport.event === "departure" && "Depart from "}
-                  {airport.event === "arrival" && "Arrive at "}
+                  {airport.event === "departure" && "Take off from "}
+                  {airport.event === "arrival" && "Touch down at "}
                 </div>
                 <div className="font-semibold">
                   {airport.name}
