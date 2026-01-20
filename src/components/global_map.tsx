@@ -1,6 +1,6 @@
 "use client";
 
-import Map, { Layer, MapRef, Marker, Source } from "react-map-gl/mapbox";
+import Map, { Layer, LayerProps, MapRef, Marker, Source } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import React, { Fragment, useEffect, useRef, useState } from "react";
 import {
@@ -847,6 +847,7 @@ export default function GlobalAppMap() {
                         ...feature.layer.paint,
                         "line-width": isHighlighted ? 8 : zoomLevel > 5 ? 6 : 4,
                       }}
+                      layout={feature.layer.layout as any}
                     />
                   </Source>
                 );

@@ -29,9 +29,13 @@ import {
 } from "@/app/api/routes/here_multimodal";
 import {
   MdChevronRight,
+  MdDirectionsBike,
   MdDirectionsCar,
   MdDirectionsTransit,
   MdDirectionsWalk,
+  MdFlight,
+  MdPedalBike,
+  MdTravelExplore,
 } from "react-icons/md";
 import { RiLoaderFill } from "react-icons/ri";
 import { DateTime, Duration } from "luxon";
@@ -58,6 +62,7 @@ import padBbox from "@/app/utils/geo/pad_bbox";
 import RoutePlanningCalendarSubpage from "./route_planning_calendar_subpage";
 import TcButton from "./button";
 import { formatDistance } from "@/app/utils/geo/format_distance";
+import RoutePlanningFlightComponent from "./route_planning_flight_component";
 
 export default function RoutePlanningComponent({
   project,
@@ -103,6 +108,8 @@ export default function RoutePlanningComponent({
     }));
   }, []);
 
+
+
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [routeSearchResults, setRouteSearchResults] =
     useState<HereMultimodalRouteRequestResult | null>(null);
@@ -113,9 +120,11 @@ export default function RoutePlanningComponent({
     value: HereMultimodalRouteModality;
     icon: React.ReactNode;
   }[] = [
+    { value: "flight", icon: <MdFlight /> },
     { value: "transit", icon: <MdDirectionsTransit /> },
-    { value: "pedestrian", icon: <MdDirectionsWalk /> },
     { value: "car", icon: <MdDirectionsCar /> },
+    { value: "pedestrian", icon: <MdDirectionsWalk /> },
+    { value: "bicycle", icon: <MdDirectionsBike /> },
   ];
 
   const [selectedModality, setSelectedModality] =
@@ -204,6 +213,9 @@ export default function RoutePlanningComponent({
   useEffect(() => {
     if (!initialFrom) return;
     setFrom(initialFrom ?? null);
+
+    if (initialFrom.appleMapsPlace?.categoryId?.includes('airport'))
+      setSelectedModality("flight");
   }, [initialFrom]);
 
   const handleAutocomplete = async (
@@ -442,17 +454,15 @@ export default function RoutePlanningComponent({
   }, [selectedRouteId, routeSearchResults]);
 
   const calculateTotalDuration = (route: HereMultimodalRoute): Duration => {
-    return DateTime.fromISO(
-      route.sections[route.sections.length - 1].arrival.time
-    ).diff(DateTime.fromISO(route.sections[0].departure.time), [
-      "hours",
-      "minutes",
-    ]);
+    const days = Math.floor(route.duration / 1440);
+    const hours = Math.floor((route.duration % 1440) / 60);
+    const minutes = route.duration % 60;
+    return Duration.fromDurationLike({ days, hours, minutes });
   };
 
-  const shouldDisplay = (section: HereMultimodalRouteSection): boolean => {
+  const shouldDisplay = (modality: HereMultimodalRouteModality, section: HereMultimodalRouteSection): boolean => {
     // For pedestrian sections, only display if longer than 400 meters
-    if (section.type === "pedestrian") {
+    if (modality === "transit" && section.type === "pedestrian") {
       const polyline = decode(section.polyline).polyline.map((coord) => [
         coord[1],
         coord[0],
@@ -812,7 +822,7 @@ export default function RoutePlanningComponent({
                   <div className="p-4 text-sm text-center text-gray-400">
                     No routes found for the selected locations and modality.
                   </div>
-                )}
+                ) || (selectedModality === 'flight' && <RoutePlanningFlightComponent />)}
                 {routeSearchResults.routes.map((route) => (
                   <a
                     className={`block p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
@@ -865,7 +875,7 @@ export default function RoutePlanningComponent({
                     )}
                     <div className="mt-2 text-gray-500 text-sm flex items-center flex-wrap gap-x-2 gap-y-2 bg-gray-100 p-2 rounded-lg">
                       {route.sections
-                        .filter((section) => shouldDisplay(section))
+                        .filter((section) => shouldDisplay(route.modality, section))
                         .map((section) => (
                           <React.Fragment key={section.id}>
                             <RoutePlanningSectionChip section={section} />

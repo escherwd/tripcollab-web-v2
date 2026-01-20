@@ -76,7 +76,19 @@ export default function RoutePlanningSectionChip({ section, styleData }: { secti
             <div>
                 <MdDirectionsWalk size={18} title="Walking Section" />
             </div>
+        )
+    }
 
+    if (section.type === "airport") {
+
+        const airport = section.transport as HereMultimodalRouteSectionTransport<"airport">;
+
+        return (
+            <div className="flex gap-1.5 items-center text-xs font-bold px-2 py-1 rounded-lg shadow bg-linear-to-b from-white to-gray-100/10 text-gray-800">
+                <div className="font-label font-medium" >
+                    {airport.iata ?? airport.icao ?? airport.name}
+                </div>
+            </div>
         )
     }
 
@@ -120,7 +132,25 @@ export default function RoutePlanningSectionChip({ section, styleData }: { secti
         }
     }
 
+    if (section.type === "flight") {
+        return (
+            <div>
+                <MdFlight size={18} title="Flight Section" />
+            </div>
+        )
+    }
+
     if (section.type === "vehicle") {
+
+
+        if (section.transport.mode === "bicycle") {
+            return (
+                <div>
+                    <MdDirectionsBike size={18} title="Bicycle Route" />
+                </div>
+            )
+        }
+
         return (
             <div>
                 <MdDirectionsCar size={18} title="Vehicle Route" />

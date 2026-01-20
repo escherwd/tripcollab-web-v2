@@ -32,7 +32,13 @@ export const herePlatformRouteGetStyleForSection = (section: HereMultimodalRoute
         },
     }
 
-    let res = {};
+    const generalLayout: Partial<LayerSpecification>["layout"] = {
+        'line-cap': 'round',
+    };
+
+    let res: Partial<LayerSpecification> = {
+        
+    };
 
     if (section.type === "transit") {
         res = {
@@ -40,21 +46,33 @@ export const herePlatformRouteGetStyleForSection = (section: HereMultimodalRoute
                 "line-color": (section.transport as HereMultimodalRouteSectionTransport<"transit">).color ?? herePlatformDefaultSectionColors.transit,
                 ...generalPaint
             },
+            "layout": generalLayout
         }
     } else if (section.type === "vehicle" || section.type === "rented") {
         res = {
             "paint": {
                 "line-color": herePlatformDefaultSectionColors.car,
                 ...generalPaint
-            }
+            },
+            "layout": generalLayout
+        }
+    } else if (section.type === "flight") {
+        res = {
+            "paint": {
+                "line-color": "#1E90FF", // DodgerBlue for flights
+                "line-dasharray": [0, 2],
+                ...generalPaint
+            },
+            "layout": generalLayout
         }
     } else {
         res = {
             "paint": {
                 "line-color": herePlatformDefaultSectionColors.pedestrian,
-                "line-dasharray": [1, 1],
+                "line-dasharray": [0, 1.5],
                 ...generalPaint
-            }
+            },
+            "layout": generalLayout
         }
     }
 

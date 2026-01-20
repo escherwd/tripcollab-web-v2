@@ -2,13 +2,15 @@
 
 import { decode } from "@here/flexpolyline";
 import * as turf from "@turf/turf";
-import { uniqueId } from "lodash";
+import { tcFlightRoute } from "./tc_flights";
 
 export type HereMultimodalRouteSectionType =
   | "pedestrian"
   | "transit"
   | "vehicle"
   | "rented"
+  | "flight"
+  | "airport"
   | "taxi";
 
 export type HereMultimodalRouteSectionTransportMode =
@@ -17,6 +19,7 @@ export type HereMultimodalRouteSectionTransportMode =
   | "interRegionalTrain"
   | "regionalTrain"
   | "cityTrain"
+  | "bicycle"
   | "bus"
   | "busRapid"
   | "ferry"
@@ -25,6 +28,7 @@ export type HereMultimodalRouteSectionTransportMode =
   | "privateBus"
   | "inclined"
   | "aerialBus"
+  | "idle"
   | "rapid"
   | "monorail"
   | "flight";
@@ -59,6 +63,16 @@ export type HereMultimodalRouteSectionTransport<
   ? {
       mode: "pedestrian" | "car";
     }
+  : never | T extends "airport" 
+  ? {
+    mode: "idle"
+    name?: string;
+    city?: string;
+    country?: string;
+    iata?: string;
+    icao?: string;
+    event: "arrival" | "departure" | "layover";
+  }
   : never;
 
 export type HereMultimodalRoutePlace = {
@@ -66,6 +80,7 @@ export type HereMultimodalRoutePlace = {
   name?: string;
   type:
     | "place"
+    | "airport"
     | "station"
     | "accessPoint"
     | "parkingLot"
@@ -79,9 +94,9 @@ export type HereMultimodalRoutePlace = {
   code?: string;
 };
 
-export type HereMultimodalRouteSection = {
+export type HereMultimodalRouteSection<T extends HereMultimodalRouteSectionType = HereMultimodalRouteSectionType> = {
   id: string;
-  type: HereMultimodalRouteSectionType;
+  type: T;
   departure: {
     time: string;
     place: HereMultimodalRoutePlace;
@@ -91,7 +106,7 @@ export type HereMultimodalRouteSection = {
     place: HereMultimodalRoutePlace;
   };
   polyline: string;
-  transport: HereMultimodalRouteSectionTransport<HereMultimodalRouteSectionType>;
+  transport: HereMultimodalRouteSectionTransport<T>;
   agency?: {
     id: string;
     name: string;
@@ -109,6 +124,12 @@ export type HereMultimodalRouteSection = {
     text: string;
     type: string;
   }[];
+  // Only available on non-intermodal v8 routes, i.e. car and pedestrian
+  summary?: {
+    duration: number; // in minutes
+    length: number; // in meters
+    typicalDuration?: number; // in minutes
+  }
 };
 
 export type HereMultimodalRoute = {
@@ -123,7 +144,7 @@ export type HereMultimodalRoute = {
   duration: number;
 };
 
-export type HereMultimodalRouteModality = "transit" | "pedestrian" | "car";
+export type HereMultimodalRouteModality = "transit" | "pedestrian" | "car" | "flight" | "bicycle";
 
 export type HereMultimodalRouteTimeObject = {
   type: "depart" | "arrive";
@@ -139,31 +160,24 @@ export type HereMultimodalRouteRequestResult = {
   };
 };
 
-export const serverCalculateMultimodalRoute = async (
+export type HereMultimodalRouteRequestOptions = {
+  alternatives?: number;
+  time?: HereMultimodalRouteTimeObject;
+};
+
+const hereIntermodalRoute = async (
   start: { lat: number; lng: number },
   end: { lat: number; lng: number },
-  modality: HereMultimodalRouteModality = "transit",
-  options: {
-    alternatives?: number;
-    time?: HereMultimodalRouteTimeObject;
-  }
-): Promise<HereMultimodalRouteRequestResult> => {
+  modality: HereMultimodalRouteModality,
+  options: HereMultimodalRouteRequestOptions = {},
+  keys: { appId: string; apiKey: string }
+): Promise<HereMultimodalRoute[]> => {
+
   const { alternatives = 2, time } = options;
 
-  const herePlatformAppId = process.env.HERE_PLATFORM_APP_ID;
-  const herePlatformApiKey = process.env.HERE_PLATFORM_API_KEY;
-
-  if (!herePlatformAppId || !herePlatformApiKey) {
-    throw new Error(
-      "HERE_PLATFORM_APP_ID and HERE_PLATFORM_API_KEY must be set"
-    );
-  }
-
-  // API Docs:
-  // https://www.here.com/docs/bundle/intermodal-routing-api-v8-api-reference/page/index.html
 
   const url = new URL(`https://intermodal.router.hereapi.com/v8/routes`);
-  url.searchParams.set("apiKey", herePlatformApiKey!);
+  url.searchParams.set("apiKey", keys.apiKey);
   url.searchParams.set("return", "polyline");
   // Disable taxis and rented vehicles for now
   url.searchParams.set("taxi[enable]", "");
@@ -172,38 +186,24 @@ export const serverCalculateMultimodalRoute = async (
   url.searchParams.set("destination", `${end.lat},${end.lng}`);
   url.searchParams.set("alternatives", alternatives.toString());
 
-  // TODO: Replace car and pedestrian routing with the general HERE routing api (higher usage limits)
-
-  if (modality === "pedestrian") {
-    // Disable transit, walking directions only.
-    // Won't work for long routes.
-    url.searchParams.set("transit[enable]", "");
-  } else if (modality === "car") {
-    // Disable transit, car directions only.
-    url.searchParams.set("transit[enable]", "");
-    url.searchParams.set("vehicle[enable]", "entireRoute");
-    url.searchParams.set("vehicle[modes]", "car");
-  } else {
-    // url.searchParams.set("transit[modes]", "-bus,-busRapid");
-  }
-
   if (time && time.type === "depart") {
-    url.searchParams.set("departureTime", time.date);
+    url.searchParams.set("departureTime", time.date.split(".")[0]);
   } else if (time && time.type === "arrive") {
-    url.searchParams.set("arrivalTime", time.date);
+    url.searchParams.set("arrivalTime", time.date.split(".")[0]);
   }
 
   const response = await fetch(url.toString());
   const data = await response.json();
 
+  if (response.ok === false) {
+    console.log(data)
+    throw new Error(`HERE Intermodal Route API error: ${response.status} ${response.statusText}`);
+  }
+
   if (data.routes.length === 0) {
     // throw new Error(data.notices[0]?.message ?? "No routes found");
     // Doesn't really need to be an error, just return an empty array
-    return {
-      routes: [],
-      key: uniqueId(),
-      time: time,
-    };
+    return [];
   }
 
   // At some point we should probably cast these manually, but for now we'll just return the object as it is
@@ -236,9 +236,144 @@ export const serverCalculateMultimodalRoute = async (
     return route;
   });
 
+  return routes;
+
+}
+
+
+const hereRoute = async (
+  start: { lat: number; lng: number },
+  end: { lat: number; lng: number },
+  modality: HereMultimodalRouteModality,
+  options: HereMultimodalRouteRequestOptions = {},
+  keys: { appId: string; apiKey: string }
+): Promise<HereMultimodalRoute[]> => {
+
+  const { alternatives = 2, time } = options;
+
+
+  const url = new URL(`https://router.hereapi.com/v8/routes`);
+  url.searchParams.set("apiKey", keys.apiKey);
+  url.searchParams.set("return", "summary,polyline,typicalDuration");
+  // Disable taxis and rented vehicles for now
+  url.searchParams.set("transportMode", modality);
+  url.searchParams.set("origin", `${start.lat},${start.lng}`);
+  url.searchParams.set("destination", `${end.lat},${end.lng}`);
+  url.searchParams.set("alternatives", alternatives.toString());
+
+  // Set time parameters, removing milliseconds for RFC3339 compatibility
+  if (time && time.type === "depart") {
+    url.searchParams.set("departureTime", time.date.split(".")[0]);
+  } else if (time && time.type === "arrive") {
+    url.searchParams.set("arrivalTime", time.date.split(".")[0]);
+  }
+
+  const response = await fetch(url.toString());
+  const data = await response.json();
+
+  console.log("HERE Route API response:", data);
+
+  if (data.routes.length === 0) {
+    // throw new Error(data.notices[0]?.message ?? "No routes found");
+    // Doesn't really need to be an error, just return an empty array
+    return [];
+  }
+
+  // At some point we should probably cast these manually, but for now we'll just return the object as it is
+  // These objects are remarkably clean as it is
+  const routes = (data.routes as HereMultimodalRoute[]).map((route) => {
+    // Route transformations can happen here
+    route.sections = route.sections.map((section) => {
+      // Section transformations can happen here
+      return section;
+    });
+    route.modality = modality;
+    // Calculate total distance
+    route.totalDistance = route.sections.reduce((acc, section) => {
+      return acc + (section.summary?.length ?? 0);
+    }, 0);
+    // Set departure time
+    route.departureTime = route.sections[0].departure.time;
+    // Calculate duration in minutes
+    route.duration = route.sections.reduce((acc, section) => {
+      const dep = new Date(section.departure.time).getTime();
+      const arr = new Date(section.arrival.time).getTime();
+      return acc + (section.summary?.typicalDuration ?? Math.round((arr - dep) / (1000)));
+    }, 0) / 60;
+    // Return fully-formed route
+    return route;
+  });
+
+  return routes;
+
+}
+
+export const serverCalculateMultimodalRoute = async (
+  start: { lat: number; lng: number },
+  end: { lat: number; lng: number },
+  modality: HereMultimodalRouteModality = "transit",
+  options: HereMultimodalRouteRequestOptions = {}
+): Promise<HereMultimodalRouteRequestResult> => {
+  const { alternatives = 2, time } = options;
+
+  const herePlatformAppId = process.env.HERE_PLATFORM_APP_ID;
+  const herePlatformApiKey = process.env.HERE_PLATFORM_API_KEY;
+
+  if (!herePlatformAppId || !herePlatformApiKey) {
+    throw new Error(
+      "HERE_PLATFORM_APP_ID and HERE_PLATFORM_API_KEY must be set"
+    );
+  }
+
+  // Create a unique key based on the parameters of the request
+  // TODO: Use this for caching
+  const requestKey = `${start.lat.toFixed(6)},${start.lng.toFixed(6)}-${end.lat.toFixed(6)},${end.lng.toFixed(6)}-${modality}-${alternatives}-${time ? `${time.type}-${time.date}` : "notime"}`;
+
+
+  if (modality == "flight") {
+    // Use the flight-specific route function
+    const route = await tcFlightRoute(
+      start,
+      end,
+      options,
+    );
+    return {
+      routes: [route],
+      key: requestKey,
+      time: time,
+    };
+  }
+
+  // Use the transit-specific route function
+  if (modality == "transit") {
+    // Use the intermodal route function
+    const routes = await hereIntermodalRoute(
+      start,
+      end,
+      modality,
+      { alternatives, time },
+      { appId: herePlatformAppId, apiKey: herePlatformApiKey }
+    );
+    return {
+      routes: routes,
+      key: requestKey,
+      time: time,
+    };
+  }
+
+  // Use the general route function for pedestrian and car
+  const routes = await hereRoute(
+    start,
+    end,
+    modality,
+    { alternatives, time },
+    { appId: herePlatformAppId, apiKey: herePlatformApiKey }
+  );
   return {
     routes: routes,
-    key: uniqueId(),
+    key: requestKey,
     time: time,
   };
+
+  
 };

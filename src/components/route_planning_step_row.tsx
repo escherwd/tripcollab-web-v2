@@ -5,9 +5,15 @@ import {
 import { decode } from "@here/flexpolyline";
 import { useMemo } from "react";
 import {
+  MdAirlineStops,
+  MdDirectionsBike,
   MdDirectionsCar,
   MdDirectionsTransit,
   MdDirectionsWalk,
+  MdFlight,
+  MdFlightClass,
+  MdFlightLand,
+  MdFlightTakeoff,
   MdLabel,
   MdRoute,
   MdTransitEnterexit,
@@ -16,6 +22,7 @@ import * as turf from "@turf/turf";
 import { RoutePlanningTransitTransportModeIcon } from "./route_planning_section_chip";
 import { herePlatformDefaultSectionColors } from "@/app/utils/here_maps/route_styles";
 import { ArrowUpRightIcon } from "@heroicons/react/16/solid";
+import { formatDistance } from "@/app/utils/geo/format_distance";
 
 export default function RoutePlanningStepRow({
   section,
@@ -27,6 +34,7 @@ export default function RoutePlanningStepRow({
       coord[1],
       coord[0],
     ]);
+    if (polyline.length < 2) return 0;
     const line = turf.lineString(polyline);
     return turf.length(line, { units: "meters" });
   }, [section]);
@@ -37,12 +45,24 @@ export default function RoutePlanningStepRow({
   return (
     <div className="flex gap-3 items-center even:bg-gray-50 px-4 py-3">
       <div className="w-8 flex-none flex justify-center text-xl">
+        {section.type === "flight" && <MdFlight className="text-gray-500" />}
+        {section.type === "airport" && (section as HereMultimodalRouteSection<"airport">).transport.event === 'departure' && <MdFlightTakeoff className="text-gray-500" />}
+        {section.type === "airport" && (section as HereMultimodalRouteSection<"airport">).transport.event === 'arrival' && <MdFlightLand className="text-gray-500" />}
+        {section.type === "airport" && (section as HereMultimodalRouteSection<"airport">).transport.event === 'layover' && <MdAirlineStops className="text-gray-500" />}
         {section.type === "pedestrian" && (
           <MdDirectionsWalk className="text-gray-500" />
         )}
-        {section.type === "vehicle" && (
-          <MdDirectionsCar className="text-gray-500" />
-        )}
+        {section.type === "vehicle" &&
+          (() => {
+            if ((section.transport as any).mode === "bicycle") {
+              return (
+                <div className="text-gray-500">
+                  <MdDirectionsBike />
+                </div>
+              );
+            }
+            return <MdDirectionsCar className="text-gray-500" />;
+          })()}
         {section.type === "transit" && (
           <div className="text-gray-500 h-8">
             <RoutePlanningTransitTransportModeIcon
@@ -55,7 +75,7 @@ export default function RoutePlanningStepRow({
       <div>
         {section.type === "pedestrian" && (
           <div className="">
-            Walk {Math.round(distanceMeters)} meters
+            Walk {formatDistance(Math.round(distanceMeters))}
             {section.arrival.place.name ? (
               <>
                 {" "}
@@ -98,7 +118,7 @@ export default function RoutePlanningStepRow({
                       transport.color ??
                       herePlatformDefaultSectionColors.transit
                     }`,
-                    
+
                     color: `${transport.textColor ?? "#fff"}`,
                   }}
                 >
@@ -115,11 +135,36 @@ export default function RoutePlanningStepRow({
             </div>
           </div>
         )}
-        {section.type === "vehicle" && (
-          <div className="">
-            Drive {Math.round(distanceMeters / 1000)} kilometers
-          </div>
+        {section.type === "vehicle" &&
+          (() => {
+            if ((section.transport as any).mode === "bicycle") {
+              return (
+                <div className="">Bike {formatDistance(distanceMeters)}</div>
+              );
+            }
+            return (
+              <div className="">Drive {formatDistance(distanceMeters)}</div>
+            );
+          })()}
+        {section.type === "flight" && (
+          <div>Fly {formatDistance(section.summary?.length ?? 0)}</div>
         )}
+        {section.type === "airport" &&
+          (() => {
+            const airport =
+              section.transport as HereMultimodalRouteSectionTransport<"airport">;
+            return (
+              <div>
+                <div className="text-sm text-gray-600">
+                  {airport.event === "departure" && "Depart from "}
+                  {airport.event === "arrival" && "Arrive at "}
+                </div>
+                <div className="font-semibold">
+                  {airport.name}
+                </div>
+              </div>
+            );
+          })()}
       </div>
     </div>
   );
