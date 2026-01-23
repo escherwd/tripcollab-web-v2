@@ -99,6 +99,7 @@ export const tcFlightRoute = async (
   const dbFile = path.join(
     process.cwd(),
     "data",
+    "flights",
     "airports-weighted.sqlite"
   );
 
