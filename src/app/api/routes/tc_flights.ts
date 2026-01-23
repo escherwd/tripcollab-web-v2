@@ -28,7 +28,7 @@ export type TcFlightsAirport = {
 const greatCirclePointsBetween = (
   start: { lat: number; lng: number },
   end: { lat: number; lng: number },
-  numPoints: number
+  numPoints: number,
 ): number[][] => {
   // Convert degrees to radians
   const toRad = (deg: number) => (deg * Math.PI) / 180;
@@ -79,10 +79,10 @@ const greatCirclePointsBetween = (
 const closestAirport = async (
   lat: number,
   lng: number,
-  db: Database.Database
+  db: Database.Database,
 ): Promise<TcFlightsAirport | null> => {
   const stmt = db.prepare(
-    "SELECT id, name, city, country, iata, type, lat, long AS lng, weight, SQRT( POW(69.1 * (lat - ?) , 2) + POW(69.1 * (? - long) * COS(lat / 57.3) , 2)) AS distance FROM airports WHERE type = 'airport' AND iata IS NOT NULL ORDER BY distance ASC LIMIT 5;"
+    "SELECT id, name, city, country, iata, type, lat, long AS lng, weight, SQRT( POW(69.1 * (lat - ?) , 2) + POW(69.1 * (? - long) * COS(lat / 57.3) , 2)) AS distance FROM airports WHERE type = 'airport' AND iata IS NOT NULL ORDER BY distance ASC LIMIT 5;",
   );
   const rows = stmt.all(lat, lng) as TcFlightsAirport[] | undefined;
 
@@ -94,13 +94,13 @@ const closestAirport = async (
 export const tcFlightRoute = async (
   start: { lat: number; lng: number },
   end: { lat: number; lng: number },
-  options: HereMultimodalRouteRequestOptions = {}
+  options: HereMultimodalRouteRequestOptions = {},
 ): Promise<HereMultimodalRoute> => {
   const dbFile = path.join(
     process.cwd(),
     "data",
     "flights",
-    "airports-weighted.sqlite"
+    "airports-weighted.sqlite",
   );
 
   console.log("Using TC Flights database at:", dbFile);
@@ -121,12 +121,12 @@ export const tcFlightRoute = async (
   const greatCircle = turf.greatCircle(
     [startAirport.lng, startAirport.lat],
     [endAirport.lng, endAirport.lat],
-    { npoints: 64 }
+    { npoints: 64 },
   );
 
   const polyline = encode({
     polyline: greatCircle.geometry.coordinates.map(
-      (coord) => [coord[1], coord[0]] as number[]
+      (coord) => [coord[1], coord[0]] as number[],
     ),
     precision: 3,
   });
@@ -135,31 +135,47 @@ export const tcFlightRoute = async (
   const distance = turf.length(greatCircle, { units: "kilometers" });
 
   // Very loose duration calcuation: assume average speed of 800 km/h (on the lower side, would rather overestimate duration)
-  let assumedAverageSpeedKmh = 800;
+  let assumedAverageSpeedKph = 800;
   if (distance < 2000) {
-    assumedAverageSpeedKmh = 600;
+    assumedAverageSpeedKph = 600;
   }
-  let durationMinutes = Math.round((distance / assumedAverageSpeedKmh) * 60);
+  let durationMinutes = Math.round((distance / assumedAverageSpeedKph) * 60);
+  // Round to the nearest 15 minute increment
   durationMinutes += 15 - (durationMinutes % 15);
 
-  const departureDate = DateTime.fromISO(
-    options.time?.date ?? new Date().toISOString()
+  // Set the departure and arrival based on this guessed duration
+  let departureDate = DateTime.fromISO(
+    options.time?.date ?? new Date().toISOString(),
   ).toISO();
-  const arrivalDate = DateTime.fromISO(
-    options.time?.date ?? new Date().toISOString()
+  let arrivalDate = DateTime.fromISO(
+    options.time?.date ?? new Date().toISOString(),
   )
     .plus({ minutes: durationMinutes })
     .toISO();
 
+  console.log(`time type: ${options.time?.type}`);
+
+  // If desired time is for arrival, swap these around
+  if (options.time?.type == "arrive") {
+    arrivalDate = DateTime.fromISO(
+      options.time?.date ?? new Date().toISOString(),
+    ).toISO();
+    departureDate = DateTime.fromISO(
+      options.time?.date ?? new Date().toISOString(),
+    )
+      .minus({ minutes: durationMinutes })
+      .toISO();
+  }
+
   if (!arrivalDate || !departureDate) {
     throw new Error(
-      "Could not calculate arrival or departure date for flight route."
+      "Could not calculate arrival or departure date for flight route.",
     );
   }
 
   const createArrivalOrDepartureFor = (
     airport: TcFlightsAirport,
-    atTime: string
+    atTime: string,
   ): HereMultimodalRouteSection["arrival" | "departure"] => {
     return {
       time: atTime,
@@ -231,7 +247,7 @@ export const tcFlightRoute = async (
         },
       },
     ],
-    departureTime: options.time?.date,
+    departureTime: departureDate,
     duration: durationMinutes,
     totalDistance: distance * 1000, // in meters
   };

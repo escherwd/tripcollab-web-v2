@@ -2,15 +2,18 @@
 
 import { serverDeleteRoute } from "@/app/api/project/delete_route";
 import { serverUpdatePin } from "@/app/api/project/update_pin";
+import { serverUpdateProject } from "@/app/api/project/update_project";
 import { serverUpdateRoute } from "@/app/api/project/update_route";
 import { HereMultimodalRouteSection } from "@/app/api/routes/here_multimodal";
 import { MAP_UI_PADDING_VALUES } from "@/app/utils/consts";
 import { projectEmitter } from "@/app/utils/controllers/project_controller";
+import { allEqual } from "@/app/utils/logic/all_equal";
 import { AppUser } from "@/backend/auth/get_user";
 import { mapController, MapMarker, MapProject } from "@/components/global_map";
 import ItineraryComponent from "@/components/itinerary_component";
 import MapControlsComponent from "@/components/map_controls_component";
 import Navbar from "@/components/navbar";
+import ProjectNavbarComponent from "@/components/project_navbar_component";
 import RoutePlanningComponent from "@/components/route_planning_component";
 import GeneralSearchComponent from "@/components/search_general";
 import { decode } from "@here/flexpolyline";
@@ -23,9 +26,11 @@ import { useEffect, useState } from "react";
 
 export type ProjectFunctionOpenRoutePlanner = (from: MapMarker | null) => void;
 export type ProjectFunctionOpenExistingRoute = (
-  route: Prisma.RouteGetPayload<any>
+  route: Prisma.RouteGetPayload<any>,
 ) => void;
-export type ProjectFunctionUpdateProject = (updatedProject: MapProject) => void;
+export type ProjectFunctionUpdateProject = (
+  updatedProject: MapProject | ((existing: MapProject) => MapProject),
+) => void;
 
 const clientThrottleTimeMs = 200;
 const serverThrottleTimeMs = 1000;
@@ -69,14 +74,14 @@ export default function ProjectPageContent({
   }, [sideBarOpen]);
 
   const openRoutePlanner: ProjectFunctionOpenRoutePlanner = (
-    from: MapMarker | null
+    from: MapMarker | null,
   ) => {
     setRoutePlannerExistingRoute(null);
     setRoutePlannerOrigin(from);
   };
 
   const openExistingRoute: ProjectFunctionOpenExistingRoute = (
-    route: Prisma.RouteGetPayload<any>
+    route: Prisma.RouteGetPayload<any>,
   ) => {
     setRoutePlannerOrigin(null);
     setRoutePlannerExistingRoute(route);
@@ -97,10 +102,22 @@ export default function ProjectPageContent({
     console.log("Syncing project to server...");
 
     try {
+      // General Project Updates
+      if (
+        !allEqual(
+          [projectLastServerCopy, updatedProject].map((c) => ({
+            name: c?.name,
+            description: c?.description,
+          })),
+        )
+      ) {
+        console.log("Updating project information")
+        await serverUpdateProject(updatedProject)
+      }
       // Determine changes to pins
       for (const updatedPin of updatedProject.pins) {
         const lastPin = projectLastServerCopy?.pins.find(
-          (p) => p.id === updatedPin.id
+          (p) => p.id === updatedPin.id,
         );
         if (lastPin && !_.isEqual(lastPin, updatedPin)) {
           // Sync this pin to the server
@@ -112,7 +129,7 @@ export default function ProjectPageContent({
       // Handle Updating Routes
       for (const updatedRoute of updatedProject.routes) {
         const lastRoute = projectLastServerCopy?.routes.find(
-          (r) => r.id === updatedRoute.id
+          (r) => r.id === updatedRoute.id,
         );
         if (lastRoute && !_.isEqual(lastRoute, updatedRoute)) {
           // Sync this route to the server
@@ -123,7 +140,7 @@ export default function ProjectPageContent({
       // Handle Deleting Routes
       for (const lastRoute of projectLastServerCopy?.routes || []) {
         const updatedRoute = updatedProject.routes.find(
-          (r) => r.id === lastRoute.id
+          (r) => r.id === lastRoute.id,
         );
         if (!updatedRoute) {
           // This route was deleted
@@ -143,22 +160,27 @@ export default function ProjectPageContent({
     projectLastServerCopy = updatedProject;
   };
 
-  const updateProject = (updatedProject: MapProject) => {
+  const updateProject = (
+    updates: MapProject | ((existing: MapProject) => MapProject),
+  ) => {
     // console.log("Updating project in ProjectPageContent", updatedProject);
     // TODO: This is where we sync with the map controller as well
 
-    console.log("updateProject called", updatedProject);
+    const updatedProjectObj: MapProject =
+      typeof updates === "function" ? updates(currentProject) : updates;
+
+    console.log("updating project", updatedProjectObj);
 
     clientUpdateKey = (clientUpdateKey + 1) % 0xfff;
     const clientKey = clientUpdateKey;
     setTimeout(() => {
-      if (clientKey === clientUpdateKey) clientUpdate(updatedProject);
+      if (clientKey === clientUpdateKey) clientUpdate(updatedProjectObj);
     }, clientThrottleTimeMs);
 
     serverUpdateKey += (clientUpdateKey + 1) % 0xfff;
     const serverKey = serverUpdateKey;
     setTimeout(() => {
-      if (serverKey === serverUpdateKey) serverUpdate(updatedProject);
+      if (serverKey === serverUpdateKey) serverUpdate(updatedProjectObj);
     }, serverThrottleTimeMs);
   };
 
@@ -175,17 +197,14 @@ export default function ProjectPageContent({
       bottom: 0,
     }));
 
-    
-
     if (initialMapBounds) {
       mapController.flyToBounds(
         new LngLatBounds(
           [initialMapBounds[0], initialMapBounds[1]],
-          [initialMapBounds[2], initialMapBounds[3]]
+          [initialMapBounds[2], initialMapBounds[3]],
         ),
-        5000
+        5000,
       );
-      
     } else {
       // Default pan
       mapController.flyTo({
@@ -206,7 +225,7 @@ export default function ProjectPageContent({
     };
     projectEmitter.addEventListener(
       "open-existing-route",
-      openExistingRouteProxy
+      openExistingRouteProxy,
     );
 
     const openRoutePlannerProxy = (event: Event) => {
@@ -215,7 +234,7 @@ export default function ProjectPageContent({
     };
     projectEmitter.addEventListener(
       "open-route-planner",
-      openRoutePlannerProxy
+      openRoutePlannerProxy,
     );
 
     const didUpdateProjectProxy = (event: Event) => {
@@ -233,15 +252,15 @@ export default function ProjectPageContent({
     return () => {
       projectEmitter.removeEventListener(
         "open-existing-route",
-        openExistingRouteProxy
+        openExistingRouteProxy,
       );
       projectEmitter.removeEventListener(
         "open-route-planner",
-        openRoutePlannerProxy
+        openRoutePlannerProxy,
       );
       projectEmitter.removeEventListener(
         "update-project",
-        didUpdateProjectProxy
+        didUpdateProjectProxy,
       );
       projectEmitter.removeEventListener("rotate-map", didUpdateRotationProxy);
     };
@@ -259,22 +278,11 @@ export default function ProjectPageContent({
     <>
       <div className="fade-in fixed top-0 left-0 right-0 z-40">
         <Navbar user={user}>
-          <div className="flex gap-4 justify-between items-center -ml-2">
-            <span className="font-mono text-sm font-medium text-gray-400">
-              /
-            </span>
-            <span className="text-gray-700">{project.name}</span>
-            <div className="flex-1"></div>
-            <div
-              className={`flex gap-2 items-center text-gray-400 transition-opacity ${
-                serverOperationsInProgress > 0 ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              <RiLoaderFill className="animate-spin size-4" />
-              <div className="text-sm">Saving Changes</div>
-            </div>
-            <div className="tc-nav-button tc-nav-button-primary">Share</div>
-          </div>
+          <ProjectNavbarComponent
+            project={project}
+            serverOperationsInProgress={serverOperationsInProgress}
+            updateProject={updateProject}
+          />
         </Navbar>
       </div>
 

@@ -42,25 +42,29 @@ export default async function ProjectPage({
     ...project.pins.map((pin) => [pin.longitude, pin.latitude]),
     ...project.routes.flatMap((route) =>
       (route.segments as HereMultimodalRouteSection[]).flatMap((seg) =>
-        decode(seg.polyline).polyline.map((coord) => [coord[1], coord[0]])
-      )
+        decode(seg.polyline).polyline.map((coord) => [coord[1], coord[0]]),
+      ),
     ),
   ]);
 
-  const boundingBox = padBbox(bbox(projectAllPoints), 0.1);
+  let initialMapBounds: number[] | undefined = undefined;
 
-  console.log(
-    "Calculated bounding box with ",
-    projectAllPoints.features.length,
-    " points"
-  );
+  if (projectAllPoints.features.length > 0) {
+    const boundingBox = padBbox(bbox(projectAllPoints), 0.1);
 
-  const initialMapBounds = [
-    boundingBox[0],
-    boundingBox[1],
-    boundingBox[2],
-    boundingBox[3],
-  ];
+    console.log(
+      "Calculated bounding box with ",
+      projectAllPoints.features.length,
+      " points",
+    );
+
+    initialMapBounds = [
+      boundingBox[0],
+      boundingBox[1],
+      boundingBox[2],
+      boundingBox[3],
+    ];
+  }
 
   return (
     // <Home params={params} />

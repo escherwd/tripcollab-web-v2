@@ -9,3 +9,7 @@
 .mapboxgl-ctrl.mapboxgl-ctrl-attrib {
     @apply !mb-2 !mr-2 !px-2 !rounded-full backdrop-blur-lg;
 }
+
+.tc-pin-on-map {
+    box-shadow: rgba(0,0,0,0.5) 8px 8px 8px -2px;
+}

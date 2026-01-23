@@ -15,15 +15,15 @@ export default function Navbar({
                 <Link href="/" className="tc-nav-button !text-base font-display font-semibold !px-4 text-black">
                     tripcollab
                 </Link>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                     {children}
                 </div>
                 {
                     user ?
                         <>
                             <Link href="/profile" className="tc-nav-button flex items-center gap-4">
-                                <span>Hello, {user.firstName}</span>
-                                <div id="profile-photo" className="size-6 block rounded-full bg-gray-200 overflow-hidden">
+                                <span className="whitespace-nowrap">Hello, {user.firstName}</span>
+                                <div id="profile-photo" className="size-6 shrink-0 block rounded-full bg-gray-200 overflow-hidden">
                                     {
                                         user.profilePictureUrl && <img src={user.profilePictureUrl} alt="" className="size-full object-cover" />
                                     }

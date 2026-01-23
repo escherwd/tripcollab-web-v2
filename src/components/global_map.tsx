@@ -283,9 +283,11 @@ export default function GlobalAppMap() {
     "mapbox://styles/escherwd/cme0ipkvn00og01sp60vr2cjt",
     "mapbox://styles/mapbox/standard",
     "mapbox://styles/escherwd/cmjg9laiv004a01rc5ir733v2/draft", // Satellite (TODO: don't use draft version)
+    "mapbox://styles/escherwd/cmkqa99g0001601sof6iw47rf"
   ];
 
   const [mapStyle, setMapStyle] = useState<string>(mapStyles[0]);
+  const [mapProjection, setMapProjection] = useState<"mercator" | "globe">("globe")
 
   const [temporaryFeatures, setTemporaryFeatures] = useState<
     MapFeatureWithLayerSpec[]
@@ -704,7 +706,7 @@ export default function GlobalAppMap() {
         }}
         onClick={handleMapClick}
         interactive={true}
-        projection={"globe"}
+        projection={mapProjection}
         mapStyle={mapStyle}
       >
         {[
@@ -728,7 +730,7 @@ export default function GlobalAppMap() {
             >
               {marker.appleMapsPlace ? (
                 <div
-                  className={`bg-white expand-from-origin relative border-white shadow-md rounded-full transition-transform cursor-pointer ${
+                  className={`tc-pin-on-map relative expand-from-origin rounded-full transition-transform cursor-pointer z-10 ${
                     openMarker?.ephemeralId === marker.ephemeralId
                       ? "scale-140 tc-marker-caret"
                       : ""
@@ -768,7 +770,7 @@ export default function GlobalAppMap() {
               <div
                 onClick={(e) => handlePinClick(e, group.pins[0])}
                 key={group.key}
-                className={` relative  shadow-lg rounded-full transition-transform cursor-pointer z-10 ${
+                className={`relative tc-pin-on-map rounded-full transition-transform cursor-pointer z-10 ${
                   openMarker?.id === group.pins[0].id
                     ? "scale-140 tc-marker-caret"
                     : ""
