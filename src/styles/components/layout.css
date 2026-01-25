@@ -19,3 +19,7 @@
 input[type=number].tc-input-always-show-arrows::-webkit-inner-spin-button {
   opacity: 1
 }
+
+.tc-blurred-bg-element {
+  @apply -mx-3 px-3 -my-2 py-2 rounded-full backdrop-blur-lg;
+}

@@ -326,14 +326,14 @@ export default function MapPlaceIcon({
 
   return (
     <div
-      className={`tc-map-place-icon rounded-full transition-colors duration-300 ${
-        border ? "border-0 border-white" : ""
+      className={`tc-map-place-icon rounded-full transition-colors duration-300 bg-linear-to-b ${
+        border ? "border-2 border-white" : ""
       }`}
       style={{
-        // backgroundColor: color.css,
+        backgroundColor: color.css,
         color: `color-mix(in oklab, ${iconColor}, 10% transparent)`,
-        borderColor: `color-mix(in oklab, ${color.css}, 50% white)`,
-        background: `radial-gradient(circle at 35% 35%, color-mix(in oklab, ${color.css}, 80% white), color-mix(in oklab, ${color.css}, 0% white) 30%, color-mix(in oklab, ${color.css}, 20% black))`,
+        borderColor: `color-mix(in oklab, ${color.css}, 20% white)`,
+        // background: `radial-gradient(circle at 35% 35%, color-mix(in oklab, ${color.css}, 80% white), color-mix(in oklab, ${color.css}, 0% white) 30%, color-mix(in oklab, ${color.css}, 20% black))`,
         ['--tw-gradient-from' as string]: `color-mix(in oklab, ${color.css}, 50% white)`,
         ['--tw-gradient-via' as string]: `color-mix(in oklab, ${color.css}, 0% black)`,
         ['--tw-gradient-to' as string]: `color-mix(in oklab, ${color.css}, 0% black)`,

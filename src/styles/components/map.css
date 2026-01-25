@@ -11,5 +11,6 @@
 }
 
 .tc-pin-on-map {
-    box-shadow: rgba(0,0,0,0.5) 8px 8px 8px -2px;
+    /* box-shadow: rgba(0,0,0,0.5) 8px 8px 8px -2px; */
+    @apply shadow-lg;
 }

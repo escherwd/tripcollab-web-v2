@@ -56,7 +56,7 @@ export type MapMarker<T = AppleMapsPlaceResult> = {
 };
 
 export type MapProject = Prisma.ProjectGetPayload<{
-  include: { pins: true; user: true; routes: true };
+  include: { pins: true; user: true; routes: true, projectShares: { include: { user: true } } };
 }>;
 
 export type MapPin = Prisma.PinGetPayload<any>;
@@ -286,7 +286,7 @@ export default function GlobalAppMap() {
     "mapbox://styles/escherwd/cmkqa99g0001601sof6iw47rf"
   ];
 
-  const [mapStyle, setMapStyle] = useState<string>(mapStyles[0]);
+  const [mapStyle, setMapStyle] = useState<string>(mapStyles[3]);
   const [mapProjection, setMapProjection] = useState<"mercator" | "globe">("globe")
 
   const [temporaryFeatures, setTemporaryFeatures] = useState<
@@ -692,7 +692,7 @@ export default function GlobalAppMap() {
   };
 
   return (
-    <div className="fixed size-full bg-gray-900">
+    <div className="fixed size-full">
       {/* <div className="absolute top-navbar text-red-500 left-[300px] z-20">
         Zoom: {zoomLevel.toFixed(2)}
       </div> */}

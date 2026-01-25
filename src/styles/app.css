@@ -20,7 +20,7 @@
 @import "./components/map_controls.css";
 
 body {
-  @apply font-sans bg-gray-50 text-black/80;
+  @apply font-sans bg-[#353535] text-black/80;
 }
 
 button:focus, input:focus, textarea:focus {

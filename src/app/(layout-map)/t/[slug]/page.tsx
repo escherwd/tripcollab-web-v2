@@ -24,16 +24,24 @@ export default async function ProjectPage({
   const project = await prisma.project.findUnique({
     where: {
       slug,
-      userId: user?.id,
     },
     include: {
       pins: true,
       user: true,
       routes: true,
+      projectShares: {
+        include: {
+          user: true
+        }
+      }
     },
   });
 
   if (!project) {
+    redirect("/");
+  }
+
+  if (project.userId != user?.id && !project.projectShares.find(ps => ps.userId == user?.id)) {
     redirect("/");
   }
 
@@ -51,12 +59,6 @@ export default async function ProjectPage({
 
   if (projectAllPoints.features.length > 0) {
     const boundingBox = padBbox(bbox(projectAllPoints), 0.1);
-
-    console.log(
-      "Calculated bounding box with ",
-      projectAllPoints.features.length,
-      " points",
-    );
 
     initialMapBounds = [
       boundingBox[0],

@@ -111,8 +111,8 @@ export default function ProjectPageContent({
           })),
         )
       ) {
-        console.log("Updating project information")
-        await serverUpdateProject(updatedProject)
+        console.log("Updating project information");
+        await serverUpdateProject(updatedProject);
       }
       // Determine changes to pins
       for (const updatedPin of updatedProject.pins) {
@@ -198,18 +198,33 @@ export default function ProjectPageContent({
     }));
 
     if (initialMapBounds) {
-      mapController.flyToBounds(
-        new LngLatBounds(
-          [initialMapBounds[0], initialMapBounds[1]],
-          [initialMapBounds[2], initialMapBounds[3]],
-        ),
-        5000,
-      );
+      if (
+        initialMapBounds[0] == initialMapBounds[2] &&
+        initialMapBounds[1] == initialMapBounds[3]
+      ) {
+        mapController.flyTo(
+          {
+            center: [initialMapBounds[0], initialMapBounds[1]],
+            zoom: 8,
+            pitch: 0,
+            bearing: 0,
+            duration: 5000
+          }
+        );
+      } else {
+        mapController.flyToBounds(
+          new LngLatBounds(
+            [initialMapBounds[0], initialMapBounds[1]],
+            [initialMapBounds[2], initialMapBounds[3]],
+          ),
+          5000,
+        );
+      }
     } else {
       // Default pan
       mapController.flyTo({
-        center: [4.996, 52.26],
-        zoom: 10,
+        center: [0, 0],
+        zoom: 2,
         bearing: 0,
         pitch: 0,
         duration: 5000,

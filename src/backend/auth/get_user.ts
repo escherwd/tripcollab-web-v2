@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { User } from '@workos-inc/node';
 
 export type AppUser = Prisma.UserGetPayload<{ include: { pins: false, projects: false } }> & { workos: User }
+export type ProjectUser = Prisma.UserGetPayload<{ include: { pins: false, projects: false } }>
 
 export const getUser = async (): Promise<AppUser | null> => {
     try {
