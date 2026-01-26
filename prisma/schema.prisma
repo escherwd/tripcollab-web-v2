@@ -5,8 +5,9 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   // output   = "../src/generated/client"
+  previewFeatures = ["fullTextSearchPostgres"]
 }
 
 generator json {
@@ -41,6 +42,7 @@ model Project {
   slug          String         @unique
   name          String
   description   String?
+  public        Boolean        @default(true)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   userId        String         @db.Uuid

@@ -32,6 +32,7 @@ export const serverUpdateProject = async (using: MapProject) => {
     data: {
         name: using.name,
         slug: using.slug,
+        public: using.public,
         description: using.description
     }
   })

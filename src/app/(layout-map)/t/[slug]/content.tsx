@@ -14,6 +14,7 @@ import ItineraryComponent from "@/components/itinerary_component";
 import MapControlsComponent from "@/components/map_controls_component";
 import Navbar from "@/components/navbar";
 import ProjectNavbarComponent from "@/components/project_navbar_component";
+import ProjectSharePopup from "@/components/project_share_popup";
 import RoutePlanningComponent from "@/components/route_planning_component";
 import GeneralSearchComponent from "@/components/search_general";
 import { decode } from "@here/flexpolyline";
@@ -65,6 +66,8 @@ export default function ProjectPageContent({
 
   const [sideBarOpen, setSidebarOpen] = useState<boolean>(true);
 
+  
+
   useEffect(() => {
     // Update the map padding
     mapController.setPadding((p) => ({
@@ -108,6 +111,7 @@ export default function ProjectPageContent({
           [projectLastServerCopy, updatedProject].map((c) => ({
             name: c?.name,
             description: c?.description,
+            public: c?.public
           })),
         )
       ) {
@@ -291,10 +295,12 @@ export default function ProjectPageContent({
 
   return (
     <>
+      
       <div className="fade-in fixed top-0 left-0 right-0 z-40">
         <Navbar user={user}>
           <ProjectNavbarComponent
-            project={project}
+            currentUser={user ?? undefined}
+            project={currentProject}
             serverOperationsInProgress={serverOperationsInProgress}
             updateProject={updateProject}
           />

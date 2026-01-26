@@ -4,9 +4,11 @@ import { MdFace, MdPerson } from "react-icons/md";
 export default function UserAvatars({
   users,
   overlap = 10,
+  itemClass
 }: {
   users: ProjectUser[];
   overlap?: number;
+  itemClass?: string
 }) {
   return (
     <div className="whitespace-nowrap h-full relative">
@@ -14,7 +16,7 @@ export default function UserAvatars({
         return (
           <div
             key={user.id}
-            className="h-full aspect-square inline-block last:!mr-0 border-2 border-white rounded-full overflow-hidden"
+            className={`h-full aspect-square inline-block last:!mr-0 border-2 border-white rounded-full overflow-hidden ${itemClass}`}
             style={{
                 'marginRight': `-${overlap}px`
             }}

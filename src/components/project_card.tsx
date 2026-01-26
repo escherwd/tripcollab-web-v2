@@ -44,7 +44,7 @@ export default function ProjectCard({ project }: { project: MapProject }) {
             </div>
           </div>
           <div className="flex-0 h-8">
-            <UserAvatars overlap={12} users={[project.user].concat(project.projectShares.map(p => p.user))} />
+            <UserAvatars overlap={16} users={[project.user].concat(project.projectShares.map(p => p.user).slice(0,3))} />
           </div>
         </div>
       </div>

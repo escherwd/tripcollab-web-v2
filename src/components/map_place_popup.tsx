@@ -386,7 +386,7 @@ export default function MapPlacePopup({
       </div>
       <div className="py-2 px-4 grid grid-cols-2 gap-2 border-t border-gray-100">
         <button
-          className={`tc-button ${
+          className={`tc-button dense ${
             isInProject ? "tc-button-destructive" : "tc-button-primary"
           }`}
           onClick={toggleInProject}
@@ -401,7 +401,7 @@ export default function MapPlacePopup({
           )}
           {isInProject ? "Remove" : "Add to Trip"}
         </button>
-        <button className="tc-button" onClick={openRoutePlanner}>
+        <button className="tc-button dense" onClick={openRoutePlanner}>
           <MdRoute className="size-4" />
           Create Route
         </button>

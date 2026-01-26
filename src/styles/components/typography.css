@@ -1,5 +1,5 @@
 .tc-small-heading {
-    @apply mb-4 text-sm text-gray-500 tracking-wider;
+    @apply mb-4 text-sm text-gray-500 tracking-wide;
 
     &.tc-small-heading-white {
         @apply text-white/50;
