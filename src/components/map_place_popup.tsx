@@ -381,6 +381,12 @@ export default function MapPlacePopup({
                 </button>
               </div>
             </div>
+            <div className="flex flex-col gap-1.5 px-4 pb-4">
+              <div className="">Time Zone</div>
+              <div className="flex gap-2 items-start text-sm text-gray-500">
+                {place?.timeZone ?? place?.timezone?.name}
+              </div>
+            </div>
           </div>
         )}
       </div>

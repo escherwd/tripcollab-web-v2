@@ -1,6 +1,12 @@
 "use client";
 
-import Map, { Layer, LayerProps, MapRef, Marker, Source } from "react-map-gl/mapbox";
+import Map, {
+  Layer,
+  LayerProps,
+  MapRef,
+  Marker,
+  Source,
+} from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import React, { Fragment, useEffect, useRef, useState } from "react";
 import {
@@ -26,6 +32,7 @@ import _ from "lodash";
 import { bbox, center, distance, point, points } from "@turf/turf";
 import PinGroup from "./pin_group";
 import {
+  MAP_STYLES,
   MAP_UI_POPOVER_MIN_HEIGHT,
   MAP_UI_POPOVER_STAY_IN_FRAME,
 } from "@/app/utils/consts";
@@ -56,7 +63,12 @@ export type MapMarker<T = AppleMapsPlaceResult> = {
 };
 
 export type MapProject = Prisma.ProjectGetPayload<{
-  include: { pins: true; user: true; routes: true, projectShares: { include: { user: true } } };
+  include: {
+    pins: true;
+    user: true;
+    routes: true;
+    projectShares: { include: { user: true } };
+  };
 }>;
 
 export type MapPin = Prisma.PinGetPayload<any>;
@@ -85,6 +97,8 @@ class MapController {
 
   private project: MapProject | null = null;
 
+  private mapStyle: keyof typeof MAP_STYLES = "cartographer";
+
   padding: MapPadding = {
     top: 64,
     left: 0,
@@ -111,7 +125,7 @@ class MapController {
     mapEmitter.dispatchEvent(
       new CustomEvent("set-geojson-features", {
         detail: { type: "all", features: [] },
-      })
+      }),
     );
   }
 
@@ -119,7 +133,7 @@ class MapController {
     await this.waitForMap();
     this.markers = markers;
     mapEmitter.dispatchEvent(
-      new CustomEvent("set-markers", { detail: markers })
+      new CustomEvent("set-markers", { detail: markers }),
     );
   }
 
@@ -132,6 +146,14 @@ class MapController {
   async getMapBounds() {
     await this.waitForMap();
     return this.map?.getBounds();
+  }
+
+  async setMapStyle(mapStyle: typeof this.mapStyle) {
+    this.mapStyle = mapStyle;
+    await this.waitForMap();
+    mapEmitter.dispatchEvent(
+      new CustomEvent("style-update", { detail: mapStyle }),
+    );
   }
 
   /**
@@ -184,7 +206,7 @@ class MapController {
     mapEmitter.dispatchEvent(
       new CustomEvent("set-markers", {
         detail: this.markers,
-      })
+      }),
     );
   }
 
@@ -193,7 +215,7 @@ class MapController {
 
     if (!marker) {
       mapEmitter.dispatchEvent(
-        new CustomEvent("open-marker", { detail: null })
+        new CustomEvent("open-marker", { detail: null }),
       );
       return;
     }
@@ -216,7 +238,7 @@ class MapController {
     }
     // Dispatch the event to set the markers
     mapEmitter.dispatchEvent(
-      new CustomEvent("open-marker", { detail: marker })
+      new CustomEvent("open-marker", { detail: marker }),
     );
   }
 
@@ -224,19 +246,19 @@ class MapController {
     await this.waitForMap();
     this.project = project ?? null;
     mapEmitter.dispatchEvent(
-      new CustomEvent("set-project", { detail: project })
+      new CustomEvent("set-project", { detail: project }),
     );
   }
 
   async setFeatures(
     type: MapFeatureContextType,
     // TODO: update to feature type
-    features: MapFeatureWithLayerSpec[]
+    features: MapFeatureWithLayerSpec[],
   ) {
     await this.waitForMap();
     console.log("Setting geojson features", type, features);
     mapEmitter.dispatchEvent(
-      new CustomEvent("set-geojson-features", { detail: { type, features } })
+      new CustomEvent("set-geojson-features", { detail: { type, features } }),
     );
   }
 
@@ -279,15 +301,10 @@ export default function GlobalAppMap() {
 
   const [zoomLevel, setZoomLevel] = useState<number>(1);
 
-  const mapStyles = [
-    "mapbox://styles/escherwd/cme0ipkvn00og01sp60vr2cjt",
-    "mapbox://styles/mapbox/standard",
-    "mapbox://styles/escherwd/cmjg9laiv004a01rc5ir733v2/draft", // Satellite (TODO: don't use draft version)
-    "mapbox://styles/escherwd/cmkqa99g0001601sof6iw47rf"
-  ];
-
-  const [mapStyle, setMapStyle] = useState<string>(mapStyles[3]);
-  const [mapProjection, setMapProjection] = useState<"mercator" | "globe">("globe")
+  const [mapStyle, setMapStyle] = useState<string>(MAP_STYLES['cartographer']);
+  const [mapProjection, setMapProjection] = useState<"mercator" | "globe">(
+    "globe",
+  );
 
   const [temporaryFeatures, setTemporaryFeatures] = useState<
     MapFeatureWithLayerSpec[]
@@ -302,7 +319,7 @@ export default function GlobalAppMap() {
     } else if (e.type === "zoomend" || e.type === "moveend") {
       openMarkerRef.current?.classList.remove(
         "scale-30",
-        "pointer-events-none"
+        "pointer-events-none",
       );
     }
   };
@@ -320,10 +337,10 @@ export default function GlobalAppMap() {
       // But has not been added to the project yet
       const overlappingPin =
         project.pins.find(
-          (p) => p.mapboxFeatureId === openMarker.mapboxFeatureId
+          (p) => p.mapboxFeatureId === openMarker.mapboxFeatureId,
         ) ??
         project.pins.find(
-          (p) => p.appleMapsMuid === openMarker.appleMapsPlace?.muid
+          (p) => p.appleMapsMuid === openMarker.appleMapsPlace?.muid,
         );
       if (overlappingPin) {
         // For now just update the color
@@ -384,7 +401,7 @@ export default function GlobalAppMap() {
           const dist = distance(
             point([pin.longitude, pin.latitude]),
             point([memberPin.longitude, memberPin.latitude]),
-            { units: "kilometers" }
+            { units: "kilometers" },
           );
           // Fancy grouping formula, using exponential decay based on zoom level
           if (dist < 450 * Math.pow(0.43, (zoomLevel - 2) / 1.4)) {
@@ -436,12 +453,12 @@ export default function GlobalAppMap() {
     // Calculate bounds and add padding
     const bounds = padBbox(
       bbox(points(pins.map((p) => [p.longitude, p.latitude]))),
-      0.1
+      0.1,
     );
 
     mapController.flyToBounds(
       new LngLatBounds([bounds[0], bounds[1]], [bounds[2], bounds[3]]),
-      1000
+      1000,
     );
   };
 
@@ -458,7 +475,7 @@ export default function GlobalAppMap() {
       if (map.current?.frameReady) {
         // Map (frame) is ready - doesn't guarentee all resources are loaded
         mapEmitter.dispatchEvent(
-          new CustomEvent("map-mount", { detail: map.current })
+          new CustomEvent("map-mount", { detail: map.current }),
         );
         clearInterval(interval);
 
@@ -488,7 +505,7 @@ export default function GlobalAppMap() {
             animate: true,
             duration: 1000,
           },
-          true
+          true,
         );
       }
     };
@@ -507,8 +524,8 @@ export default function GlobalAppMap() {
               r.id,
               (r.segments ?? []) as HereMultimodalRouteSection[],
               false,
-              r.styleData ?? undefined
-            )
+              r.styleData ?? undefined,
+            ),
           )
           .flat();
         setPermanentFeatures(routeFeatures);
@@ -524,7 +541,7 @@ export default function GlobalAppMap() {
       e: CustomEventInit<{
         type: MapFeatureContextType;
         features: MapFeatureWithLayerSpec[];
-      }>
+      }>,
     ) => {
       if (e.detail?.type === "permanent" || e.detail?.type === "all") {
         setPermanentFeatures(e.detail.features);
@@ -536,8 +553,14 @@ export default function GlobalAppMap() {
 
     mapEmitter.addEventListener(
       "set-geojson-features",
-      listenerSetGeoJSONFeatures
+      listenerSetGeoJSONFeatures,
     );
+
+    const listenerUpdateMapStyle = (e: CustomEventInit<keyof typeof MAP_STYLES>) => {
+      if (e.detail) setMapStyle(MAP_STYLES[e.detail]);
+    };
+
+    mapEmitter.addEventListener("style-update", listenerUpdateMapStyle);
 
     return () => {
       clearInterval(interval);
@@ -593,7 +616,7 @@ export default function GlobalAppMap() {
 
   const handleMarkerClick = (
     e: React.MouseEvent<HTMLDivElement>,
-    marker: MapMarker
+    marker: MapMarker,
   ) => {
     e.preventDefault();
     e.stopPropagation();
@@ -605,7 +628,7 @@ export default function GlobalAppMap() {
 
   const handlePinClick = (
     e: React.MouseEvent<HTMLDivElement>,
-    pin: Prisma.PinGetPayload<any>
+    pin: Prisma.PinGetPayload<any>,
   ) => {
     e.preventDefault();
     e.stopPropagation();
@@ -617,7 +640,7 @@ export default function GlobalAppMap() {
 
   const updateOpenMarkerPopupBounds = (
     marker: MapMarker,
-    mapRef: MapRef | null
+    mapRef: MapRef | null,
   ) => {
     if (!mapRef) return null;
     const point = mapRef.project(marker.coordinate);
@@ -638,7 +661,7 @@ export default function GlobalAppMap() {
       width: 300,
       height: Math.max(
         MAP_UI_POPOVER_MIN_HEIGHT,
-        (canvasSize.height - padding.top - padding.bottom) / 2
+        (canvasSize.height - padding.top - padding.bottom) / 2,
       ),
     };
 
@@ -651,11 +674,11 @@ export default function GlobalAppMap() {
       // Clamp x and y to stay within the map frame with padding
       x = Math.min(
         Math.max(x, padding.left),
-        canvasSize.width - size.width - padding.right
+        canvasSize.width - size.width - padding.right,
       );
       y = Math.min(
         Math.max(y, padding.top - 30),
-        canvasSize.height - size.height - padding.bottom + 30
+        canvasSize.height - size.height - padding.bottom + 30,
       );
     }
 
@@ -673,7 +696,7 @@ export default function GlobalAppMap() {
     openMarkerRef.current?.style.setProperty("top", `${y}px`);
     openMarkerRef.current?.style.setProperty(
       "transform-origin",
-      transformOrigin
+      transformOrigin,
     );
 
     // Configure rest of style through react state (slower to update)

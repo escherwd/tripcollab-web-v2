@@ -4,7 +4,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/16/solid";
 import { mapController, MapPin, MapProject } from "./global_map";
-import { DateTime } from "luxon";
+import { DateTime, Zone } from "luxon";
 import { useMemo, useState } from "react";
 import CalendarComponent from "./calendar_component";
 import { Prisma } from "@prisma/client";
@@ -21,30 +21,46 @@ export default function PopupScheduleComponent({
   project: MapProject;
   pin: MapPin;
 }) {
+  // const dateTime = useMemo(() => {
+  //   return pin.dateStart
+  //     ? DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName })
+  //     : null;
+  // }, [pin]);
+
   const [expanded, setExpanded] = useState(false);
-  const [numDays, setNumDays] = useState(
-    pin?.duration
-      ? Math.floor(((pin.timeStart ?? 0) + pin.duration) / (24 * 60))
-      : 0
+
+  const [dateTimeStart, setDateTimeStart] = useState(
+    pin.dateStart
+      ? DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName })
+      : undefined,
   );
-  const [timeStart, setTimeStart] = useState<number | null>(
-    pin?.timeStart ?? null
+  const [dateTimeEnd, setDateTimeEnd] = useState(
+    dateTimeStart?.plus({ minutes: pin.duration ?? 0 }),
   );
-  const [timeLeave, setTimeLeave] = useState<number | null>(
-    (pin?.timeStart && pin?.duration) ? (pin.timeStart + (pin?.duration ?? 0)) % (24 * 60) : null
-  );
+
+  const numDays = useMemo(() => {
+    if (!dateTimeStart || !dateTimeEnd) return 0;
+    return dateTimeEnd.diff(dateTimeStart).as('days');
+  }, [dateTimeStart, dateTimeEnd]);
+
+  // const [numDays, setNumDays] = useState(
+  //   pin.duration ?
+  // );
+  // const [timeStart, setTimeStart] = useState<number | null>(
+  //   pin?.timeStart ?? null
+  // );
+  // const [timeLeave, setTimeLeave] = useState<number | null>(
+  //   (pin?.timeStart && pin?.duration) ? (pin.timeStart + (pin?.duration ?? 0)) % (24 * 60) : null
+  // );
   // const [duration, setDuration] = useState(pin?.duration ?? 0);
 
   const durationError = useMemo(() => {
-    if (timeLeave === null || timeStart === null) {
-      return null;
-    }
-    const duration = timeLeave - timeStart + numDays * 24 * 60;
-    if (duration < 0) {
-      return "Duration must be positive";
-    }
-    return null;
-  }, [timeLeave, timeStart, numDays]);
+    // No dateTimes set, no error
+    if (!dateTimeEnd || !dateTimeStart) return null;
+
+    const duration = dateTimeEnd.diff(dateTimeStart).as('minutes');
+    return duration < 0 ? "Duration must be positive" : null;
+  }, [dateTimeStart, dateTimeEnd]);
 
   const savePinUpdates = async (data: Prisma.PinUpdateInput) => {
     if (!pin?.id) {
@@ -54,7 +70,7 @@ export default function PopupScheduleComponent({
     projectEventReceiver.didUpdateProject({
       ...project,
       pins: project.pins.map((p) =>
-        p.id === pin.id ? { ...p, ...(data as any) } : p
+        p.id === pin.id ? { ...p, ...(data as any) } : p,
       ),
     });
 
@@ -74,48 +90,64 @@ export default function PopupScheduleComponent({
 
   // Convert minutes to HH:MM string
   const timeStartString = useMemo(() => {
-    if (!timeStart) {
+    if (!dateTimeStart) {
       return "00:00";
     }
-    return minutesToTimeString(timeStart);
-  }, [timeStart]);
+    return dateTimeStart.toFormat("T");
+  }, [dateTimeStart]);
 
   const timeEndString = useMemo(() => {
-    if (!timeLeave) {
+    if (!dateTimeEnd) {
       return "00:00";
     }
-    return minutesToTimeString(timeLeave);
-  }, [timeLeave]);
+    return dateTimeEnd.toFormat("T");
+  }, [dateTimeEnd]);
 
   const setNewStartTime = (minutes: number) => {
-    const duration = (timeLeave ?? minutes) - minutes + numDays * 24 * 60;
-    
-    if (duration < 0) {
+    const newDateTimeStart =
+      dateTimeStart?.set({
+        hour: Math.floor(minutes / 60),
+        minute: minutes % 60,
+      }) ?? undefined;
+    const duration = newDateTimeStart
+      ? (dateTimeEnd?.diff(newDateTimeStart).as('minutes') ?? 0)
+      : null;
+
+    if ((duration ?? 0) < 0) {
       // Ensure leave time is after start time
       console.log("Start time must be before leave time");
       return;
     }
-    
-    savePinUpdates({ timeStart: minutes, duration: duration });
-    setTimeStart(minutes);
+
+    savePinUpdates({
+      dateStart: newDateTimeStart?.toJSDate(),
+      duration: duration,
+    });
+    setDateTimeStart(newDateTimeStart);
   };
 
   const onStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const minutes =
       parseInt(e.target.value.split(":")[0]) * 60 +
       parseInt(e.target.value.split(":")[1]);
-    setTimeStart(minutes);
+    // setTimeStart(minutes);
 
     setNewStartTime(minutes);
   };
 
   const setNewLeaveTime = (minutes: number) => {
-    if (timeStart === null) {
+    if (!dateTimeStart) {
       console.log("Time start is null, cannot set leave time");
       return;
     }
 
-    const duration = minutes - timeStart + numDays * 24 * 60;
+    const newDateTimeLeave =
+      dateTimeEnd?.set({
+        hour: Math.floor(minutes / 60),
+        minute: minutes % 60,
+      }) ?? undefined;
+
+    const duration = newDateTimeLeave?.diff(dateTimeStart).as('minutes') ?? 0;
 
     if (duration < 0) {
       // Ensure leave time is after start time
@@ -123,7 +155,7 @@ export default function PopupScheduleComponent({
       return;
     }
     savePinUpdates({ duration: duration });
-    setTimeLeave(minutes);
+    setDateTimeEnd(newDateTimeLeave);
   };
 
   const onLeaveTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,25 +170,42 @@ export default function PopupScheduleComponent({
   };
 
   const onNumDaysChange = (
-    date?: DateTime<boolean> | null | undefined,
-    numDays: number | undefined = 0
+    date?: DateTime<boolean> | undefined,
+    numDays: number | undefined = 0,
   ) => {
-    const duration = (timeLeave ?? 0) - (timeStart ?? 0) + numDays * 24 * 60;
+    console.log("date or numdays changed?", date, numDays);
+
+    if (date === undefined || numDays === undefined) return;
+
+    const newDateTimeStart = date.set({
+      hour: dateTimeStart?.hour,
+      minute: dateTimeEnd?.minute
+    })
+    const newDateTimeEnd = newDateTimeStart.plus({ days: numDays }).set({
+      hour: dateTimeEnd?.hour,
+      minute: dateTimeEnd?.minute
+    });
+
+    console.log(newDateTimeStart,newDateTimeEnd)
+
+    const duration = newDateTimeEnd.diff(newDateTimeStart).as('minutes');
     console.log(
       "onNumDaysChange called with numDays:",
       numDays,
       "calculated duration:",
-      duration
+      duration,
     );
 
-    setNumDays(numDays);
+    // setNumDays(numDays);
     if (duration < 0) {
       console.log("Duration must be positive");
       return;
     }
 
     console.log("Saving pin updates with duration:", duration);
-    savePinUpdates({ duration: duration, dateStart: date?.toJSDate() });
+    savePinUpdates({ duration: duration, dateStart: newDateTimeStart?.toJSDate() });
+    // setDateTimeStart(date);
+    // setDateTimeEnd(newDateTimeEnd);
   };
 
   const calendarAnchor = useMemo(() => {
@@ -171,7 +220,7 @@ export default function PopupScheduleComponent({
         const firstScheduledPin = scheduledPins.sort(
           (a, b) =>
             (a.dateStart ? a.dateStart.getTime() : 0) -
-            (b.dateStart ? b.dateStart.getTime() : 0)
+            (b.dateStart ? b.dateStart.getTime() : 0),
         )[0];
         return DateTime.fromJSDate(firstScheduledPin.dateStart!);
       }
@@ -180,27 +229,27 @@ export default function PopupScheduleComponent({
     return DateTime.now();
   }, [pin, project]);
 
-  const clearStartTime = () => {
-    setTimeStart(null);
-    setTimeLeave(null);
+  // const clearStartTime = () => {
+  //   setDateTimeEnd(undefined);
+  //   setDateTimeStart(undefined);
 
-    const duration = numDays * 24 * 60;
+  //   const duration = numDays * 24 * 60;
 
-    savePinUpdates({ timeStart: null, duration: duration });
-  };
+  //   savePinUpdates({ timeStart: null, duration: duration });
+  // };
 
-  const clearLeaveTime = () => {
-    setTimeLeave(null);
+  // const clearLeaveTime = () => {
+  //   setTimeLeave(null);
 
-    if (timeStart === null) {
-      return;
-    }
+  //   if (timeStart === null) {
+  //     return;
+  //   }
 
-    let duration: number | undefined = numDays * 24 * 60;
-    if (duration == 0) duration = undefined
+  //   let duration: number | undefined = numDays * 24 * 60;
+  //   if (duration == 0) duration = undefined;
 
-    savePinUpdates({ duration: duration });
-  };
+  //   savePinUpdates({ duration: duration });
+  // };
 
   return (
     <div className="pb-4 px-4 flex flex-col gap-1">
@@ -211,13 +260,13 @@ export default function PopupScheduleComponent({
         >
           <CalendarIcon className="size-4 text-gray-500" />
           <div className="text-sm flex-1 font-medium text-gray-500">
-            {pin?.dateStart
-              ? DateTime.fromJSDate(pin.dateStart).toLocaleString({
+            {dateTimeStart
+              ? dateTimeStart.toLocaleString({
                   month: "short",
                   day: "numeric",
                 })
               : "Unscheduled"}
-            {pin?.dateStart && pin.timeStart && " – " + timeStartString}
+            {dateTimeStart && " – " + timeStartString}
           </div>
           <div>
             <ChevronRightIcon
@@ -236,11 +285,12 @@ export default function PopupScheduleComponent({
             <CalendarComponent
               dense={true}
               project={project}
-              date={pin?.dateStart ? DateTime.fromJSDate(pin.dateStart) : null}
+              date={pin?.dateStart ? DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName }) : null}
               allowRange={true}
               initialAnchorDate={calendarAnchor}
               onDateChange={onNumDaysChange}
               initialNumDays={numDays}
+              timeZone={pin.zoneName}
             />
           </div>
           <div className="grid grid-rows-2 divide-x h-18 divide-gray-200">
@@ -249,7 +299,7 @@ export default function PopupScheduleComponent({
                 Arrive
                 {numDays > 0 && pin.dateStart && (
                   <span className="fade-in text-xs bg-gray-200 rounded-full px-2 py-0.5 ml-2">
-                    {DateTime.fromJSDate(pin.dateStart)
+                    {DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName })
                       .toLocaleString({
                         weekday: "long",
                       })
@@ -258,37 +308,35 @@ export default function PopupScheduleComponent({
                 )}
               </div>
               <div className="flex-1" />
-              {timeStart ? (
+              {true ? (
                 <>
-              <input
-                defaultValue={timeStartString}
-                type="time"
-                className="text-sm text-gray-500"
-                onChange={onStartTimeChange}
-              />
-              <PanelIconButton
-                icon={<XMarkIcon />}
-                onClick={() => {
-                  clearStartTime();
-                }}
-              />
-              </>
+                  <input
+                    defaultValue={timeStartString}
+                    type="time"
+                    className="text-sm text-gray-500"
+                    onChange={onStartTimeChange}
+                  />
+                  <PanelIconButton
+                    icon={<XMarkIcon />}
+                    onClick={() => {
+                      //clearStartTime();
+                    }}
+                  />
+                </>
               ) : (
-                <AddTimeButton
-                  onClick={() => setNewStartTime(8 * 60)}
-                />
+                <AddTimeButton onClick={() => setNewStartTime(8 * 60)} />
               )}
             </div>
             <div
               className={`py-2 pl-2 pr-0.5 border-t gap-1 flex items-center justify-around border-gray-200 transition-colors ${
                 durationError ? "bg-red-100" : ""
-              } ${ timeStart === null ? "opacity-50 [&>*]:pointer-events-none cursor-not-allowed" : "" }`}
+              } ${true === null ? "opacity-50 [&>*]:pointer-events-none cursor-not-allowed" : ""}`}
             >
               <div className="text-sm text-gray-500">
                 Leave
                 {numDays > 0 && pin.dateStart && (
                   <span className="fade-in text-xs bg-gray-200 rounded-full px-2 py-0.5 ml-2">
-                    {DateTime.fromJSDate(pin.dateStart)
+                    {DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName })
                       .plus({ days: numDays })
                       .toLocaleString({ weekday: "long" })
                       .toLowerCase()}
@@ -296,7 +344,7 @@ export default function PopupScheduleComponent({
                 )}
               </div>
               <div className="flex-1" />
-              {timeLeave ? (
+              {true ? (
                 <>
                   <input
                     defaultValue={timeEndString}
@@ -307,13 +355,15 @@ export default function PopupScheduleComponent({
                   <PanelIconButton
                     icon={<XMarkIcon />}
                     onClick={() => {
-                      clearLeaveTime();
+                      //clearLeaveTime();
                     }}
                   />
                 </>
               ) : (
                 <AddTimeButton
-                  onClick={() => setNewLeaveTime((timeStart ?? 0) + 120)}
+                  onClick={() => {
+                    //setNewLeaveTime((timeStart ?? 0) + 120)
+                  }}
                 />
               )}
             </div>

@@ -48,20 +48,23 @@ export default function ActivityListComponent({
 
     for (const pin of project?.pins
       .filter((pin) => pin.dateStart)
-      .sort((a, b) => (a.timeStart ?? 0) - (b.timeStart ?? 0)) ?? []) {
+      // .sort((a, b) => (a.timeStart ?? 0) - (b.timeStart ?? 0)) ?? []) {
+     ?? []){
       const date = pin.dateStart!.toISOString().split("T")[0];
+
+      const dateTime = DateTime.fromJSDate(pin.dateStart!, { zone: pin.zoneName })
 
       const pinColor =
         pin.styleData?.iconColor ??
         mapIcons[pin.styleData?.iconId ?? "address"]?.color;
       const pinIconId = pin.styleData?.iconId ?? "address";
 
-      let numDays: string | number =
+      const numDays: number =
         pin.dateStart && pin.duration
-          ? Math.floor(((pin.timeStart ?? 0) + pin.duration) / 1440)
+          ? dateTime.diff(dateTime.plus({minutes: pin.duration})).days ?? 0
           : 0;
 
-      numDays = numDays >= 1 ? `${numDays + 1} Days` : "1 Day";
+      const numDayString = numDays >= 1 ? `${numDays + 1} Days` : "1 Day";
 
       if (!groups[date]) {
         groups[date] = [];
@@ -71,10 +74,8 @@ export default function ActivityListComponent({
         pin: pin,
         id: pin.id,
         activityType: pin.type as ActivityType,
-        numDays: numDays,
-        timeStart: pin.timeStart
-          ? DateTime.now().startOf("day").plus({ minutes: pin.timeStart })
-          : undefined,
+        numDays: numDayString,
+        timeStart: dateTime,
         key: `activity-start-${pin.id}`,
         color: pinColor,
         iconId: (pin.styleData as any)["iconId"] ?? "address",
@@ -83,11 +84,10 @@ export default function ActivityListComponent({
       if (
         pin.dateStart &&
         pin.duration &&
-        pin.duration + (pin.timeStart ?? 0) >= 1440
+        numDays > 0
       ) {
-        const endDate = DateTime.fromJSDate(pin.dateStart)
-          .startOf("day")
-          .plus({ minutes: (pin.timeStart ?? 0) + (pin.duration ?? 0) })
+        const endDate = dateTime
+          .plus({ minutes: (pin.duration ?? 0) })
           .toISO({ precision: "day" })
           ?.substring(0, 10);
         if (!endDate) continue;
@@ -96,14 +96,12 @@ export default function ActivityListComponent({
             type: "end",
             pin: null,
             activityType: pin.type as ActivityType,
-            numDays: numDays,
+            numDays: numDayString,
             id: pin.id,
             key: `activity-end-${pin.id}`,
             color: pinColor,
             iconId: pinIconId,
-            timeEnd: DateTime.fromJSDate(pin.dateStart)
-              .startOf("day")
-              .plus({ minutes: (pin.timeStart ?? 0) + (pin.duration ?? 0) }),
+            timeEnd: dateTime.plus({ minutes: pin.duration ?? 0 }),
             name: pin.name,
           },
           ...(groups[endDate] ?? []),
@@ -139,11 +137,8 @@ export default function ActivityListComponent({
         pin: null,
         id: route.id,
         activityType: "transit" as ActivityType,
-        timeStart: route.timeStart
-          ? DateTime.fromJSDate(new Date())
-              .setZone("utc")
-              .startOf("day")
-              .plus({ minutes: route.timeStart })
+        timeStart: route.dateStart
+          ? DateTime.fromJSDate(route.dateStart, { zone: route.zoneName })
           : undefined,
         numDays: numDays,
         color:
@@ -244,7 +239,7 @@ export default function ActivityListComponent({
       const offset = el.scrollTop;
       const items =
         activityListContainer.current?.querySelectorAll(
-          ".tc-activity-list-unfocused-track-inner"
+          ".tc-activity-list-unfocused-track-inner",
         ) ?? [];
       items.forEach((item) => {
         (item as HTMLDivElement).style.top = `-${offset}px`;
@@ -268,10 +263,10 @@ export default function ActivityListComponent({
         //   ?.substring(0, 10);
         // const dateStart = activity.dateStart!.toISOString().split("T")[0];
         const startEl = activityScrollView.current?.querySelector(
-          `#activity-start-${id}`
+          `#activity-start-${id}`,
         ) as HTMLButtonElement | undefined;
         const endEl = activityScrollView.current?.querySelector(
-          `#activity-end-${id}`
+          `#activity-end-${id}`,
         ) as HTMLDivElement | undefined;
 
         if (!startEl || !endEl) {
@@ -293,7 +288,7 @@ export default function ActivityListComponent({
         .filter((activity) => activity.activityType === activeTab)
         .map((activity) => ({
           track: activityScrollView.current?.querySelector(
-            `#activity-duration-track-${activity.key}`
+            `#activity-duration-track-${activity.key}`,
           ) as HTMLDivElement | null | undefined,
           activity: activity,
         }))
@@ -452,7 +447,7 @@ export default function ActivityListComponent({
                               {activity.timeEnd && (
                                 <span>
                                   {activity.timeEnd.toLocaleString(
-                                    DateTime.TIME_SIMPLE
+                                    DateTime.TIME_SIMPLE,
                                   )}
                                 </span>
                               )}
@@ -504,7 +499,7 @@ export default function ActivityListComponent({
                               {activity.timeStart && (
                                 <div className="tc-activity-list-item-time">
                                   {activity.timeStart.toLocaleString(
-                                    DateTime.TIME_SIMPLE
+                                    DateTime.TIME_SIMPLE,
                                   )}
                                 </div>
                               )}

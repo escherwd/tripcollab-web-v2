@@ -11,6 +11,7 @@ export type AppleMapsPlaceResult = {
     muid: string;
     categoryId?: string;
     categoryName?: string;
+    timeZone?: string;
     rating?: {
         score: number;
         source: string;

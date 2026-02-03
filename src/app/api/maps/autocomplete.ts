@@ -148,6 +148,7 @@ export async function autocompleteAppleMaps(
               name: entity.name[0].stringValue,
               address: address?.formattedAddressLines,
               coordinate: placeInfo.center,
+              timeZone: placeInfo.timezone?.identifier,
               categoryId: entity.mapsCategoryId,
               muid: muid,
             };

@@ -21,6 +21,7 @@ export default function CalendarComponent({
   onDateChange,
   // onNumDaysChange,
   readonly = false,
+  timeZone = 'utc'
 }: {
   project?: MapProject | null;
   dense?: boolean;
@@ -28,7 +29,8 @@ export default function CalendarComponent({
   allowRange?: boolean;
   date?: DateTime | null;
   initialNumDays?: number;
-  onDateChange?: (date?: DateTime | null, numDays?: number) => void;
+  timeZone?: string;
+  onDateChange?: (date?: DateTime, numDays?: number) => void;
   // onNumDaysChange?: (numDays: number) => void;
   readonly?: boolean;
 }) {
@@ -45,10 +47,10 @@ export default function CalendarComponent({
         if (!pin.dateStart) return [];
         if (pin.duration && pin.duration > 0)
           return [
-            DateTime.fromJSDate(pin.dateStart),
-            DateTime.fromJSDate(pin.dateStart).plus({ minutes: pin.duration }),
+            DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName }),
+            DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName }).plus({ minutes: pin.duration }),
           ];
-        else return [DateTime.fromJSDate(pin.dateStart)];
+        else return [DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName})];
       })
       .flat()
       .sort((a, b) => a.toMillis() - b.toMillis());
@@ -123,9 +125,9 @@ export default function CalendarComponent({
 
   const setDate = (isoDate: string | null) => {
     if (readonly) return;
-    setSelectedDate(isoDate ? DateTime.fromISO(isoDate) : null);
+    setSelectedDate(isoDate ? DateTime.fromISO(isoDate, { zone: timeZone }) : null);
     if (onDateChange) {
-      onDateChange(isoDate ? DateTime.fromISO(isoDate) : null);
+      onDateChange(isoDate ? DateTime.fromISO(isoDate, { zone: timeZone }) : undefined);
     }
   };
 
@@ -143,8 +145,8 @@ export default function CalendarComponent({
 
   const whileDrag = (isoDate: string, up: boolean = false) => {
     if (allowRange && isoDateDragStart) {
-      const start = DateTime.fromISO(isoDateDragStart);
-      const end = DateTime.fromISO(isoDate);
+      const start = DateTime.fromISO(isoDateDragStart, { zone: timeZone });
+      const end = DateTime.fromISO(isoDate, { zone: timeZone });
       const numDays = end.diff(start, "days").days;
       setNumDays(numDays);
       console.log(
@@ -158,12 +160,12 @@ export default function CalendarComponent({
     }
     if (up) {
       let selectedDate = isoDateDragStart
-        ? DateTime.fromISO(isoDateDragStart)
-        : DateTime.fromISO(isoDate);
+        ? DateTime.fromISO(isoDateDragStart, { zone: timeZone })
+        : DateTime.fromISO(isoDate, { zone: timeZone });
       let localNumDays = numDays;
       if (allowRange && isoDateDragStart && numDays < 0) {
         // Swap start and end
-        const start = DateTime.fromISO(isoDate);
+        const start = DateTime.fromISO(isoDate, { zone: timeZone });
 
         localNumDays = -numDays;
         setNumDays(localNumDays);
@@ -187,7 +189,7 @@ export default function CalendarComponent({
           ? "!bg-gray-950 text-white"
           : "";
       }
-      const diff = DateTime.fromISO(isoDate).diff(selectedDate).as("days");
+      const diff = DateTime.fromISO(isoDate, { zone: timeZone }).diff(selectedDate).as("days");
       const leftSideCap =
         "!bg-gray-950 text-white rounded-l-full rounded-none w-full";
       const rightSideCap =

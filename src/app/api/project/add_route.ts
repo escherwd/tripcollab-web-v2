@@ -43,6 +43,8 @@ export const serverAddRoute = async (
 
   const dateObj = date ? DateTime.fromISO(date, { setZone: true }) : undefined;
 
+  console.log(date, dateObj?.zoneName)
+
   // Create the route
   const newRoute = await prisma.route.create({
     data: {
@@ -82,7 +84,8 @@ export const serverAddRoute = async (
       modality: route.modality,
       segments: route.sections,
       dateStart: dateObj?.toJSDate(),
-      timeStart: dateObj ? dateObj.diff(dateObj.startOf("day")).as("minutes") : null, // Store timeStart as minutes from midnight
+      // timeStart: dateObj ? dateObj.diff(dateObj.startOf("day")).as("minutes") : null, // Store timeStart as minutes from midnight
+      zoneName: dateObj?.zoneName || 'utc',
       duration: route.sections.reduce(
         (acc, section) =>
           acc +
