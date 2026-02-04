@@ -72,6 +72,7 @@ export type MapProject = Prisma.ProjectGetPayload<{
 }>;
 
 export type MapPin = Prisma.PinGetPayload<any>;
+export type MapRoute = Prisma.RouteGetPayload<any>;
 
 export type ConsolidatedMapMarker = {
   coordinate: {

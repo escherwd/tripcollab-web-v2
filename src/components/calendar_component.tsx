@@ -1,10 +1,12 @@
 "use client";
 
 import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/16/solid";
-import { MapProject } from "./global_map";
+import { MapPin, MapProject, MapRoute } from "./global_map";
 import PanelIconButton from "./panel_icon_button";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
+import { calendarDayDifference } from "@/app/utils/logic/date_utils";
+import { getMapIconFromAppleMapsCategoryId, mapIcons } from "./map_place_icon";
 
 const offset = (arr: any[], offset: number) => [
   ...arr.slice(offset),
@@ -21,7 +23,7 @@ export default function CalendarComponent({
   onDateChange,
   // onNumDaysChange,
   readonly = false,
-  timeZone = 'utc'
+  timeZone = "utc",
 }: {
   project?: MapProject | null;
   dense?: boolean;
@@ -48,9 +50,12 @@ export default function CalendarComponent({
         if (pin.duration && pin.duration > 0)
           return [
             DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName }),
-            DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName }).plus({ minutes: pin.duration }),
+            DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName }).plus({
+              minutes: pin.duration,
+            }),
           ];
-        else return [DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName})];
+        else
+          return [DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName })];
       })
       .flat()
       .sort((a, b) => a.toMillis() - b.toMillis());
@@ -96,7 +101,7 @@ export default function CalendarComponent({
     return [
       ...Array.from(
         { length: firstWeekday },
-        (_, index) => (previousMonth.daysInMonth ?? 31) - index
+        (_, index) => (previousMonth.daysInMonth ?? 31) - index,
       )
         .reverse()
         .map((day) => ({
@@ -106,7 +111,7 @@ export default function CalendarComponent({
         })),
       ...Array.from(
         { length: firstOfMonth.daysInMonth ?? 31 },
-        (_, index) => index + 1
+        (_, index) => index + 1,
       ).map((day) => ({
         day,
         primaryMonth: true,
@@ -114,7 +119,7 @@ export default function CalendarComponent({
       })),
       ...Array.from(
         { length: 42 - (firstOfMonth.daysInMonth ?? 31) - (firstWeekday ?? 0) },
-        (_, index) => index + 1
+        (_, index) => index + 1,
       ).map((day) => ({
         day,
         primaryMonth: false,
@@ -125,9 +130,13 @@ export default function CalendarComponent({
 
   const setDate = (isoDate: string | null) => {
     if (readonly) return;
-    setSelectedDate(isoDate ? DateTime.fromISO(isoDate, { zone: timeZone }) : null);
+    setSelectedDate(
+      isoDate ? DateTime.fromISO(isoDate, { zone: timeZone }) : null,
+    );
     if (onDateChange) {
-      onDateChange(isoDate ? DateTime.fromISO(isoDate, { zone: timeZone }) : undefined);
+      onDateChange(
+        isoDate ? DateTime.fromISO(isoDate, { zone: timeZone }) : undefined,
+      );
     }
   };
 
@@ -147,7 +156,7 @@ export default function CalendarComponent({
     if (allowRange && isoDateDragStart) {
       const start = DateTime.fromISO(isoDateDragStart, { zone: timeZone });
       const end = DateTime.fromISO(isoDate, { zone: timeZone });
-      const numDays = end.diff(start, "days").days;
+      const numDays = calendarDayDifference(start, end) - 1;
       setNumDays(numDays);
       console.log(
         "Selected ",
@@ -155,7 +164,7 @@ export default function CalendarComponent({
         " days from ",
         isoDateDragStart,
         " to ",
-        isoDate
+        isoDate,
       );
     }
     if (up) {
@@ -172,7 +181,7 @@ export default function CalendarComponent({
         setDate(start.toISODate());
         selectedDate = start;
       } else {
-        setDate(isoDate)
+        setDate(isoDateDragStart);
       }
       setIsoDateDragStart(null);
       if (onDateChange) onDateChange(selectedDate, localNumDays);
@@ -189,7 +198,10 @@ export default function CalendarComponent({
           ? "!bg-gray-950 text-white"
           : "";
       }
-      const diff = DateTime.fromISO(isoDate, { zone: timeZone }).diff(selectedDate).as("days");
+      const diff = DateTime.fromISO(isoDate, { zone: timeZone })
+        .startOf("day")
+        .diff(selectedDate.startOf("day"))
+        .as("days");
       const leftSideCap =
         "!bg-gray-950 text-white rounded-l-full rounded-none w-full";
       const rightSideCap =
@@ -217,8 +229,36 @@ export default function CalendarComponent({
       }
       return "";
     },
-    [selectedDate, numDays, allowRange]
+    [selectedDate, numDays, allowRange, timeZone],
   );
+
+  const dateDecorations = useMemo(() => {
+    if (!project) return {};
+
+    const dates: Record<string, string[]> = {};
+
+    for (const pin of [...project.pins, ...project.routes]) {
+      if (!pin.dateStart) continue;
+      const date = DateTime.fromJSDate(pin.dateStart, {
+        zone: pin.zoneName,
+      }).toISODate();
+      if (!date) continue;
+      const styleData = pin.styleData as any;
+      let color = styleData?.iconColor ?? styleData?.color;
+      if (!color && (pin as MapPin).type)
+        // MapPin-specific accessor
+        color = getMapIconFromAppleMapsCategoryId(
+          (pin as MapPin).extendedMetadata?.categoryId ?? "query",
+        ).color;
+      if (!color && (pin as MapRoute).modality)
+        // Route-specific accessor
+        color = mapIcons['public_transit'].color
+      if (!dates[date]) dates[date] = [color];
+      else dates[date].push(color);
+    }
+
+    return dates;
+  }, [project]);
 
   return (
     <div className="flex-grow-0 w-full h-full flex flex-col !pointer-events-auto select-none">
@@ -259,7 +299,7 @@ export default function CalendarComponent({
       >
         {offset(
           ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-          localeWeekStart() - 1
+          localeWeekStart() - 1,
         ).map((weekday) => (
           <div key={weekday} className="text-xs font-display text-gray-400">
             {weekday}
@@ -270,7 +310,7 @@ export default function CalendarComponent({
         {dayArray.map((day, index) => (
           <div
             key={index}
-            className={`flex items-center justify-center relative ${readonly ? 'cursor-default' : 'cursor-pointer hover:[&>div]:bg-gray-200'}`}
+            className={`flex items-center justify-center relative ${readonly ? "cursor-default" : "cursor-pointer hover:[&>div]:bg-gray-200"}`}
             // onClick={() => setDate(day.isoDate)}
             onMouseDown={() => startDrag(day.isoDate!)}
             onMouseEnter={() => whileDrag(day.isoDate!)}
@@ -278,13 +318,14 @@ export default function CalendarComponent({
           >
             <div
               className={`text-xs font-mono rounded-full flex items-center justify-center z-10 ${dateClasses(
-                day.isoDate!
+                day.isoDate!,
               )} ${day.primaryMonth ? "text-gray-500" : "text-gray-400"} ${
                 dense ? "size-6" : "size-7"
               }`}
             >
               {day.day}
             </div>
+
             {dateRange &&
               (day.isoDate ?? "") >= dateRange.start &&
               (day.isoDate ?? "") <= dateRange.end && (
@@ -294,6 +335,18 @@ export default function CalendarComponent({
                   } ${day.isoDate === dateRange.end ? "rounded-r-full" : ""}`}
                 />
               )}
+            <span className="z-10 absolute bottom-px left-0 right-0 mx-auto flex justify-center gap-0.5">
+              {day.isoDate &&
+                (dateDecorations[day.isoDate] ?? []).slice(0,4).map((c, i) => {
+                  return (
+                    <div
+                      key={`${day.isoDate}-${i}`}
+                      style={{ backgroundColor: c }}
+                      className="rounded-full size-1"
+                    />
+                  );
+                })}
+            </span>
           </div>
         ))}
       </div>

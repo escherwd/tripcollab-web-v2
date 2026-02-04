@@ -13,6 +13,7 @@ import _, { set } from "lodash";
 import { projectEventReceiver } from "@/app/utils/controllers/project_controller";
 import PanelIconButton from "./panel_icon_button";
 import { RiAddLine } from "@remixicon/react";
+import { calendarDayDifference } from "@/app/utils/logic/date_utils";
 
 export default function PopupScheduleComponent({
   project,
@@ -40,7 +41,7 @@ export default function PopupScheduleComponent({
 
   const numDays = useMemo(() => {
     if (!dateTimeStart || !dateTimeEnd) return 0;
-    return dateTimeEnd.diff(dateTimeStart).as('days');
+    return calendarDayDifference(dateTimeStart, dateTimeEnd) - 1;
   }, [dateTimeStart, dateTimeEnd]);
 
   // const [numDays, setNumDays] = useState(
@@ -58,7 +59,7 @@ export default function PopupScheduleComponent({
     // No dateTimes set, no error
     if (!dateTimeEnd || !dateTimeStart) return null;
 
-    const duration = dateTimeEnd.diff(dateTimeStart).as('minutes');
+    const duration = dateTimeEnd.diff(dateTimeStart).as("minutes");
     return duration < 0 ? "Duration must be positive" : null;
   }, [dateTimeStart, dateTimeEnd]);
 
@@ -110,7 +111,7 @@ export default function PopupScheduleComponent({
         minute: minutes % 60,
       }) ?? undefined;
     const duration = newDateTimeStart
-      ? (dateTimeEnd?.diff(newDateTimeStart).as('minutes') ?? 0)
+      ? (dateTimeEnd?.diff(newDateTimeStart).as("minutes") ?? 0)
       : null;
 
     if ((duration ?? 0) < 0) {
@@ -147,7 +148,7 @@ export default function PopupScheduleComponent({
         minute: minutes % 60,
       }) ?? undefined;
 
-    const duration = newDateTimeLeave?.diff(dateTimeStart).as('minutes') ?? 0;
+    const duration = newDateTimeLeave?.diff(dateTimeStart).as("minutes") ?? 0;
 
     if (duration < 0) {
       // Ensure leave time is after start time
@@ -179,16 +180,16 @@ export default function PopupScheduleComponent({
 
     const newDateTimeStart = date.set({
       hour: dateTimeStart?.hour,
-      minute: dateTimeEnd?.minute
-    })
+      minute: dateTimeEnd?.minute,
+    });
     const newDateTimeEnd = newDateTimeStart.plus({ days: numDays }).set({
       hour: dateTimeEnd?.hour,
-      minute: dateTimeEnd?.minute
+      minute: dateTimeEnd?.minute,
     });
 
-    console.log(newDateTimeStart,newDateTimeEnd)
+    console.log(newDateTimeStart, newDateTimeEnd);
 
-    const duration = newDateTimeEnd.diff(newDateTimeStart).as('minutes');
+    const duration = newDateTimeEnd.diff(newDateTimeStart).as("minutes");
     console.log(
       "onNumDaysChange called with numDays:",
       numDays,
@@ -203,9 +204,12 @@ export default function PopupScheduleComponent({
     }
 
     console.log("Saving pin updates with duration:", duration);
-    savePinUpdates({ duration: duration, dateStart: newDateTimeStart?.toJSDate() });
-    // setDateTimeStart(date);
-    // setDateTimeEnd(newDateTimeEnd);
+    savePinUpdates({
+      duration: duration,
+      dateStart: newDateTimeStart?.toJSDate(),
+    });
+    setDateTimeStart(newDateTimeStart);
+    setDateTimeEnd(newDateTimeEnd);
   };
 
   const calendarAnchor = useMemo(() => {
@@ -251,6 +255,47 @@ export default function PopupScheduleComponent({
   //   savePinUpdates({ duration: duration });
   // };
 
+  const timeLabelString = useMemo(() => {
+    if (!dateTimeStart) return "Unscheduled";
+    if (!dateTimeEnd)
+      return dateTimeStart.toLocaleString({ month: "short", day: "numeric" });
+    const dayDiff = calendarDayDifference(dateTimeStart, dateTimeEnd);
+    if (dayDiff > 1) {
+      if (dateTimeStart.hasSame(dateTimeEnd, "month")) {
+        const localeStart = dateTimeStart.toLocaleString({
+          month: "short",
+          day: "numeric",
+        });
+        const localeEnd = dateTimeEnd.toLocaleString({ day: "numeric" });
+        return `${localeStart} – ${localeEnd}`;
+      } else {
+        const localeStart = dateTimeStart.toLocaleString({
+          month: "short",
+          day: "numeric",
+        });
+        const localeEnd = dateTimeEnd.toLocaleString({
+          month: "short",
+          day: "numeric",
+        });
+        return `${localeStart} – ${localeEnd}`;
+      }
+    } else {
+      const localeStart = dateTimeStart.toLocaleString({
+        month: "short",
+        day: "numeric",
+      });
+      const timeStart = dateTimeStart.toLocaleString({
+        hour: "numeric",
+        minute: dateTimeStart.get("minute") != 0 ? "numeric" : undefined,
+      });
+      const timeEnd = dateTimeEnd.toLocaleString({
+        hour: "numeric",
+        minute: dateTimeEnd.get("minute") != 0 ? "numeric" : undefined,
+      });
+      return `${localeStart} – ${timeStart} to ${timeEnd}`;
+    }
+  }, [dateTimeStart, dateTimeEnd]);
+
   return (
     <div className="pb-4 px-4 flex flex-col gap-1">
       <div className="bg-gray-100 rounded-lg overflow-hidden">
@@ -260,13 +305,7 @@ export default function PopupScheduleComponent({
         >
           <CalendarIcon className="size-4 text-gray-500" />
           <div className="text-sm flex-1 font-medium text-gray-500">
-            {dateTimeStart
-              ? dateTimeStart.toLocaleString({
-                  month: "short",
-                  day: "numeric",
-                })
-              : "Unscheduled"}
-            {dateTimeStart && " – " + timeStartString}
+            {timeLabelString}
           </div>
           <div>
             <ChevronRightIcon
@@ -285,7 +324,7 @@ export default function PopupScheduleComponent({
             <CalendarComponent
               dense={true}
               project={project}
-              date={pin?.dateStart ? DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName }) : null}
+              date={dateTimeStart}
               allowRange={true}
               initialAnchorDate={calendarAnchor}
               onDateChange={onNumDaysChange}
@@ -297,9 +336,9 @@ export default function PopupScheduleComponent({
             <div className="py-2 pl-2 pr-0.5 gap-1 border-t flex items-center justify-around border-gray-200">
               <div className="text-sm text-gray-500">
                 Arrive
-                {numDays > 0 && pin.dateStart && (
+                {numDays > 0 && dateTimeStart && (
                   <span className="fade-in text-xs bg-gray-200 rounded-full px-2 py-0.5 ml-2">
-                    {DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName })
+                    {dateTimeStart
                       .toLocaleString({
                         weekday: "long",
                       })
@@ -334,10 +373,9 @@ export default function PopupScheduleComponent({
             >
               <div className="text-sm text-gray-500">
                 Leave
-                {numDays > 0 && pin.dateStart && (
+                {numDays > 0 && dateTimeEnd && (
                   <span className="fade-in text-xs bg-gray-200 rounded-full px-2 py-0.5 ml-2">
-                    {DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName })
-                      .plus({ days: numDays })
+                    {dateTimeEnd
                       .toLocaleString({ weekday: "long" })
                       .toLowerCase()}
                   </span>

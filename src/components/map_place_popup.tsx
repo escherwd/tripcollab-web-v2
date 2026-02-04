@@ -27,7 +27,7 @@ import { Prisma } from "@prisma/client";
 import { addPin } from "@/app/api/project/add_pin";
 import { deletePin } from "@/app/api/project/delete_pin";
 import CalendarComponent from "./calendar_component";
-import { DateTime } from "luxon";
+import { DateTime, Zone } from "luxon";
 import PopupScheduleComponent from "./popup_schedule_component";
 import { projectEventReceiver } from "@/app/utils/controllers/project_controller";
 import ColorInput from "./color_input";
@@ -275,6 +275,10 @@ export default function MapPlacePopup({
 
   }
 
+  const timeZone = useMemo(() => {
+    return place?.timeZone ?? place?.timezone?.name ?? pin?.zoneName
+  }, [place, pin])
+
   return (
     <div className="size-full flex flex-col bg-white rounded-lg shadow-lg z-40 relative">
       {/* <button
@@ -384,7 +388,7 @@ export default function MapPlacePopup({
             <div className="flex flex-col gap-1.5 px-4 pb-4">
               <div className="">Time Zone</div>
               <div className="flex gap-2 items-start text-sm text-gray-500">
-                {place?.timeZone ?? place?.timezone?.name}
+                {timeZone}
               </div>
             </div>
           </div>

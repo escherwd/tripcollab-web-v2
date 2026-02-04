@@ -38,7 +38,7 @@ export default function RoutePlanningCalendarSubpage({
   const [date, setDate] = useState<DateTime>(initialDate);
 
   const [time, setTime] = useState<number>(
-    ROUTE_DEPARTURE_DEFAULT_TIME_OF_DAY_MINUTES
+    ROUTE_DEPARTURE_DEFAULT_TIME_OF_DAY_MINUTES,
   ); // minutes from midnight
 
   const suggestion = useMemo<
@@ -51,12 +51,7 @@ export default function RoutePlanningCalendarSubpage({
   >(() => {
     if (dateType === "depart" && pinFrom && pinFrom.dateStart) {
       return {
-        date: DateTime.fromJSDate(pinFrom.dateStart, { zone: "utc" })
-          .startOf('day')
-          .plus({
-            minutes:
-              pinFrom.timeStart || ROUTE_DEPARTURE_DEFAULT_TIME_OF_DAY_MINUTES,
-          })
+        date: DateTime.fromJSDate(pinFrom.dateStart, { zone: pinFrom.zoneName })
           .plus({ minutes: pinFrom.duration || 0 })
           .plus({ minutes: ROUTE_DEPARTURE_SUGGESTION_BUFFER_MINUTES }),
         pin: pinFrom,
@@ -64,13 +59,9 @@ export default function RoutePlanningCalendarSubpage({
       };
     } else if (dateType === "arrive" && pinTo && pinTo.dateStart) {
       return {
-        date: DateTime.fromJSDate(pinTo.dateStart, { zone: "utc" })
-          .startOf('day')
-          .plus({
-            minutes:
-              pinTo.timeStart || ROUTE_ARRIVAL_DEFAULT_TIME_OF_DAY_MINUTES,
-          })
-          .minus({ minutes: ROUTE_ARRIVAL_SUGGESTION_BUFFER_MINUTES }),
+        date: DateTime.fromJSDate(pinTo.dateStart, {
+          zone: pinFrom?.zoneName,
+        }).minus({ minutes: ROUTE_ARRIVAL_SUGGESTION_BUFFER_MINUTES }),
         pin: pinTo,
         type: dateType,
       };

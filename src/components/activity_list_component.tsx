@@ -11,6 +11,7 @@ import _ from "lodash";
 import { DateTime, Duration } from "luxon";
 import { ProjectFunctionOpenExistingRoute } from "@/app/(layout-map)/t/[slug]/content";
 import colors from "tailwindcss/colors";
+import { calendarDayDifference } from "@/app/utils/logic/date_utils";
 
 type ActivityType = "place" | "transit" | "lodging" | "activity";
 
@@ -50,19 +51,21 @@ export default function ActivityListComponent({
       .filter((pin) => pin.dateStart)
       // .sort((a, b) => (a.timeStart ?? 0) - (b.timeStart ?? 0)) ?? []) {
      ?? []){
-      const date = pin.dateStart!.toISOString().split("T")[0];
+      // const date = pin.dateStart!.toISOString().split("T")[0];
 
       const dateTime = DateTime.fromJSDate(pin.dateStart!, { zone: pin.zoneName })
+      const date = dateTime.toISODate()
+
+      if (!date) continue
+
+      const dateTimeEnd = dateTime.plus({ minutes: pin.duration ?? 0 })
 
       const pinColor =
         pin.styleData?.iconColor ??
         mapIcons[pin.styleData?.iconId ?? "address"]?.color;
       const pinIconId = pin.styleData?.iconId ?? "address";
 
-      const numDays: number =
-        pin.dateStart && pin.duration
-          ? dateTime.diff(dateTime.plus({minutes: pin.duration})).days ?? 0
-          : 0;
+      const numDays: number = calendarDayDifference(dateTime, dateTimeEnd) - 1
 
       const numDayString = numDays >= 1 ? `${numDays + 1} Days` : "1 Day";
 
@@ -111,19 +114,17 @@ export default function ActivityListComponent({
 
     // Add the transportation activities
     for (const route of project?.routes ?? []) {
-      const date = route.dateStart?.toISOString().split("T")[0];
+      if (!route.dateStart) continue;
+      // const date = route.dateStart?.toISOString().split("T")[0];
+      const dateTime = DateTime.fromJSDate(route.dateStart, { zone: route.zoneName })
+      const date = dateTime.toISODate()
 
       if (!date) continue;
 
+      const dateTimeEnd = dateTime.plus({ minutes: route.duration ?? 0 })
+
       // console.log("adding route", route, date);
-      const numDays =
-        (route.dateStart &&
-          DateTime.fromJSDate(route.dateStart)
-            .plus({ minutes: route.duration ?? 0 })
-            .startOf("day")
-            .diff(DateTime.fromJSDate(route.dateStart).startOf("day"), "days")
-            .toHuman()) ||
-        "0 Days";
+      const numDays = calendarDayDifference(dateTime, dateTimeEnd) 
 
       if (!groups[date]) {
         groups[date] = [];
@@ -137,10 +138,8 @@ export default function ActivityListComponent({
         pin: null,
         id: route.id,
         activityType: "transit" as ActivityType,
-        timeStart: route.dateStart
-          ? DateTime.fromJSDate(route.dateStart, { zone: route.zoneName })
-          : undefined,
-        numDays: numDays,
+        timeStart: dateTime,
+        numDays: `${numDays} Days`,
         color:
           route.styleData?.color ??
           getMapIconFromAppleMapsCategoryId("transportation").color,
@@ -149,14 +148,12 @@ export default function ActivityListComponent({
         subtitle: durationString,
         iconId: "public_transit",
       });
-      if (route.dateStart && route.duration && route.duration > 1440) {
-        const endDate = DateTime.fromJSDate(route.dateStart).plus({
-          minutes: route.duration ?? 0,
-        });
+      if (numDays > 1) {
+        // const endDate = DateTime.fromJSDate(route.dateStart).plus({
+        //   minutes: route.duration ?? 0,
+        // });
 
-        const endDateISO = endDate
-          .toISO({ precision: "day" })
-          ?.substring(0, 10);
+        const endDateISO = dateTimeEnd.toISODate()
         if (!endDateISO) continue;
         groups[endDateISO] = [
           {
@@ -164,9 +161,9 @@ export default function ActivityListComponent({
             pin: null,
             activityType: "transit" as ActivityType,
             id: route.id,
-            numDays: numDays,
+            numDays: `${numDays} Days`,
             key: `activity-end-${route.id}`,
-            timeEnd: endDate,
+            timeEnd: dateTimeEnd,
             color:
               route.styleData?.color ??
               getMapIconFromAppleMapsCategoryId("transportation").color,
@@ -185,11 +182,11 @@ export default function ActivityListComponent({
     let sortedDates =
       project?.pins
         .filter((pin) => pin.dateStart)
-        .map((pin) => pin.dateStart!.toISOString().split("T")[0]) ?? [];
+        .map((pin) => DateTime.fromJSDate(pin.dateStart!, { zone: pin.zoneName }).toISODate()!) ?? [];
 
     // Also include any route dates
     for (const route of project?.routes ?? []) {
-      const date = route.dateStart?.toISOString().split("T")[0];
+      const date = DateTime.fromJSDate(route.dateStart!, { zone: route.zoneName }).toISODate();
       if (date && !sortedDates.includes(date)) {
         sortedDates.push(date);
       }
@@ -198,7 +195,7 @@ export default function ActivityListComponent({
     // Also include any end dates for multi-day activities
     for (const pin of project?.pins ?? []) {
       if (pin.dateStart && pin.duration && pin.duration > 1440) {
-        const endDate = DateTime.fromJSDate(pin.dateStart)
+        const endDate = DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName })
           .plus({ minutes: pin.duration ?? 0 })
           .toISO({ precision: "day" })
           ?.substring(0, 10);
