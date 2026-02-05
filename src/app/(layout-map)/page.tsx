@@ -77,6 +77,9 @@ export default async function Home() {
           outline: none;
         }
 
+        #nav-menu {
+          filter: invert(1);
+        }
         #profile-photo {
           filter: invert(1);
         }

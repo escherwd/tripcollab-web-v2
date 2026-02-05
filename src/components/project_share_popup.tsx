@@ -207,7 +207,7 @@ export default function ProjectSharePopup({
   };
 
   return (
-    <PopupWindow title="Share Trip" onClose={() => onClose?.()}>
+    <PopupWindow title="Sharing" onClose={() => onClose?.()}>
       <div className="p-4 flex-1 overflow-scroll min-h-[400px]">
         <div className="pt-0">
           <div className="tc-small-heading">Owner</div>
@@ -245,7 +245,7 @@ export default function ProjectSharePopup({
             </div>
           </div>
           {isPublic && (
-            <div className="py-2 px-4 text-sm flex gap-2 bg-green-100 text-green-600 rounded-b-lg">
+            <div className="py-2 px-4 text-sm flex gap-2 bg-green-50 text-green-600 rounded-b-lg">
               <div className="flex-1">
                 Published at{" "}
                 <span className="font-semibold">

@@ -7,9 +7,12 @@ export default async function PageLayout({ children }: { children: React.ReactNo
 
     return (
         <>
-            <Navbar user={user} />
-            <div className="h-full relative">
-                {children}
+            <style>{`body { --page-bg-color: white }`}</style>
+            <Navbar notFloating user={user} />
+            <div className="h-full relative pt-navbar">
+                <main className="p-2 pt-0">
+                    {children}
+                </main>
             </div>
         </>
     );

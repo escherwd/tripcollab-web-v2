@@ -265,19 +265,24 @@ export default function MapPlacePopup({
 
     setIconColor(color);
 
-
-      savePinUpdates({
-        styleData: {
-          ...pin.styleData ?? {},
-          iconColor: color ?? undefined,
-        },
-      });
-
-  }
+    savePinUpdates({
+      styleData: {
+        ...(pin.styleData ?? {}),
+        iconColor: color ?? undefined,
+      },
+    });
+  };
 
   const timeZone = useMemo(() => {
-    return place?.timeZone ?? place?.timezone?.name ?? pin?.zoneName
-  }, [place, pin])
+    const tzName = place?.timeZone ?? place?.timezone?.name ?? pin?.zoneName;
+    if (!tzName) return null
+    const now = DateTime.now().setZone(tzName)
+    return {
+      name: tzName,
+      offset: now.get('offsetNameShort'),
+      currentTime: now.toLocaleString(DateTime.TIME_SIMPLE)
+    }
+  }, [place, pin]);
 
   return (
     <div className="size-full flex flex-col bg-white rounded-lg shadow-lg z-40 relative">
@@ -287,7 +292,11 @@ export default function MapPlacePopup({
       >
         <XMarkIcon className="size-4" />
       </button> */}
-      <PanelIconButton className=" absolute z-50 top-4 right-4" icon={<XMarkIcon className="size-4" />} onClick={onClose} />
+      <PanelIconButton
+        className=" absolute z-50 top-4 right-4"
+        icon={<XMarkIcon className="size-4" />}
+        onClick={onClose}
+      />
 
       <div className="flex-1 overflow-y-auto">
         <div className="pl-4 pt-4 pb-3 border-b border-gray-100 mb-4 pr-14">
@@ -300,11 +309,13 @@ export default function MapPlacePopup({
         </div>
         {isInProject && pin && (
           <>
-          <div className="p-4 pt-0 rounded-lg">
-            <ColorInput initialColor={iconColor ?? undefined} onColorChange={onPinColorChange} />
-          </div>
-          <PopupScheduleComponent project={project} pin={pin} />
-          
+            <div className="p-4 pt-0 rounded-lg">
+              <ColorInput
+                initialColor={iconColor ?? undefined}
+                onColorChange={onPinColorChange}
+              />
+            </div>
+            <PopupScheduleComponent project={project} pin={pin} />
           </>
         )}
         {isLoading ? (
@@ -385,12 +396,15 @@ export default function MapPlacePopup({
                 </button>
               </div>
             </div>
-            <div className="flex flex-col gap-1.5 px-4 pb-4">
-              <div className="">Time Zone</div>
-              <div className="flex gap-2 items-start text-sm text-gray-500">
-                {timeZone}
+            {timeZone && (
+              <div className="flex flex-col gap-1.5 px-4 pb-4">
+                <div className="">Time Zone</div>
+                <div className="text-sm text-gray-500">
+                  <div>{timeZone.name} ({timeZone.offset})</div>
+                  <div>Current Time: {timeZone.currentTime}</div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>

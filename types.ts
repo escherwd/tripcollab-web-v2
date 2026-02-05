@@ -18,6 +18,11 @@ declare global {
       iconId?: string;
       iconColor?: string;
     }
+
+    type UserLocaleSettingsType = {
+      distance: "km" | "miles";
+      time: 12 | 24;
+    }
   }
 }
 

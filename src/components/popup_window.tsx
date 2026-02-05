@@ -12,18 +12,18 @@ export default function PopupWindow({
 }) {
   return (
     <div
-      className="fixed z-90 bg-black/20 inset-0 size-full flex items-center justify-center p-16"
+      className="fixed z-90 bg-[var(--page-bg-color)]/30 inset-0 size-full flex items-center justify-center p-16"
       onClick={() => onClose?.()}
     >
       <div
-        className="max-w-lg flex flex-col w-full rounded-lg overflow-hidden shadow-lg relative min-h-32 max-h-full bg-white"
+        className="max-w-lg flex flex-col w-full rounded-xl overflow-hidden shadow-lg relative min-h-32 max-h-full bg-white"
         onClick={(e) => {
           e.stopPropagation();
         }}
       >
         {title && (
           <div className="tc-panel-header flex-none !items-start !pt-4">
-            <span className="text-3xl font-display font-medium mt-12 tracking-tight">
+            <span className="text-4xl font-display font-semibold mt-12 tracking-tight">
               {title}
             </span>
             <PanelIconButton icon={<MdClose />} onClick={() => onClose?.()} />
