@@ -23,7 +23,12 @@ import { RiLoaderFill } from "@remixicon/react";
 import { bbox, points } from "@turf/turf";
 import _, { initial, set } from "lodash";
 import { LngLatBounds } from "mapbox-gl";
+import { Metadata } from "next";
 import { useEffect, useState } from "react";
+
+export const metadata: Metadata = {
+  title: "",
+}
 
 export type ProjectFunctionOpenRoutePlanner = (from: MapMarker | null) => void;
 export type ProjectFunctionOpenExistingRoute = (

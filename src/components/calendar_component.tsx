@@ -272,7 +272,7 @@ export default function CalendarComponent({
         >
           {anchorDate.toLocaleString({ month: "long" })}
         </div>
-        <div className={`font-display text-gray-500 ${dense ? "text-sm" : ""}`}>
+        <div className={`text-gray-500 ${dense ? "text-sm" : ""}`}>
           {anchorDate.year}
         </div>
         <div className="flex gap-1">
@@ -301,7 +301,7 @@ export default function CalendarComponent({
           ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
           localeWeekStart() - 1,
         ).map((weekday) => (
-          <div key={weekday} className="text-xs font-display text-gray-400">
+          <div key={weekday} className="text-xs text-gray-400">
             {weekday}
           </div>
         ))}

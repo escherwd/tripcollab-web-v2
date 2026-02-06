@@ -139,7 +139,7 @@ class MapController {
   }
 
   private async waitForMap() {
-    while (!this.map) {
+    while (!this.map?.loaded || !this.map?.frameReady) {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
@@ -568,6 +568,8 @@ export default function GlobalAppMap() {
       mapEmitter.removeEventListener("set-markers", listenerSetMarkers);
       mapEmitter.removeEventListener("open-marker", listenerOpenMarker);
       mapEmitter.removeEventListener("set-project", listenerSetProject);
+      // Delete the current map instance from the mapController
+      mapEmitter.dispatchEvent(new CustomEvent("map-mount", { detail: null }))
     };
   }, [map]);
 

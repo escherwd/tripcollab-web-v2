@@ -3,8 +3,22 @@
 import { getUser } from "@/backend/auth/get_user";
 import prisma from "@/backend/prisma";
 import TcButton from "@/components/button";
+import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { MdArrowOutward, MdArrowUpward, MdEdit, MdFlag, MdLanguage, MdLink, MdLocationPin, MdPublic } from "react-icons/md";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+
+  const { slug } = await params
+
+  return {
+    title: slug
+  }
+}
 
 export default async function ProfilePage({
   params,

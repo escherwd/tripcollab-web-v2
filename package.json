@@ -12,6 +12,7 @@
     "prisma:push": "prisma db push"
   },
   "dependencies": {
+    "@bprogress/next": "^3.2.12",
     "@here/flexpolyline": "^0.1.0",
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "6.15.0",

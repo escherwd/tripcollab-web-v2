@@ -12,16 +12,17 @@ export default function Navbar({
   notFloating?: boolean
 }>) {
   return (
-    <div className="absolute h-navbar inset-0 z-50 w-full p-2 flex items-center justify-stretch">
+    <div className={`fixed top-0 h-navbar inset-0 z-50 w-full p-2 flex items-center justify-stretch ${notFloating ? 'bg-white' : ''}`}>
       <div
         id="navbar"
         className={`tc-panel overflow-visible! size-full gap-2  flex items-center px-1 ${notFloating ? 'shadow-none!' : ''}`}
       >
         <Link
           href="/"
-          className="tc-nav-button !text-base font-display font-semibold !px-4 text-black"
+          className="tc-nav-button !text-base font-display font-semibold !px-4 text-black! flex gap-2 items-center"
         >
-          tripcollab
+          <img className="w-[24px]" src="/tripcollab-logo.svg" alt="tripcollab logo" />
+          <span className="-mt-[3px]">tripcollab</span>
         </Link>
         <div className="flex-1 min-w-0">{children}</div>
         {user ? (

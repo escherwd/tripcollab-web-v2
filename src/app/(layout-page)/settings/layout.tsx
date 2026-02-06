@@ -1,4 +1,5 @@
 "use client";
+import type { Metadata } from 'next';
 
 import MenuListEntry from "@/components/menu_list_entry";
 import { usePathname } from "next/navigation";

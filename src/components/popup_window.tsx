@@ -22,8 +22,8 @@ export default function PopupWindow({
         }}
       >
         {title && (
-          <div className="tc-panel-header flex-none !items-start !pt-4">
-            <span className="text-4xl font-display font-semibold mt-12 tracking-tight">
+          <div className="tc-panel-header flex-none !items-start !pt-4 !bg-transparent">
+            <span className="text-3xl mb-2 font-display font-semibold mt-10 tracking-tight">
               {title}
             </span>
             <PanelIconButton icon={<MdClose />} onClick={() => onClose?.()} />

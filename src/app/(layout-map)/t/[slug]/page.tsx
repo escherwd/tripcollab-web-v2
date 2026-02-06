@@ -2,7 +2,7 @@
 
 import prisma from "@/backend/prisma";
 import ProjectPageContent from "./content";
-import { getUser } from "@/backend/auth/get_user";
+import { AppUser, getUser } from "@/backend/auth/get_user";
 import { redirect } from "next/navigation";
 import Navbar from "@/components/navbar";
 import MapHome from "@/components/global_map";
@@ -12,15 +12,7 @@ import { decode } from "@here/flexpolyline";
 import { LngLatBounds } from "mapbox-gl";
 import padBbox from "@/app/utils/geo/pad_bbox";
 
-export default async function ProjectPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-
-  const user = await getUser();
-
+const getProject = async (slug: string, user: AppUser | null) => {
   const project = await prisma.project.findUnique({
     where: {
       slug,
@@ -31,19 +23,56 @@ export default async function ProjectPage({
       routes: true,
       projectShares: {
         include: {
-          user: true
-        }
-      }
+          user: true,
+        },
+      },
     },
   });
 
   if (!project) {
-    redirect("/");
+    return;
   }
 
-  if (project.userId != user?.id && !project.projectShares.find(ps => ps.userId == user?.id)) {
-    redirect("/");
+  if (
+    !project.public &&
+    project.userId != user?.id &&
+    !project.projectShares.find((ps) => ps.userId == user?.id)
+  ) {
+    return;
   }
+
+  return project;
+};
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+
+  const user = await getUser();
+
+  const project = await getProject(slug, user);
+
+  return {
+    title: project?.name,
+    description: `Created by ${project?.user.firstName}`
+  }
+}
+
+export default async function ProjectPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+
+  const user = await getUser();
+
+  const project = await getProject(slug, user);
+
+  if (!project) redirect('/404');
 
   // Calculate the initial map bounds (server side)
   const projectAllPoints = points([

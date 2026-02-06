@@ -31,6 +31,15 @@ export const serverUpdateUser = async (
 
   if (changes.username && !usernameRegex.exec(changes.username)) throw "Username can only contain letters, numbers, underscores, and dashes."
 
+  const usernameCheck = await prisma.user.findFirst({
+    where: {
+        username: changes.username
+    }
+  })
+
+  if (usernameCheck && usernameCheck.id != user.id)
+    throw "That username is already taken"
+
   changes.bio = changes.bio?.slice(0,400)
 
   const results = await prisma.user.update({

@@ -31,8 +31,11 @@ export default function HomePageMapAnimator() {
         duration: 3000,
       };
 
+      // await new Promise((r) => setTimeout(r, 1000))
+
       await mapController.clearAll();
 
+      console.log('asking mapcontroller to fly to viewstate')
       await mapController.flyTo(viewState);
 
       if (callOffAnimation) return;
