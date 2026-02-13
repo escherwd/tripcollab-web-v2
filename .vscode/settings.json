@@ -7,5 +7,6 @@
   "eslint.nodePath": ".yarn/sdks",
   "typescript.tsdk": ".yarn/sdks/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "prisma.pinToPrisma6": true
+  "prisma.pinToPrisma6": true,
+  "jest.runMode": "on-demand"
 }

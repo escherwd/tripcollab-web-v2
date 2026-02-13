@@ -47,25 +47,26 @@ export default function ActivityListComponent({
   const scheduledActivities = useMemo(() => {
     const groups: Record<string, ActivityListItem[]> = {};
 
-    for (const pin of project?.pins
-      .filter((pin) => pin.dateStart)
+    for (const pin of project?.pins.filter((pin) => pin.dateStart) ??
       // .sort((a, b) => (a.timeStart ?? 0) - (b.timeStart ?? 0)) ?? []) {
-     ?? []){
+      []) {
       // const date = pin.dateStart!.toISOString().split("T")[0];
 
-      const dateTime = DateTime.fromJSDate(pin.dateStart!, { zone: pin.zoneName })
-      const date = dateTime.toISODate()
+      const dateTime = DateTime.fromJSDate(pin.dateStart!, {
+        zone: pin.zoneName,
+      });
+      const date = dateTime.toISODate();
 
-      if (!date) continue
+      if (!date) continue;
 
-      const dateTimeEnd = dateTime.plus({ minutes: pin.duration ?? 0 })
+      const dateTimeEnd = dateTime.plus({ minutes: pin.duration ?? 0 });
 
       const pinColor =
         pin.styleData?.iconColor ??
         mapIcons[pin.styleData?.iconId ?? "address"]?.color;
       const pinIconId = pin.styleData?.iconId ?? "address";
 
-      const numDays: number = calendarDayDifference(dateTime, dateTimeEnd) - 1
+      const numDays: number = calendarDayDifference(dateTime, dateTimeEnd) - 1;
 
       const numDayString = numDays >= 1 ? `${numDays + 1} Days` : "1 Day";
 
@@ -84,13 +85,9 @@ export default function ActivityListComponent({
         iconId: (pin.styleData as any)["iconId"] ?? "address",
         name: pin.name,
       });
-      if (
-        pin.dateStart &&
-        pin.duration &&
-        numDays > 0
-      ) {
+      if (pin.dateStart && pin.duration && numDays > 0) {
         const endDate = dateTime
-          .plus({ minutes: (pin.duration ?? 0) })
+          .plus({ minutes: pin.duration ?? 0 })
           .toISO({ precision: "day" })
           ?.substring(0, 10);
         if (!endDate) continue;
@@ -116,15 +113,19 @@ export default function ActivityListComponent({
     for (const route of project?.routes ?? []) {
       if (!route.dateStart) continue;
       // const date = route.dateStart?.toISOString().split("T")[0];
-      const dateTime = DateTime.fromJSDate(route.dateStart, { zone: route.zoneName })
-      const date = dateTime.toISODate()
+      const dateTime = DateTime.fromJSDate(route.dateStart, {
+        zone: route.zoneStart,
+      });
+      const date = dateTime.toISODate();
 
       if (!date) continue;
 
-      const dateTimeEnd = dateTime.plus({ minutes: route.duration ?? 0 })
+      const dateTimeEnd = dateTime
+        .plus({ minutes: route.duration ?? 0 })
+        .setZone(route.zoneEnd);
 
       // console.log("adding route", route, date);
-      const numDays = calendarDayDifference(dateTime, dateTimeEnd) 
+      const numDays = calendarDayDifference(dateTime, dateTimeEnd);
 
       if (!groups[date]) {
         groups[date] = [];
@@ -153,7 +154,7 @@ export default function ActivityListComponent({
         //   minutes: route.duration ?? 0,
         // });
 
-        const endDateISO = dateTimeEnd.toISODate()
+        const endDateISO = dateTimeEnd.toISODate();
         if (!endDateISO) continue;
         groups[endDateISO] = [
           {
@@ -168,7 +169,7 @@ export default function ActivityListComponent({
               route.styleData?.color ??
               getMapIconFromAppleMapsCategoryId("transportation").color,
             iconId: "public_transit",
-            name: route.name ?? `${route.originName} to ${route.destName}`,
+            name: route.destName,
           },
           ...(groups[endDateISO] ?? []),
         ];
@@ -182,20 +183,40 @@ export default function ActivityListComponent({
     let sortedDates =
       project?.pins
         .filter((pin) => pin.dateStart)
-        .map((pin) => DateTime.fromJSDate(pin.dateStart!, { zone: pin.zoneName }).toISODate()!) ?? [];
+        .map(
+          (pin) =>
+            DateTime.fromJSDate(pin.dateStart!, {
+              zone: pin.zoneName,
+            }).toISODate()!,
+        ) ?? [];
 
     // Also include any route dates
     for (const route of project?.routes ?? []) {
-      const date = DateTime.fromJSDate(route.dateStart!, { zone: route.zoneName }).toISODate();
-      if (date && !sortedDates.includes(date)) {
-        sortedDates.push(date);
+      const date = DateTime.fromJSDate(route.dateStart!, {
+        zone: route.zoneStart,
+      });
+      const isoDate = date.toISODate();
+      if (isoDate && !sortedDates.includes(isoDate)) {
+        sortedDates.push(isoDate);
       }
+      const endDate = date
+        .plus({ minutes: route.duration ?? 0 })
+        .setZone(route.zoneEnd);
+      const isoDateEnd = endDate.toISODate();
+      if (
+        isoDateEnd &&
+        isoDateEnd != isoDate &&
+        !sortedDates.includes(isoDateEnd)
+      )
+        sortedDates.push(isoDateEnd);
     }
 
     // Also include any end dates for multi-day activities
     for (const pin of project?.pins ?? []) {
       if (pin.dateStart && pin.duration && pin.duration > 1440) {
-        const endDate = DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName })
+        const endDate = DateTime.fromJSDate(pin.dateStart, {
+          zone: pin.zoneName,
+        })
           .plus({ minutes: pin.duration ?? 0 })
           .toISO({ precision: "day" })
           ?.substring(0, 10);
@@ -439,7 +460,7 @@ export default function ActivityListComponent({
                               <span>
                                 {activity.activityType != "transit"
                                   ? `Depart ${activity.name}`
-                                  : `Arrive at destination`}
+                                  : `Arrive to ${activity.name}`}
                               </span>
                               {activity.timeEnd && (
                                 <span>

@@ -8,7 +8,7 @@ import {
 } from "./here_multimodal";
 import { encode } from "@here/flexpolyline";
 import * as turf from "@turf/turf";
-import { DateTime } from "luxon";
+import { DateTime, Zone } from "luxon";
 import path from "path";
 import process from "process";
 
@@ -23,57 +23,7 @@ export type TcFlightsAirport = {
   lng: number;
   distance: number;
   weight: number;
-};
-
-const greatCirclePointsBetween = (
-  start: { lat: number; lng: number },
-  end: { lat: number; lng: number },
-  numPoints: number,
-): number[][] => {
-  // Convert degrees to radians
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const toDeg = (rad: number) => (rad * 180) / Math.PI;
-
-  // Convert to radians
-  const φ1 = toRad(start.lat);
-  const λ1 = toRad(start.lng);
-  const φ2 = toRad(end.lat);
-  const λ2 = toRad(end.lng);
-
-  // Convert to 3D Cartesian coordinates (unit sphere)
-  const x1 = Math.cos(φ1) * Math.cos(λ1);
-  const y1 = Math.cos(φ1) * Math.sin(λ1);
-  const z1 = Math.sin(φ1);
-
-  const x2 = Math.cos(φ2) * Math.cos(λ2);
-  const y2 = Math.cos(φ2) * Math.sin(λ2);
-  const z2 = Math.sin(φ2);
-
-  // Calculate angular distance
-  const d = Math.acos(x1 * x2 + y1 * y2 + z1 * z2);
-
-  const points = [];
-
-  // Generate n intermediate points (including start and end)
-  for (let i = 0; i <= numPoints; i++) {
-    const f = i / numPoints; // fraction along path (0 to 1)
-
-    // Slerp (Spherical Linear Interpolation)
-    const a = Math.sin((1 - f) * d) / Math.sin(d);
-    const b = Math.sin(f * d) / Math.sin(d);
-
-    const x = a * x1 + b * x2;
-    const y = a * y1 + b * y2;
-    const z = a * z1 + b * z2;
-
-    // Convert back to lat/lon
-    const lat = toDeg(Math.asin(z));
-    const lon = toDeg(Math.atan2(y, x));
-
-    points.push([lat, lon]);
-  }
-
-  return points;
+  tzName: string;
 };
 
 const closestAirport = async (
@@ -82,7 +32,7 @@ const closestAirport = async (
   db: Database.Database,
 ): Promise<TcFlightsAirport | null> => {
   const stmt = db.prepare(
-    "SELECT id, name, city, country, iata, type, lat, long AS lng, weight, SQRT( POW(69.1 * (lat - ?) , 2) + POW(69.1 * (? - long) * COS(lat / 57.3) , 2)) AS distance FROM airports WHERE type = 'airport' AND iata IS NOT NULL ORDER BY distance ASC LIMIT 5;",
+    "SELECT id, name, city, country, iata, type, lat, long AS lng, weight, tz_name as tzName, SQRT( POW(69.1 * (lat - ?) , 2) + POW(69.1 * (? - long) * COS(lat / 57.3) , 2)) AS distance FROM airports WHERE type = 'airport' AND iata IS NOT NULL ORDER BY distance ASC LIMIT 5;",
   );
   const rows = stmt.all(lat, lng) as TcFlightsAirport[] | undefined;
 
@@ -143,31 +93,50 @@ export const tcFlightRoute = async (
   // Round to the nearest 15 minute increment
   durationMinutes += 15 - (durationMinutes % 15);
 
+  console.log(options.time);
+
   // Set the departure and arrival based on this guessed duration
   let departureDate = DateTime.fromISO(
     options.time?.date ?? new Date().toISOString(),
-  ).toISO();
+    {
+      zone: startAirport.tzName,
+    },
+  );
   let arrivalDate = DateTime.fromISO(
     options.time?.date ?? new Date().toISOString(),
-  )
-    .plus({ minutes: durationMinutes })
-    .toISO();
-
-  console.log(`time type: ${options.time?.type}`);
+    {
+      zone: startAirport.tzName,
+    },
+  ).plus({ minutes: durationMinutes }).setZone(endAirport.tzName);
 
   // If desired time is for arrival, swap these around
   if (options.time?.type == "arrive") {
     arrivalDate = DateTime.fromISO(
       options.time?.date ?? new Date().toISOString(),
-    ).toISO();
+      {
+        zone: endAirport.tzName,
+      },
+    );
     departureDate = DateTime.fromISO(
       options.time?.date ?? new Date().toISOString(),
-    )
-      .minus({ minutes: durationMinutes })
-      .toISO();
+      {
+        zone: endAirport.tzName,
+      },
+    ).minus({ minutes: durationMinutes }).setZone(startAirport.tzName);
   }
 
-  if (!arrivalDate || !departureDate) {
+  // Set the time zones
+  // departureDate = departureDate.setZone(startAirport.tzName, {
+  //   keepLocalTime: true,
+  // });
+  // arrivalDate = arrivalDate.setZone(endAirport.tzName, { keepLocalTime: true });
+
+  if (
+    !arrivalDate ||
+    !departureDate ||
+    !arrivalDate.toISO() ||
+    !departureDate.toISO()
+  ) {
     throw new Error(
       "Could not calculate arrival or departure date for flight route.",
     );
@@ -205,8 +174,14 @@ export const tcFlightRoute = async (
           polyline: [[startAirport.lat, startAirport.lng]],
           precision: 3,
         }),
-        departure: createArrivalOrDepartureFor(startAirport, departureDate),
-        arrival: createArrivalOrDepartureFor(startAirport, departureDate),
+        departure: createArrivalOrDepartureFor(
+          startAirport,
+          departureDate.toISO()!,
+        ),
+        arrival: createArrivalOrDepartureFor(
+          startAirport,
+          departureDate.toISO()!,
+        ),
         transport: {
           mode: "idle",
           event: "departure",
@@ -220,8 +195,11 @@ export const tcFlightRoute = async (
         }-${Date.now()}`,
         type: "flight",
         polyline: polyline,
-        departure: createArrivalOrDepartureFor(startAirport, departureDate),
-        arrival: createArrivalOrDepartureFor(endAirport, arrivalDate),
+        departure: createArrivalOrDepartureFor(
+          startAirport,
+          departureDate.toISO()!,
+        ),
+        arrival: createArrivalOrDepartureFor(endAirport, arrivalDate.toISO()!),
         transport: {
           mode: "flight",
         },
@@ -238,8 +216,11 @@ export const tcFlightRoute = async (
           polyline: [[endAirport.lat, endAirport.lng]],
           precision: 3,
         }),
-        departure: createArrivalOrDepartureFor(endAirport, arrivalDate),
-        arrival: createArrivalOrDepartureFor(endAirport, arrivalDate),
+        departure: createArrivalOrDepartureFor(
+          endAirport,
+          arrivalDate.toISO()!,
+        ),
+        arrival: createArrivalOrDepartureFor(endAirport, arrivalDate.toISO()!),
         transport: {
           mode: "idle",
           event: "arrival",
@@ -247,9 +228,13 @@ export const tcFlightRoute = async (
         },
       },
     ],
-    departureTime: departureDate,
+    departureTime: departureDate.toISO()!,
     duration: durationMinutes,
     totalDistance: distance * 1000, // in meters
+    zones: {
+      start: departureDate.zoneName ?? "utc",
+      end: arrivalDate.zoneName ?? "utc",
+    },
   };
 
   return route;

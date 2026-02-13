@@ -1,6 +1,7 @@
 'use server'
 
 import { readFile, stat } from "node:fs/promises";
+import path from "node:path";
 
 export const serverGetAgencyIconUrl = async (agencyName: string): Promise<string | null> => { 
     // For now, we don't have a backend source for agency icons
@@ -8,7 +9,11 @@ export const serverGetAgencyIconUrl = async (agencyName: string): Promise<string
 
     console.log("Looking for agency icon for:", agencyName);
 
-    const filename = './public/logos/transport/' + agencyName.toLowerCase() + '.png';
+    const filename = path.join(
+    process.cwd(),
+    "data",
+    '/logos/transport/' + agencyName.toLowerCase() + '.png'
+  ); 
 
     const file = await stat(filename).catch(() => null);
 

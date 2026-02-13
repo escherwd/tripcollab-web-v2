@@ -22,17 +22,17 @@ import MapPlaceIcon from "./map_place_icon";
 type RoutePlanningTimeType = "depart" | "arrive";
 
 export default function RoutePlanningCalendarSubpage({
-  initialDate = DateTime.now(),
+  initialDate,
   project,
   pinFrom,
   pinTo,
   onChange,
 }: {
-  initialDate?: DateTime;
+  initialDate: DateTime;
   project: MapProject;
   pinFrom?: MapPin;
   pinTo?: MapPin;
-  onChange?: (value: { type: RoutePlanningTimeType; date: string }) => void;
+  onChange?: (value: { type: RoutePlanningTimeType; date: DateTime }) => void;
 }) {
   const [dateType, setDateType] = useState<RoutePlanningTimeType>("depart");
   const [date, setDate] = useState<DateTime>(initialDate);
@@ -76,9 +76,10 @@ export default function RoutePlanningCalendarSubpage({
 
   useEffect(() => {
     const dateStr = date
-      .setZone("utc")
       .set({ hour: Math.floor(time / 60), minute: time % 60 })
-      .toISO({ includeOffset: false });
+      .setZone(initialDate.zone, { keepLocalTime: true })
+      
+      // .toISO({ includeOffset: false });
     if (dateStr)
       onChange?.({
         type: dateType,

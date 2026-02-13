@@ -72,6 +72,7 @@ export async function searchAppleMaps(
             width: photo.photo.photoVersions[0]?.width,
             height: photo.photo.photoVersions[0]?.height,
         })).filter((photo: Record<string, any>) => photo.url),
+        timeZone: result.components.locationInfo.values[0].timezone
     }))
   };
 }

@@ -3,6 +3,7 @@
 import { decode } from "@here/flexpolyline";
 import * as turf from "@turf/turf";
 import { tcFlightRoute } from "./tc_flights";
+import { DateTime } from "luxon";
 
 export type HereMultimodalRouteSectionType =
   | "pedestrian"
@@ -34,7 +35,7 @@ export type HereMultimodalRouteSectionTransportMode =
   | "flight";
 
 export type HereMultimodalRouteSectionTransport<
-  T extends HereMultimodalRouteSectionType
+  T extends HereMultimodalRouteSectionType,
 > = T extends "transit"
   ? {
       mode: HereMultimodalRouteSectionTransportMode;
@@ -48,32 +49,32 @@ export type HereMultimodalRouteSectionTransport<
       url?: string;
     }
   : never | T extends "taxi" | "rented"
-  ? {
-      mode: "car" | "bicycle" | "kickScooter";
-      name?: string;
-      category?: string;
-      color?: string;
-      textColor?: string;
-      model?: string;
-      licensePlate?: string;
-      seats?: number;
-      engine?: "electric" | "combustion";
-    }
-  : never | T extends "pedestrian" | "vehicle"
-  ? {
-      mode: "pedestrian" | "car";
-    }
-  : never | T extends "airport" 
-  ? {
-    mode: "idle"
-    name?: string;
-    city?: string;
-    country?: string;
-    iata?: string;
-    icao?: string;
-    event: "arrival" | "departure" | "layover";
-  }
-  : never;
+    ? {
+        mode: "car" | "bicycle" | "kickScooter";
+        name?: string;
+        category?: string;
+        color?: string;
+        textColor?: string;
+        model?: string;
+        licensePlate?: string;
+        seats?: number;
+        engine?: "electric" | "combustion";
+      }
+    : never | T extends "pedestrian" | "vehicle"
+      ? {
+          mode: "pedestrian" | "car";
+        }
+      : never | T extends "airport"
+        ? {
+            mode: "idle";
+            name?: string;
+            city?: string;
+            country?: string;
+            iata?: string;
+            icao?: string;
+            event: "arrival" | "departure" | "layover";
+          }
+        : never;
 
 export type HereMultimodalRoutePlace = {
   id?: string;
@@ -94,7 +95,9 @@ export type HereMultimodalRoutePlace = {
   code?: string;
 };
 
-export type HereMultimodalRouteSection<T extends HereMultimodalRouteSectionType = HereMultimodalRouteSectionType> = {
+export type HereMultimodalRouteSection<
+  T extends HereMultimodalRouteSectionType = HereMultimodalRouteSectionType,
+> = {
   id: string;
   type: T;
   departure: {
@@ -129,7 +132,7 @@ export type HereMultimodalRouteSection<T extends HereMultimodalRouteSectionType 
     duration: number; // in minutes
     length: number; // in meters
     typicalDuration?: number; // in minutes
-  }
+  };
 };
 
 export type HereMultimodalRoute = {
@@ -142,9 +145,19 @@ export type HereMultimodalRoute = {
   departureTime?: string;
   /* Duration in minutes */
   duration: number;
+  /* Time Zones */
+  zones: {
+    start: string;
+    end: string;
+  };
 };
 
-export type HereMultimodalRouteModality = "transit" | "pedestrian" | "car" | "flight" | "bicycle";
+export type HereMultimodalRouteModality =
+  | "transit"
+  | "pedestrian"
+  | "car"
+  | "flight"
+  | "bicycle";
 
 export type HereMultimodalRouteTimeObject = {
   type: "depart" | "arrive";
@@ -170,11 +183,9 @@ const hereIntermodalRoute = async (
   end: { lat: number; lng: number },
   modality: HereMultimodalRouteModality,
   options: HereMultimodalRouteRequestOptions = {},
-  keys: { appId: string; apiKey: string }
+  keys: { appId: string; apiKey: string },
 ): Promise<HereMultimodalRoute[]> => {
-
   const { alternatives = 2, time } = options;
-
 
   const url = new URL(`https://intermodal.router.hereapi.com/v8/routes`);
   url.searchParams.set("apiKey", keys.apiKey);
@@ -196,8 +207,10 @@ const hereIntermodalRoute = async (
   const data = await response.json();
 
   if (response.ok === false) {
-    console.log(data)
-    throw new Error(`HERE Intermodal Route API error: ${response.status} ${response.statusText}`);
+    console.log(data);
+    throw new Error(
+      `HERE Intermodal Route API error: ${response.status} ${response.statusText}`,
+    );
   }
 
   if (data.routes.length === 0) {
@@ -229,28 +242,29 @@ const hereIntermodalRoute = async (
     // Calculate duration in minutes
     const departure = new Date(route.sections[0].departure.time).getTime();
     const arrival = new Date(
-      route.sections[route.sections.length - 1].arrival.time
+      route.sections[route.sections.length - 1].arrival.time,
     ).getTime();
     route.duration = Math.round((arrival - departure) / (1000 * 60));
+    // Time zones
+    route.zones = {
+      start: DateTime.fromISO(route.sections[0].departure.time, { setZone: true }).zoneName ?? 'utc',
+      end: DateTime.fromISO(route.sections[route.sections.length - 1].arrival.time, { setZone: true }).zoneName ?? 'utc',
+    }
     // Return fully-formed route
     return route;
   });
 
   return routes;
-
-}
-
+};
 
 const hereRoute = async (
-  start: { lat: number; lng: number },
-  end: { lat: number; lng: number },
+  start: { lat: number; lng: number; zone?: string },
+  end: { lat: number; lng: number; zone?: string },
   modality: HereMultimodalRouteModality,
   options: HereMultimodalRouteRequestOptions = {},
-  keys: { appId: string; apiKey: string }
+  keys: { appId: string; apiKey: string },
 ): Promise<HereMultimodalRoute[]> => {
-
   const { alternatives = 2, time } = options;
-
 
   const url = new URL(`https://router.hereapi.com/v8/routes`);
   url.searchParams.set("apiKey", keys.apiKey);
@@ -295,24 +309,32 @@ const hereRoute = async (
     // Set departure time
     route.departureTime = route.sections[0].departure.time;
     // Calculate duration in minutes
-    route.duration = route.sections.reduce((acc, section) => {
-      const dep = new Date(section.departure.time).getTime();
-      const arr = new Date(section.arrival.time).getTime();
-      return acc + (section.summary?.typicalDuration ?? Math.round((arr - dep) / (1000)));
-    }, 0) / 60;
+    route.duration =
+      route.sections.reduce((acc, section) => {
+        const dep = new Date(section.departure.time).getTime();
+        const arr = new Date(section.arrival.time).getTime();
+        return (
+          acc +
+          (section.summary?.typicalDuration ?? Math.round((arr - dep) / 1000))
+        );
+      }, 0) / 60;
+    // Set the zones
+    route.zones = {
+      start: DateTime.fromISO(route.sections[0].departure.time, { setZone: true }).zoneName ?? 'utc',
+      end: DateTime.fromISO(route.sections[route.sections.length - 1].arrival.time, { setZone: true }).zoneName ?? 'utc',
+    }
     // Return fully-formed route
     return route;
   });
 
   return routes;
-
-}
+};
 
 export const serverCalculateMultimodalRoute = async (
   start: { lat: number; lng: number },
-  end: { lat: number; lng: number },
+  end: { lat: number; lng: number},
   modality: HereMultimodalRouteModality = "transit",
-  options: HereMultimodalRouteRequestOptions = {}
+  options: HereMultimodalRouteRequestOptions = {},
 ): Promise<HereMultimodalRouteRequestResult> => {
   const { alternatives = 2, time } = options;
 
@@ -321,7 +343,7 @@ export const serverCalculateMultimodalRoute = async (
 
   if (!herePlatformAppId || !herePlatformApiKey) {
     throw new Error(
-      "HERE_PLATFORM_APP_ID and HERE_PLATFORM_API_KEY must be set"
+      "HERE_PLATFORM_APP_ID and HERE_PLATFORM_API_KEY must be set",
     );
   }
 
@@ -329,14 +351,9 @@ export const serverCalculateMultimodalRoute = async (
   // TODO: Use this for caching
   const requestKey = `${start.lat.toFixed(6)},${start.lng.toFixed(6)}-${end.lat.toFixed(6)},${end.lng.toFixed(6)}-${modality}-${alternatives}-${time ? `${time.type}-${time.date}` : "notime"}`;
 
-
   if (modality == "flight") {
     // Use the flight-specific route function
-    const route = await tcFlightRoute(
-      start,
-      end,
-      options,
-    );
+    const route = await tcFlightRoute(start, end, options);
     return {
       routes: [route],
       key: requestKey,
@@ -352,7 +369,7 @@ export const serverCalculateMultimodalRoute = async (
       end,
       modality,
       { alternatives, time },
-      { appId: herePlatformAppId, apiKey: herePlatformApiKey }
+      { appId: herePlatformAppId, apiKey: herePlatformApiKey },
     );
     return {
       routes: routes,
@@ -367,13 +384,11 @@ export const serverCalculateMultimodalRoute = async (
     end,
     modality,
     { alternatives, time },
-    { appId: herePlatformAppId, apiKey: herePlatformApiKey }
+    { appId: herePlatformAppId, apiKey: herePlatformApiKey },
   );
   return {
     routes: routes,
     key: requestKey,
     time: time,
   };
-
-  
 };

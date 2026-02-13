@@ -7,29 +7,20 @@ import CalendarComponent from "./calendar_component";
 import ActivityListComponent from "./activity_list_component";
 import { ProjectFunctionOpenExistingRoute } from "@/app/(layout-map)/t/[slug]/content";
 import { DateTime } from "luxon";
+import { firstDateForProject } from "@/app/utils/logic/date_utils";
+import { useMemo } from "react";
 
 export default function ItineraryComponent({
   project,
   openExistingRoute,
 }: {
-  project?: MapProject | null;
+  project?: MapProject;
   openExistingRoute: ProjectFunctionOpenExistingRoute;
 }) {
+
+  const anchorDate = useMemo(() => firstDateForProject(project) ?? DateTime.now(),[project])
+
   if (!project) return <></>;
-
-  const firstPin = project.pins.sort((a, b) => {
-    if (a.dateStart && b.dateStart) {
-      return a.dateStart.getTime() - b.dateStart.getTime();
-    } else if (a.dateStart) {
-      return -1;
-    } else if (b.dateStart) {
-      return 1;
-    } else {
-      return 0;
-    }
-  })[0]
-
-  const anchorDate = DateTime.fromJSDate(firstPin?.dateStart ?? new Date());
 
   return (
     <div className="absolute flex flex-col gap-2 bottom-9 top-navbar right-2 w-68 !pointer-events-none">

@@ -96,7 +96,8 @@ model Route {
   projectId              String    @db.Uuid
   project                Project   @relation(fields: [projectId], references: [id])
   dateStart              DateTime?
-  zoneName               String    @default("utc")
+  zoneStart              String    @default("utc")
+  zoneEnd                String    @default("utc")
   duration               Int?
   segments               Json
   /// [RouteStyleType]

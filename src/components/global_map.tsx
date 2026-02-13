@@ -302,7 +302,7 @@ export default function GlobalAppMap() {
 
   const [zoomLevel, setZoomLevel] = useState<number>(1);
 
-  const [mapStyle, setMapStyle] = useState<string>(MAP_STYLES['cartographer']);
+  const [mapStyle, setMapStyle] = useState<string>(MAP_STYLES['light_simple']);
   const [mapProjection, setMapProjection] = useState<"mercator" | "globe">(
     "globe",
   );

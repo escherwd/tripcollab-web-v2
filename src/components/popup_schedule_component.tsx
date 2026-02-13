@@ -13,7 +13,7 @@ import _, { set } from "lodash";
 import { projectEventReceiver } from "@/app/utils/controllers/project_controller";
 import PanelIconButton from "./panel_icon_button";
 import { RiAddLine } from "@remixicon/react";
-import { calendarDayDifference } from "@/app/utils/logic/date_utils";
+import { calendarDayDifference, firstDateForProject } from "@/app/utils/logic/date_utils";
 
 export default function PopupScheduleComponent({
   project,
@@ -217,20 +217,8 @@ export default function PopupScheduleComponent({
       // Best case: use the pin's dateStart
       return DateTime.fromJSDate(pin.dateStart);
     }
-    // Second best: use the first scheduled pin's date
-    if (project.pins.length > 0) {
-      const scheduledPins = project.pins.filter((p) => p.dateStart);
-      if (scheduledPins.length > 0) {
-        const firstScheduledPin = scheduledPins.sort(
-          (a, b) =>
-            (a.dateStart ? a.dateStart.getTime() : 0) -
-            (b.dateStart ? b.dateStart.getTime() : 0),
-        )[0];
-        return DateTime.fromJSDate(firstScheduledPin.dateStart!);
-      }
-    }
-    // Fallback: use current date
-    return DateTime.now();
+    // Second best: use the first scheduled pin's date, fallback on current date
+    return firstDateForProject(project) ?? DateTime.now()
   }, [pin, project]);
 
   // const clearStartTime = () => {

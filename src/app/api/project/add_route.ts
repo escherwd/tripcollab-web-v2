@@ -85,7 +85,9 @@ export const serverAddRoute = async (
       segments: route.sections,
       dateStart: dateObj?.toJSDate(),
       // timeStart: dateObj ? dateObj.diff(dateObj.startOf("day")).as("minutes") : null, // Store timeStart as minutes from midnight
-      zoneName: dateObj?.zoneName || 'utc',
+      // zoneName: dateObj?.zoneName || 'utc',
+      zoneStart: route.zones.start,
+      zoneEnd: route.zones.end,
       duration: route.sections.reduce(
         (acc, section) =>
           acc +

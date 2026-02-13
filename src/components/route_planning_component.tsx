@@ -63,6 +63,8 @@ import RoutePlanningCalendarSubpage from "./route_planning_calendar_subpage";
 import TcButton from "./button";
 import { formatDistance } from "@/app/utils/geo/format_distance";
 import RoutePlanningFlightComponent from "./route_planning_flight_component";
+import TimeZoneAbbreviation from "./time_zone";
+import { firstDateForProject } from "@/app/utils/logic/date_utils";
 
 export default function RoutePlanningComponent({
   project,
@@ -108,8 +110,6 @@ export default function RoutePlanningComponent({
     }));
   }, []);
 
-
-
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [routeSearchResults, setRouteSearchResults] =
     useState<HereMultimodalRouteRequestResult | null>(null);
@@ -141,6 +141,10 @@ export default function RoutePlanningComponent({
         totalDistance: 0, // TODO: calculate total distance
         duration: showingDbRoute.duration || 0,
         departureTime: showingDbRoute.dateStart?.toISOString(),
+        zones: {
+          start: showingDbRoute.zoneStart,
+          end: showingDbRoute.zoneEnd,
+        },
       };
       setFrom({
         coordinate: {
@@ -214,13 +218,13 @@ export default function RoutePlanningComponent({
     if (!initialFrom) return;
     setFrom(initialFrom ?? null);
 
-    if (initialFrom.appleMapsPlace?.categoryId?.includes('airport'))
+    if (initialFrom.appleMapsPlace?.categoryId?.includes("airport"))
       setSelectedModality("flight");
   }, [initialFrom]);
 
   const handleAutocomplete = async (
     query: string,
-    otherLocation?: { lng: number; lat: number }
+    otherLocation?: { lng: number; lat: number },
   ) => {
     if (query.length > 0) {
       const bounds = await mapController.getMapBounds();
@@ -242,7 +246,7 @@ export default function RoutePlanningComponent({
           id: pin.id,
           appleMapsMuid: pin.appleMapsMuid ?? undefined,
           name: pin.name,
-        }))
+        })),
       );
       return data;
     } else {
@@ -263,13 +267,13 @@ export default function RoutePlanningComponent({
     (async () => {
       // Very basic debounce
       await new Promise((resolve) =>
-        setTimeout(resolve, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS)
+        setTimeout(resolve, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS),
       );
       if (currentSearch !== latestFromQuery.current) return;
 
       handleAutocomplete(
         currentSearch,
-        to ? { lng: to.coordinate.lng, lat: to.coordinate.lat } : undefined
+        to ? { lng: to.coordinate.lng, lat: to.coordinate.lat } : undefined,
       ).then((data) => {
         setFromAutocompleteResults(data ?? null);
       });
@@ -277,6 +281,7 @@ export default function RoutePlanningComponent({
   }, [fromSearchQuery]);
 
   useEffect(() => {
+
     if (!to || !from) return;
 
     // Don't need to search if just showing existing route
@@ -285,13 +290,13 @@ export default function RoutePlanningComponent({
     console.log(
       "should calculate route between",
       from.coordinate,
-      to.coordinate
+      to.coordinate,
     );
     calculateRoutes(
       from.coordinate,
       to.coordinate,
       selectedModality,
-      routeTime
+      routeTime,
     );
   }, [to, from, selectedModality, showingDbRoute]);
 
@@ -308,7 +313,7 @@ export default function RoutePlanningComponent({
     (async () => {
       // Very basic debounce
       await new Promise((resolve) =>
-        setTimeout(resolve, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS)
+        setTimeout(resolve, SEARCH_AUTOCOMPLETE_DEBOUNCE_MS),
       );
       if (currentSearch !== latestToQuery.current) return;
 
@@ -316,7 +321,7 @@ export default function RoutePlanningComponent({
         currentSearch,
         from
           ? { lng: from.coordinate.lng, lat: from.coordinate.lat }
-          : undefined
+          : undefined,
       ).then((data) => {
         setToAutocompleteResults(data ?? null);
       });
@@ -324,7 +329,7 @@ export default function RoutePlanningComponent({
   }, [toSearchQuery]);
 
   const handleFromAutocompleteResultClick = (
-    result: AppleMapsAutocompleteResponse["results"][number]
+    result: AppleMapsAutocompleteResponse["results"][number],
   ) => {
     // Handle existing pins
     if (result.localProjectId) {
@@ -345,7 +350,7 @@ export default function RoutePlanningComponent({
   };
 
   const handleToAutocompleteResultClick = (
-    result: AppleMapsAutocompleteResponse["results"][number]
+    result: AppleMapsAutocompleteResponse["results"][number],
   ) => {
     // Handle existing pins
     if (result.localProjectId) {
@@ -398,8 +403,8 @@ export default function RoutePlanningComponent({
       route.sections,
       true,
       !route.id.startsWith("route-deleted")
-        ? showingDbRoute?.styleData ?? undefined
-        : undefined
+        ? (showingDbRoute?.styleData ?? undefined)
+        : undefined,
     );
 
     mapController.setFeatures("temporary", features);
@@ -409,14 +414,14 @@ export default function RoutePlanningComponent({
 
     // Determine the bounding box of the route
     const completePolyline = route.sections.flatMap((section) =>
-      decode(section.polyline).polyline.map((coord) => [coord[1], coord[0]])
+      decode(section.polyline).polyline.map((coord) => [coord[1], coord[0]]),
     );
 
     const line = turf.lineString(completePolyline);
     const bbox = padBbox(turf.bbox(line), 0.1);
 
     mapController.flyToBounds(
-      new LngLatBounds([bbox[0], bbox[1]], [bbox[2], bbox[3]])
+      new LngLatBounds([bbox[0], bbox[1]], [bbox[2], bbox[3]]),
     );
   };
 
@@ -424,12 +429,15 @@ export default function RoutePlanningComponent({
     from: { lat: number; lng: number },
     to: { lat: number; lng: number },
     modality: HereMultimodalRouteModality,
-    time: typeof routeTime
+    time: typeof routeTime,
   ) => {
     setIsCalculatingRoute(true);
     try {
       const routes = await serverCalculateMultimodalRoute(from, to, modality, {
-        time,
+        time: {
+          date: time.date.toISO({ includeOffset: false })!,
+          type: time.type,
+        },
       });
       setRouteSearchResults(routes);
       console.log(routes);
@@ -446,7 +454,7 @@ export default function RoutePlanningComponent({
   useEffect(() => {
     if (!routeSearchResults) return;
     const selectedRoute = routeSearchResults.routes.find(
-      (route) => route.id === selectedRouteId
+      (route) => route.id === selectedRouteId,
     );
     if (selectedRoute) {
       displayRoute(selectedRoute);
@@ -460,7 +468,10 @@ export default function RoutePlanningComponent({
     return Duration.fromDurationLike({ days, hours, minutes });
   };
 
-  const shouldDisplay = (modality: HereMultimodalRouteModality, section: HereMultimodalRouteSection): boolean => {
+  const shouldDisplay = (
+    modality: HereMultimodalRouteModality,
+    section: HereMultimodalRouteSection,
+  ): boolean => {
     // For pedestrian sections, only display if longer than 400 meters
     if (modality === "transit" && section.type === "pedestrian") {
       const polyline = decode(section.polyline).polyline.map((coord) => [
@@ -500,11 +511,21 @@ export default function RoutePlanningComponent({
 
   const [routeTime, setRouteTime] = useState<{
     type: "depart" | "arrive";
-    date: string;
+    date: DateTime;
   }>({
     type: "depart",
-    date: DateTime.now().toISO({ includeOffset: false }),
+    date:
+      firstDateForProject(project)?.setZone(
+        'utc', { keepLocalTime: true }
+      ) ??
+      DateTime.now()
+        .setZone('utc')
+        .plus({ months: 2 }),
   });
+
+  useEffect(() => {
+    console.log(`aa route time change: ${routeTime.date.toISO()}`, initialFrom);
+  }, [routeTime]);
 
   const onRouteTimeChange = useCallback((value: typeof routeTime) => {
     console.log("Route time changed:", value);
@@ -520,7 +541,7 @@ export default function RoutePlanningComponent({
       if (!to || !from) return;
       // Early return if time didn't change since prev. search results
       if (
-        routeTime.date === routeSearchResults?.time?.date &&
+        routeTime.date.toISO() === routeSearchResults?.time?.date &&
         routeTime.type === routeSearchResults?.time?.type
       )
         return;
@@ -530,7 +551,7 @@ export default function RoutePlanningComponent({
         from.coordinate,
         to.coordinate,
         selectedModality,
-        routeTime
+        routeTime,
       );
 
       return;
@@ -563,8 +584,8 @@ export default function RoutePlanningComponent({
             {calendarPageOpen
               ? "Select Time"
               : selectedRoute
-              ? "Route Details"
-              : "Browse Routes"}
+                ? "Route Details"
+                : "Browse Routes"}
           </div>
           <div>
             <PanelIconButton
@@ -589,6 +610,7 @@ export default function RoutePlanningComponent({
               pinTo={associatedMapPins.to}
               pinFrom={associatedMapPins.from}
               onChange={onRouteTimeChange}
+              initialDate={routeTime.date}
             />
           </div>
           <div
@@ -632,9 +654,16 @@ export default function RoutePlanningComponent({
                           {selectedRoute.departureTime && (
                             <span>
                               {" – "}
-                              {DateTime.fromISO(selectedRoute.departureTime, {
-                                setZone: true,
-                              }).toLocaleString(DateTime.TIME_SIMPLE)}
+                              {DateTime.fromISO(
+                                selectedRoute.departureTime,
+                              ).toLocaleString(DateTime.TIME_SIMPLE)}
+                              &nbsp;
+                              {selectedRoute.zones.end !=
+                                selectedRoute.zones.start && (
+                                <TimeZoneAbbreviation
+                                  timeZone={selectedRoute.zones.start}
+                                />
+                              )}
                             </span>
                           )}{" "}
                         </div>
@@ -661,12 +690,19 @@ export default function RoutePlanningComponent({
                         <div className="text-sm text-gray-500">
                           Destination
                           {selectedRoute.departureTime && (
-                            <span>{" – "}
-                              {DateTime.fromISO(selectedRoute.departureTime, {
-                                setZone: true,
-                              })
+                            <span>
+                              {" – "}
+                              {DateTime.fromISO(selectedRoute.departureTime)
                                 .plus({ minutes: selectedRoute.duration })
+                                .setZone(selectedRoute.zones.end)
                                 .toLocaleString(DateTime.TIME_SIMPLE)}
+                              &nbsp;
+                              {selectedRoute.zones.end !=
+                                selectedRoute.zones.start && (
+                                <TimeZoneAbbreviation
+                                  timeZone={selectedRoute.zones.end}
+                                />
+                              )}
                             </span>
                           )}
                         </div>
@@ -699,7 +735,7 @@ export default function RoutePlanningComponent({
                   if (e.key === "Enter") {
                     if (fromAutocompleteResults?.results[0]) {
                       handleFromAutocompleteResultClick(
-                        fromAutocompleteResults?.results[0]
+                        fromAutocompleteResults?.results[0],
                       );
                     }
                   }
@@ -750,7 +786,7 @@ export default function RoutePlanningComponent({
                   if (e.key === "Enter") {
                     if (toAutocompleteResults?.results[0]) {
                       handleToAutocompleteResultClick(
-                        toAutocompleteResults?.results[0]
+                        toAutocompleteResults?.results[0],
                       );
                     }
                   }
@@ -785,7 +821,7 @@ export default function RoutePlanningComponent({
               <span>{routeTime.type === "depart" ? "Depart" : "Arrive"}</span>
               <div className="tc-route-planner-input-content !pr-2 flex items-center justify-between">
                 <span>
-                  {DateTime.fromISO(routeTime.date).toLocaleString({
+                  {routeTime.date.toLocaleString({
                     weekday: "short",
                     month: "short",
                     day: "numeric",
@@ -818,11 +854,14 @@ export default function RoutePlanningComponent({
             )}
             {routeSearchResults && !isCalculatingRoute && (
               <div className="fade-in">
-                {routeSearchResults.routes.length === 0 && (
+                {(routeSearchResults.routes.length === 0 && (
                   <div className="p-4 text-sm text-center text-gray-400">
                     No routes found for the selected locations and modality.
                   </div>
-                ) || (selectedModality === 'flight' && <RoutePlanningFlightComponent />)}
+                )) ||
+                  (selectedModality === "flight" && (
+                    <RoutePlanningFlightComponent />
+                  ))}
                 {routeSearchResults.routes.map((route) => (
                   <a
                     className={`block p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
@@ -857,25 +896,42 @@ export default function RoutePlanningComponent({
                     </div>
 
                     {route.departureTime && (
-                      <div className="my-3 text-xs text-gray-400 flex items-center gap-2 w-full">
-                        {DateTime.fromISO(route.departureTime, {
-                          setZone: true,
-                        }).toLocaleString(DateTime.TIME_SIMPLE)}
-                        <div className="flex-1 border-t-2 border-gray-400 border-dotted" />
-                        {formatDistance(route.totalDistance)}
-                        <div className="flex-1 border-t-2 border-gray-400 border-dotted" />
-                        <span className="text-gray-700">
-                          {DateTime.fromISO(route.departureTime, {
-                            setZone: true,
-                          })
-                            .plus({ minutes: route.duration })
+                      <>
+                        <div className="mt-3 text-xs text-gray-400 flex items-center gap-2 w-full">
+                          {DateTime.fromISO(route.departureTime)
+                            .setZone(route.zones.start)
                             .toLocaleString(DateTime.TIME_SIMPLE)}
-                        </span>
-                      </div>
+                          <div className="flex-1 border-t-2 border-gray-400 border-dotted" />
+                          {formatDistance(route.totalDistance)}
+                          <div className="flex-1 border-t-2 border-gray-400 border-dotted" />
+                          <span className="text-gray-700">
+                            {DateTime.fromISO(route.departureTime)
+                              .plus({ minutes: route.duration })
+                              .setZone(route.zones.end)
+                              .toLocaleString(DateTime.TIME_SIMPLE)}
+                          </span>
+                        </div>
+                        {route.zones.start != route.zones.end && (
+                          <div className=" text-[10px] text-gray-400 flex items-center w-full justify-between">
+                            <span>
+                              <TimeZoneAbbreviation
+                                timeZone={route.zones.start}
+                              />
+                            </span>
+                            <span>
+                              <TimeZoneAbbreviation
+                                timeZone={route.zones.end}
+                              />
+                            </span>
+                          </div>
+                        )}
+                      </>
                     )}
-                    <div className="mt-2 text-gray-500 text-sm flex items-center flex-wrap gap-x-2 gap-y-2 bg-gray-100 p-2 rounded-lg">
+                    <div className="mt-3 text-gray-500 text-sm flex items-center flex-wrap gap-x-2 gap-y-2 bg-gray-100 p-2 rounded-lg">
                       {route.sections
-                        .filter((section) => shouldDisplay(route.modality, section))
+                        .filter((section) =>
+                          shouldDisplay(route.modality, section),
+                        )
                         .map((section) => (
                           <React.Fragment key={section.id}>
                             <RoutePlanningSectionChip section={section} />

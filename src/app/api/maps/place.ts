@@ -13,10 +13,10 @@ export type AppleMapsPlace = AppleMapsPlaceResult & {
         text: string;
         attributionUrl: string;
     },
-    timezone?: {
-        name: string;
-        offset: string;
-    },
+    // timezone?: {
+    //     name: string;
+    //     offset: string;
+    // },
     containmentPlace?: {
         text: string;
         muid: string;
@@ -122,10 +122,11 @@ const getPlaceAppleMaps = async (muid: string, loc: {
         text: result.components.textBlock?.values[0].text,
         attributionUrl: result.components.textBlock.values[0].attributionUrl,
     } : null,
-    timezone: result.components.locationInfo?.values[0] ? {
-        name: result.components.locationInfo?.values[0].timezone,
-        offset: result.components.locationInfo?.values[0].timezoneOffset,
-    } : null,
+    timeZone: result.components.locationInfo?.values[0].timezone,
+    // timezone: result.components.locationInfo?.values[0] ? {
+    //     name: result.components.locationInfo?.values[0].timezone,
+    //     offset: result.components.locationInfo?.values[0].timezoneOffset,
+    // } : null,
     containmentPlace: result.components.containmentPlace?.values[0] ? {
         text: result.components.containmentPlace?.values[0].containmentLine?.formatString[0]?.replaceAll("{s:s}", "").replaceAll("{/s:s}", ""),
         muid: result.components.containmentPlace?.values[0].containerId?.muid,

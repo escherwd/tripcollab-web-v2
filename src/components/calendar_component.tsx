@@ -5,7 +5,10 @@ import { MapPin, MapProject, MapRoute } from "./global_map";
 import PanelIconButton from "./panel_icon_button";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
-import { calendarDayDifference } from "@/app/utils/logic/date_utils";
+import {
+  calendarDayDifference,
+  firstDateForProject,
+} from "@/app/utils/logic/date_utils";
 import { getMapIconFromAppleMapsCategoryId, mapIcons } from "./map_place_icon";
 
 const offset = (arr: any[], offset: number) => [
@@ -16,7 +19,7 @@ const offset = (arr: any[], offset: number) => [
 export default function CalendarComponent({
   project,
   dense = false,
-  initialAnchorDate = DateTime.now().startOf("month"),
+  initialAnchorDate,
   allowRange = false,
   date = null,
   initialNumDays = 0,
@@ -25,7 +28,7 @@ export default function CalendarComponent({
   readonly = false,
   timeZone = "utc",
 }: {
-  project?: MapProject | null;
+  project?: MapProject;
   dense?: boolean;
   initialAnchorDate?: DateTime;
   allowRange?: boolean;
@@ -44,18 +47,26 @@ export default function CalendarComponent({
   useEffect(() => {
     if (!project) return;
     // Calculate the date range based on pins
-    const pinDates = project.pins
+    const pinDates = [...project.pins, ...project.routes]
       .map((pin) => {
         if (!pin.dateStart) return [];
         if (pin.duration && pin.duration > 0)
           return [
-            DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName }),
-            DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName }).plus({
+            DateTime.fromJSDate(pin.dateStart, {
+              zone: (pin as MapPin).zoneName ?? (pin as MapRoute).zoneStart,
+            }),
+            DateTime.fromJSDate(pin.dateStart, {
+              zone: (pin as MapPin).zoneName ?? (pin as MapRoute).zoneEnd,
+            }).plus({
               minutes: pin.duration,
             }),
           ];
         else
-          return [DateTime.fromJSDate(pin.dateStart, { zone: pin.zoneName })];
+          return [
+            DateTime.fromJSDate(pin.dateStart, {
+              zone: (pin as MapPin).zoneName ?? (pin as MapRoute).zoneStart,
+            }),
+          ];
       })
       .flat()
       .sort((a, b) => a.toMillis() - b.toMillis());
@@ -70,7 +81,9 @@ export default function CalendarComponent({
     }
   }, [project]);
 
-  const [anchorDate, setAnchorDate] = useState(initialAnchorDate);
+  const [anchorDate, setAnchorDate] = useState(
+    initialAnchorDate ?? firstDateForProject(project) ?? DateTime.now().startOf("month")
+  );
 
   const [selectedDate, setSelectedDate] = useState<DateTime | null>(date);
 
@@ -240,7 +253,7 @@ export default function CalendarComponent({
     for (const pin of [...project.pins, ...project.routes]) {
       if (!pin.dateStart) continue;
       const date = DateTime.fromJSDate(pin.dateStart, {
-        zone: pin.zoneName,
+        zone: (pin as MapPin).zoneName ?? (pin as MapRoute).zoneStart,
       }).toISODate();
       if (!date) continue;
       const styleData = pin.styleData as any;
@@ -252,7 +265,7 @@ export default function CalendarComponent({
         ).color;
       if (!color && (pin as MapRoute).modality)
         // Route-specific accessor
-        color = mapIcons['public_transit'].color
+        color = mapIcons["public_transit"].color;
       if (!dates[date]) dates[date] = [color];
       else dates[date].push(color);
     }
@@ -337,7 +350,7 @@ export default function CalendarComponent({
               )}
             <span className="z-10 absolute bottom-px left-0 right-0 mx-auto flex justify-center gap-0.5">
               {day.isoDate &&
-                (dateDecorations[day.isoDate] ?? []).slice(0,4).map((c, i) => {
+                (dateDecorations[day.isoDate] ?? []).slice(0, 4).map((c, i) => {
                   return (
                     <div
                       key={`${day.isoDate}-${i}`}
