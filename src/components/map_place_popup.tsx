@@ -274,7 +274,7 @@ export default function MapPlacePopup({
   };
 
   const timeZone = useMemo(() => {
-    const tzName = place?.timeZone ?? place?.timezone?.name ?? pin?.zoneName;
+    const tzName = place?.timeZone ?? pin?.zoneName;
     if (!tzName) return null
     const now = DateTime.now().setZone(tzName)
     return {

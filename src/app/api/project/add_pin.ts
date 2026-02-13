@@ -65,7 +65,6 @@ export const addPin = async (
       mapboxFeatureId: marker.mapboxFeatureId,
       zoneName:
         marker.appleMapsPlace?.timeZone ??
-        marker.appleMapsPlace?.timezone?.name ??
         "utc",
       type: type,
       extendedMetadata: {
