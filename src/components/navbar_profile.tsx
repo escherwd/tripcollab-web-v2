@@ -3,6 +3,7 @@
 import { AppUser } from "@/backend/auth/get_user";
 import Link from "next/link";
 import MenuListEntry from "./menu_list_entry";
+import ContextMenu from "./context_menu";
 
 
 
@@ -32,7 +33,7 @@ export default function NavBarProfileComponent({ user }: { user: AppUser }) {
         className="hover:block hidden absolute -right-[4px] w-54 -top-2 pt-[calc(var(--spacing-navbar)-4px)] -z-0"
       >
         <div className="fade-in absolute top-navbar -mt-[10px] -right-4 w-2/1 h-2/1 z-0 bg-gradient-to-tr from-transparent via-transparent to-[var(--page-bg-color)]/60 pointer-events-none"></div>
-        <div className="bg-white z-10 relative tc-panel h-min w-full rounded-lg !shadow-xl overflow-hidden origin-top-right divide-y divide-gray-100">
+        <ContextMenu>
           <div className="p-1">
             <MenuListEntry chevron title="Profile" link={`/${user.username}`} />
             <MenuListEntry chevron title="Projects" link="/projects">
@@ -72,7 +73,7 @@ export default function NavBarProfileComponent({ user }: { user: AppUser }) {
               className="text-red-500 hover:bg-red-50"
             />
           </div>
-        </div>
+        </ContextMenu>
       </div>
     </div>
   );

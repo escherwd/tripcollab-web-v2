@@ -70,8 +70,8 @@ export default function UserSettingsContent({ user }: { user: AppUser }) {
           onChange={(e) => setUsername(e.target.value.replaceAll(' ', '-'))}
         />
         <span>
-          Must be 3+ characters and contain no spaces. Changing this will also
-          change your profile URL.{" "}
+          <div className="text-gray-600 mb-1">tripcollab.app/{username}</div>
+          Must be 3+ characters and contain no spaces.
         </span>
       </div>
       <div className="tc-settings-input-group">

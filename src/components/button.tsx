@@ -4,22 +4,24 @@ export default function TcButton({
   onClick,
   children,
   primary,
+  destructive,
   className,
   href,
-  disabled = false
+  disabled = false,
 }: {
   onClick?: () => void;
   children: React.ReactNode;
   primary?: boolean;
+  destructive?: boolean;
   className?: string;
   href?: string;
-  disabled?: boolean
+  disabled?: boolean;
 }) {
   if (href) {
     return (
       <Link
         href={href}
-        className={`tc-button ${primary ? "tc-button-primary" : ""} ${className ?? ""}`}
+        className={`tc-button ${primary ? "tc-button-primary" : ""} ${destructive ? "tc-button-destructive" : ""} ${className ?? ""}`}
         aria-disabled={disabled}
       >
         {children}

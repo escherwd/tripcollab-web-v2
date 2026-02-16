@@ -157,7 +157,7 @@ export default function CalendarComponent({
   const [numDays, setNumDays] = useState<number>(initialNumDays);
 
   const startDrag = (isoDate: string) => {
-    console.log("calendar drag start");
+    if (readonly) return;
     setIsoDateDragStart(isoDate);
     if (allowRange) {
       setDate(isoDate);
@@ -166,6 +166,7 @@ export default function CalendarComponent({
   };
 
   const whileDrag = (isoDate: string, up: boolean = false) => {
+    if (readonly) return;
     if (allowRange && isoDateDragStart) {
       const start = DateTime.fromISO(isoDateDragStart, { zone: timeZone });
       const end = DateTime.fromISO(isoDate, { zone: timeZone });

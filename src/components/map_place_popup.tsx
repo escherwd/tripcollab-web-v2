@@ -32,6 +32,8 @@ import PopupScheduleComponent from "./popup_schedule_component";
 import { projectEventReceiver } from "@/app/utils/controllers/project_controller";
 import ColorInput from "./color_input";
 import PanelIconButton from "./panel_icon_button";
+import { userCanEdit } from "@/app/(layout-map)/t/[slug]/content";
+import TcButton from "./button";
 
 export default function MapPlacePopup({
   marker,
@@ -313,6 +315,7 @@ export default function MapPlacePopup({
               <ColorInput
                 initialColor={iconColor ?? undefined}
                 onColorChange={onPinColorChange}
+                viewOnly={!userCanEdit}
               />
             </div>
             <PopupScheduleComponent project={project} pin={pin} />
@@ -409,12 +412,12 @@ export default function MapPlacePopup({
         )}
       </div>
       <div className="py-2 px-4 grid grid-cols-2 gap-2 border-t border-gray-100">
-        <button
-          className={`tc-button dense ${
-            isInProject ? "tc-button-destructive" : "tc-button-primary"
-          }`}
+        <TcButton
+        destructive={isInProject}
+        primary={!isInProject}
+          className="dense"
           onClick={toggleInProject}
-          disabled={isAddingToProject}
+          disabled={isAddingToProject || !userCanEdit}
         >
           {isAddingToProject ? (
             <RiLoaderFill className="size-4 animate-spin" />
@@ -424,7 +427,7 @@ export default function MapPlacePopup({
             <PlusIcon className="size-4" />
           )}
           {isInProject ? "Remove" : "Add to Trip"}
-        </button>
+        </TcButton>
         <button className="tc-button dense" onClick={openRoutePlanner}>
           <MdRoute className="size-4" />
           Create Route

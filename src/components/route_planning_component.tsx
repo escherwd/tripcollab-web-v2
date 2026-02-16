@@ -69,12 +69,14 @@ import { firstDateForProject } from "@/app/utils/logic/date_utils";
 export default function RoutePlanningComponent({
   project,
   initialFrom,
+  initialTo,
   showingDbRoute,
   openRoutePlanner,
   updateProject,
 }: {
   project: MapProject;
   initialFrom?: MapMarker;
+  initialTo?: MapMarker;
   showingDbRoute?: Prisma.RouteGetPayload<any>;
   openRoutePlanner: ProjectFunctionOpenRoutePlanner;
   updateProject: ProjectFunctionUpdateProject;
@@ -99,7 +101,7 @@ export default function RoutePlanningComponent({
     mapController.setFeatures("temporary", []);
     mapController.setMarkers([]);
     // projectController.openRoutePlanner(null);
-    openRoutePlanner(null);
+    openRoutePlanner({ fromOrigin: null, toDestination: null });
   };
 
   // On open
@@ -215,12 +217,15 @@ export default function RoutePlanningComponent({
 
   // Update the initial from if it changes
   useEffect(() => {
-    if (!initialFrom) return;
-    setFrom(initialFrom ?? null);
+    if (initialFrom) setFrom(initialFrom);
+    if (initialTo) setTo(initialTo);
 
-    if (initialFrom.appleMapsPlace?.categoryId?.includes("airport"))
+    if (
+      initialFrom?.appleMapsPlace?.categoryId?.includes("airport") ||
+      initialTo?.appleMapsPlace?.categoryId?.includes("airport")
+    )
       setSelectedModality("flight");
-  }, [initialFrom]);
+  }, [initialFrom, initialTo]);
 
   const handleAutocomplete = async (
     query: string,
@@ -281,7 +286,6 @@ export default function RoutePlanningComponent({
   }, [fromSearchQuery]);
 
   useEffect(() => {
-
     if (!to || !from) return;
 
     // Don't need to search if just showing existing route
@@ -515,12 +519,8 @@ export default function RoutePlanningComponent({
   }>({
     type: "depart",
     date:
-      firstDateForProject(project)?.setZone(
-        'utc', { keepLocalTime: true }
-      ) ??
-      DateTime.now()
-        .setZone('utc')
-        .plus({ months: 2 }),
+      firstDateForProject(project)?.setZone("utc", { keepLocalTime: true }) ??
+      DateTime.now().setZone("utc").plus({ months: 2 }),
   });
 
   useEffect(() => {

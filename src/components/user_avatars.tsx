@@ -16,7 +16,7 @@ export default function UserAvatars({
         return (
           <div
             key={user.id}
-            className={`h-full aspect-square inline-block last:!mr-0 border-2 border-white rounded-full overflow-hidden ${itemClass}`}
+            className={`h-full aspect-square relative inline-block last:!mr-0 border-2 border-white rounded-full overflow-hidden ${itemClass}`}
             style={{
                 'marginRight': `-${overlap}px`
             }}
@@ -29,7 +29,7 @@ export default function UserAvatars({
               />
             ) : (
               <div className="size-full bg-gray-800 overflow-hidden rounded-full">
-                <MdPerson className="origin-center size-full scale-120 translate-y-1/10 text-gray-500" />
+                <MdPerson className="origin-center size-full scale-120 translate-y-1/10 text-gray-500 -z-10" />
               </div>
             )}
           </div>

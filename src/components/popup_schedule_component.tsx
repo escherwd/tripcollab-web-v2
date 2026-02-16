@@ -14,6 +14,7 @@ import { projectEventReceiver } from "@/app/utils/controllers/project_controller
 import PanelIconButton from "./panel_icon_button";
 import { RiAddLine } from "@remixicon/react";
 import { calendarDayDifference, firstDateForProject } from "@/app/utils/logic/date_utils";
+import { userCanEdit } from "@/app/(layout-map)/t/[slug]/content";
 
 export default function PopupScheduleComponent({
   project,
@@ -318,9 +319,10 @@ export default function PopupScheduleComponent({
               onDateChange={onNumDaysChange}
               initialNumDays={numDays}
               timeZone={pin.zoneName}
+              readonly={!userCanEdit}
             />
           </div>
-          <div className="grid grid-rows-2 divide-x h-18 divide-gray-200">
+          <div className="grid grid-rows-2  h-18">
             <div className="py-2 pl-2 pr-0.5 gap-1 border-t flex items-center justify-around border-gray-200">
               <div className="text-sm text-gray-500">
                 Arrive
@@ -339,16 +341,17 @@ export default function PopupScheduleComponent({
                 <>
                   <input
                     defaultValue={timeStartString}
+                    disabled={!userCanEdit}
                     type="time"
                     className="text-sm text-gray-500"
                     onChange={onStartTimeChange}
                   />
-                  <PanelIconButton
+                  {/* <PanelIconButton
                     icon={<XMarkIcon />}
                     onClick={() => {
                       //clearStartTime();
                     }}
-                  />
+                  /> */}
                 </>
               ) : (
                 <AddTimeButton onClick={() => setNewStartTime(8 * 60)} />
@@ -375,15 +378,16 @@ export default function PopupScheduleComponent({
                   <input
                     defaultValue={timeEndString}
                     type="time"
+                    disabled={!userCanEdit}
                     className="text-sm text-gray-500"
                     onChange={onLeaveTimeChange}
                   />
-                  <PanelIconButton
+                  {/* <PanelIconButton
                     icon={<XMarkIcon />}
                     onClick={() => {
                       //clearLeaveTime();
                     }}
-                  />
+                  /> */}
                 </>
               ) : (
                 <AddTimeButton

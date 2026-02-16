@@ -24,7 +24,10 @@ import {
 import { serverSearchUsers } from "@/app/api/users/search_users";
 import { debounce } from "lodash";
 import { useDebounce, useThrottle } from "@/app/utils/ui/debounce";
-import { ProjectFunctionUpdateProject } from "@/app/(layout-map)/t/[slug]/content";
+import {
+  ProjectFunctionUpdateProject,
+  userCanEdit,
+} from "@/app/(layout-map)/t/[slug]/content";
 import PanelIconButton from "./panel_icon_button";
 import { serverUpdateProjectUsers } from "@/app/api/project/update_users";
 
@@ -33,11 +36,11 @@ function ProjectShareUserRow({
   canEdit,
   onDelete,
   onAccessChange,
-  isCurrentUser = false
+  isCurrentUser = false,
 }: {
   user: ProjectUser;
   canEdit: boolean;
-  isCurrentUser?: boolean
+  isCurrentUser?: boolean;
   onDelete?: () => void;
   onAccessChange?: (canEdit: boolean) => void;
 }) {
@@ -48,8 +51,12 @@ function ProjectShareUserRow({
       </div>
       <div className="flex-1">
         <div className="flex gap-1.5 items-center">
-            {user.firstName}
-            {isCurrentUser && <div className="px-2 py-0.5 bg-purple-100 font-medium text-purple-400 text-xs rounded">You</div>}
+          {user.firstName}
+          {isCurrentUser && (
+            <div className="px-2 py-0.5 bg-purple-100 font-medium text-purple-400 text-xs rounded">
+              You
+            </div>
+          )}
         </div>
         <div className="text-sm text-gray-500">@{user.username}</div>
       </div>
@@ -60,13 +67,14 @@ function ProjectShareUserRow({
             onChange={(e) => onAccessChange(e.target.value == "yes")}
             className="text-sm"
             name="can_edit"
+            disabled={isCurrentUser || !userCanEdit}
           >
             <option value={"yes"}>Can Edit</option>
             <option value={"no"}>Can View</option>
           </select>
         </div>
       )}
-      {onDelete && (
+      {onDelete && !isCurrentUser && userCanEdit && (
         <div>
           <PanelIconButton
             className="bg-red-100 hover:bg-red-200"
@@ -83,12 +91,12 @@ export default function ProjectSharePopup({
   project,
   onClose,
   updateProject,
-  currentUser
+  currentUser,
 }: {
   project: MapProject;
   onClose?: () => void;
   updateProject: ProjectFunctionUpdateProject;
-  currentUser?: AppUser
+  currentUser?: AppUser;
 }) {
   const [userAddQuery, setUserAddQuery] = useState("");
   const [userAddSearchResults, setUserAddSearchResults] = useState<
@@ -104,13 +112,13 @@ export default function ProjectSharePopup({
   const [isPublic, setIsPublic] = useState(project.public);
 
   useEffect(() => {
-    setSessionProjectShares(project.projectShares)
-    setIsPublic(project.public)
-  },[project])
+    setSessionProjectShares(project.projectShares);
+    setIsPublic(project.public);
+  }, [project]);
 
   useEffect(() => {
-    console.log("rendering with ",sessionProjectShares, project)
-  }, [])
+    console.log("rendering with ", sessionProjectShares, project);
+  }, []);
 
   const debouncedUserSearch = useThrottle(async (query: string) => {
     try {
@@ -192,13 +200,13 @@ export default function ProjectSharePopup({
           canEdit: ps.canEdit,
         })),
       );
-      console.log(projectShares)
-      updateProject(p => ({
-          ...p,
-          public: isPublic,
-          projectShares: projectShares,
-      }))
-      onClose?.()
+      console.log(projectShares);
+      updateProject((p) => ({
+        ...p,
+        public: isPublic,
+        projectShares: projectShares,
+      }));
+      onClose?.();
     } catch (err) {
       alert(err);
     }
@@ -212,7 +220,11 @@ export default function ProjectSharePopup({
         <div className="pt-0">
           <div className="tc-small-heading">Owner</div>
           <div className="rounded-lg bg-gray-50">
-            <ProjectShareUserRow user={project.user} canEdit isCurrentUser={project.user.id == currentUser?.id} />
+            <ProjectShareUserRow
+              user={project.user}
+              canEdit
+              isCurrentUser={project.user.id == currentUser?.id}
+            />
           </div>
         </div>
         <div className="pt-8">
@@ -231,6 +243,7 @@ export default function ProjectSharePopup({
               <select
                 defaultValue={isPublic ? "yes" : "no"}
                 onChange={(e) => setIsPublic(e.target.value == "yes")}
+                disabled={!userCanEdit}
               >
                 <option value="no">Private</option>
                 <option value="yes">Public</option>
@@ -263,15 +276,18 @@ export default function ProjectSharePopup({
         </div>
         <div className="pt-8 mb-8">
           <div className="tc-small-heading">Users With Access</div>
-          <div className="mb-2 flex gap-2">
-            <input
-              type="text"
-              placeholder="Add users by name, username, or email"
-              className="tc-input border-2 !bg-gray-50 border-gray-100 rounded-lg flex-1"
-              value={userAddQuery}
-              onChange={onUserQueryInputChange}
-            />
-          </div>
+
+          {userCanEdit && (
+            <div className="mb-2 flex gap-2">
+              <input
+                type="text"
+                placeholder="Add users by name, username, or email"
+                className="tc-input border-2 !bg-gray-50 border-gray-100 rounded-lg flex-1"
+                value={userAddQuery}
+                onChange={onUserQueryInputChange}
+              />
+            </div>
+          )}
 
           <div className="relative w-full">
             {userAddSearchResults && (
@@ -315,12 +331,16 @@ export default function ProjectSharePopup({
             )}
           </div>
 
-          <div className={`flex gap-1 mt-3 items-center text-sm text-gray-400 transition-opacity ${sessionProjectShares.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
+          <div
+            className={`flex gap-1 mt-3 items-center text-sm text-gray-400 transition-opacity ${sessionProjectShares.length > 0 ? "opacity-100" : "opacity-0"}`}
+          >
             <MdInfoOutline />
-            <span>Users with <span className="font-semibold">edit</span> access can add/edit these users</span>
+            <span>
+              Users with <span className="font-semibold">edit</span> access can
+              add/edit these users
+            </span>
           </div>
         </div>
-
       </div>
       <div className="flex-0 border-t border-gray-100 p-4 gap-2 flex items-center justify-end">
         <button onClick={() => onClose?.()} className="tc-button">

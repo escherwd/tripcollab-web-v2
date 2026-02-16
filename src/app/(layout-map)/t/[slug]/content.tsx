@@ -6,31 +6,43 @@ import { serverUpdateProject } from "@/app/api/project/update_project";
 import { serverUpdateRoute } from "@/app/api/project/update_route";
 import { HereMultimodalRouteSection } from "@/app/api/routes/here_multimodal";
 import { MAP_UI_PADDING_VALUES } from "@/app/utils/consts";
-import { projectEmitter } from "@/app/utils/controllers/project_controller";
+import {
+  MapRightClickEvent,
+  projectEmitter,
+} from "@/app/utils/controllers/project_controller";
 import { allEqual } from "@/app/utils/logic/all_equal";
 import { AppUser } from "@/backend/auth/get_user";
+import ContextMenu from "@/components/context_menu";
 import { mapController, MapMarker, MapProject } from "@/components/global_map";
 import ItineraryComponent from "@/components/itinerary_component";
 import MapControlsComponent from "@/components/map_controls_component";
+import MenuListEntry from "@/components/menu_list_entry";
 import Navbar from "@/components/navbar";
+import ProjectMapContextMenu from "@/components/project_map_context_menu";
 import ProjectNavbarComponent from "@/components/project_navbar_component";
 import ProjectSharePopup from "@/components/project_share_popup";
 import RoutePlanningComponent from "@/components/route_planning_component";
 import GeneralSearchComponent from "@/components/search_general";
 import { decode } from "@here/flexpolyline";
 import { Prisma } from "@prisma/client";
-import { RiLoaderFill } from "@remixicon/react";
+import { RiFileCopyFill, RiLoaderFill } from "@remixicon/react";
 import { bbox, points } from "@turf/turf";
 import _, { initial, set } from "lodash";
+import { Settings } from "luxon";
 import { LngLatBounds } from "mapbox-gl";
 import { Metadata } from "next";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { MdContentCopy, MdFileCopy } from "react-icons/md";
+import { RiFileCopy2Fill } from "react-icons/ri";
 
 export const metadata: Metadata = {
   title: "",
-}
+};
 
-export type ProjectFunctionOpenRoutePlanner = (from: MapMarker | null) => void;
+export type ProjectFunctionOpenRoutePlanner = (options: {
+  fromOrigin: MapMarker | null;
+  toDestination: MapMarker | null;
+}) => void;
 export type ProjectFunctionOpenExistingRoute = (
   route: Prisma.RouteGetPayload<any>,
 ) => void;
@@ -45,6 +57,12 @@ let serverUpdateKey = 1;
 let clientUpdateKey = 1;
 
 let projectLastServerCopy: MapProject | null = null;
+
+export let userLocaleSettings: PrismaJson.UserLocaleSettingsType = {
+  distance: "km",
+  time: 24,
+};
+export let userCanEdit: boolean = false;
 
 export default function ProjectPageContent({
   project,
@@ -63,6 +81,8 @@ export default function ProjectPageContent({
 
   const [routePlannerOrigin, setRoutePlannerOrigin] =
     useState<MapMarker | null>(null);
+  const [routePlannerDestination, setRoutePlannerDestination] =
+    useState<MapMarker | null>(null);
 
   const [routePlannerExistingRoute, setRoutePlannerExistingRoute] =
     useState<Prisma.RouteGetPayload<any> | null>(null);
@@ -71,7 +91,20 @@ export default function ProjectPageContent({
 
   const [sideBarOpen, setSidebarOpen] = useState<boolean>(true);
 
-  
+  const [currentRightClickEvent, setCurrentRightClickEvent] = useState<
+    MapRightClickEvent | undefined
+  >(undefined);
+
+  // Set global variables. These are things that do not need to be updated in realtime.
+  userLocaleSettings = user?.localeSettings ?? userLocaleSettings;
+  Settings.defaultLocale = userLocaleSettings.time == 12 ? "en-US" : "en-GB";
+
+  // Does not need to be updated in real time.
+  userCanEdit =
+    user != null &&
+    (project.userId === user.id ||
+      project.projectShares.find((ps) => ps.userId === user.id && ps.canEdit) !=
+        undefined);
 
   useEffect(() => {
     // Update the map padding
@@ -81,11 +114,13 @@ export default function ProjectPageContent({
     }));
   }, [sideBarOpen]);
 
-  const openRoutePlanner: ProjectFunctionOpenRoutePlanner = (
-    from: MapMarker | null,
-  ) => {
+  const openRoutePlanner: ProjectFunctionOpenRoutePlanner = (options: {
+    fromOrigin: MapMarker | null;
+    toDestination: MapMarker | null;
+  }) => {
     setRoutePlannerExistingRoute(null);
-    setRoutePlannerOrigin(from);
+    setRoutePlannerOrigin(options.fromOrigin);
+    setRoutePlannerDestination(options.toDestination);
   };
 
   const openExistingRoute: ProjectFunctionOpenExistingRoute = (
@@ -116,7 +151,7 @@ export default function ProjectPageContent({
           [projectLastServerCopy, updatedProject].map((c) => ({
             name: c?.name,
             description: c?.description,
-            public: c?.public
+            public: c?.public,
           })),
         )
       ) {
@@ -142,7 +177,7 @@ export default function ProjectPageContent({
         );
         if (lastRoute && !_.isEqual(lastRoute, updatedRoute)) {
           // Sync this route to the server
-          console.log("Updating route on the server:", updatedRoute.name);
+          console.log("Updating route on the server:", updatedRoute.name, lastRoute, updatedRoute);
           await serverUpdateRoute(updatedRoute.id, updatedRoute);
         }
       }
@@ -211,15 +246,13 @@ export default function ProjectPageContent({
         initialMapBounds[0] == initialMapBounds[2] &&
         initialMapBounds[1] == initialMapBounds[3]
       ) {
-        mapController.flyTo(
-          {
-            center: [initialMapBounds[0], initialMapBounds[1]],
-            zoom: 8,
-            pitch: 0,
-            bearing: 0,
-            duration: 5000
-          }
-        );
+        mapController.flyTo({
+          center: [initialMapBounds[0], initialMapBounds[1]],
+          zoom: 8,
+          pitch: 0,
+          bearing: 0,
+          duration: 5000,
+        });
       } else {
         mapController.flyToBounds(
           new LngLatBounds(
@@ -273,6 +306,12 @@ export default function ProjectPageContent({
     };
     projectEmitter.addEventListener("rotate-map", didUpdateRotationProxy);
 
+    const didRightClickMap = (event: Event) => {
+      const customEvent = event as CustomEvent<MapRightClickEvent>;
+      setCurrentRightClickEvent(customEvent.detail);
+    };
+    projectEmitter.addEventListener("map-right-click", didRightClickMap);
+
     return () => {
       projectEmitter.removeEventListener(
         "open-existing-route",
@@ -286,7 +325,11 @@ export default function ProjectPageContent({
         "update-project",
         didUpdateProjectProxy,
       );
+      projectEmitter.removeEventListener("map-right-click", didRightClickMap);
       projectEmitter.removeEventListener("rotate-map", didUpdateRotationProxy);
+
+      // Close any open markers
+      mapController.openMarker(null)
     };
   }, [project]);
 
@@ -300,7 +343,6 @@ export default function ProjectPageContent({
 
   return (
     <>
-      
       <div className="fade-in fixed top-0 left-0 right-0 z-40">
         <Navbar user={user}>
           <ProjectNavbarComponent
@@ -311,6 +353,14 @@ export default function ProjectPageContent({
           />
         </Navbar>
       </div>
+
+      {currentRightClickEvent && (
+        <ProjectMapContextMenu
+          rightClickEvent={currentRightClickEvent}
+          setRightClickEvent={setCurrentRightClickEvent}
+          project={project}
+        />
+      )}
 
       <div className="fixed size-full pointer-events-none fade-in">
         <div
@@ -339,14 +389,21 @@ export default function ProjectPageContent({
         </div>
 
         <GeneralSearchComponent
-          hide={routePlannerOrigin != null || routePlannerExistingRoute != null}
+          hide={
+            routePlannerOrigin != null ||
+            routePlannerDestination != null ||
+            routePlannerExistingRoute != null
+          }
           project={currentProject}
         />
-        {(routePlannerOrigin || routePlannerExistingRoute) && (
+        {(routePlannerOrigin ||
+          routePlannerDestination ||
+          routePlannerExistingRoute) && (
           <RoutePlanningComponent
             key={`${routePlannerOrigin?.id}-${routePlannerExistingRoute?.id}`}
             project={currentProject}
             initialFrom={routePlannerOrigin ?? undefined}
+            initialTo={routePlannerDestination ?? undefined}
             showingDbRoute={routePlannerExistingRoute ?? undefined}
             openRoutePlanner={openRoutePlanner}
             updateProject={updateProject}

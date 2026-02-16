@@ -21,14 +21,14 @@ export default function Navbar({
           href="/"
           className="tc-nav-button !text-base font-display font-semibold !px-4 text-black! flex gap-2 items-center"
         >
-          <img className="w-[24px]" src="/tripcollab-logo.svg" alt="tripcollab logo" />
+          <img className="w-[22px]" src="/tripcollab-logo.svg" alt="tripcollab logo" />
           <span className="-mt-[3px]">tripcollab</span>
         </Link>
         <div className="flex-1 min-w-0">{children}</div>
         {user ? (
           <NavBarProfileComponent user={user} />
         ) : (
-          <Link href="/login" className="tc-nav-button">
+          <Link href="/login" className="tc-nav-button px-4!">
             Login
           </Link>
         )}

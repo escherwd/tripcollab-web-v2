@@ -33,7 +33,7 @@ export default function ProjectRow({ project }: { project: MapProject }) {
       <div className="text-gray-500 text-sm">
         {startDate?.toLocaleString(DateTime.DATE_SHORT)}
       </div>
-      <div className="text-gray-500 text-sm w-14 justify-end flex items-center gap-1">
+      <div className="text-gray-500 text-sm w-11 justify-end flex items-center gap-1">
         {project.pins.length} <MdLocationPin />
       </div>
       <div className="w-12 h-5 relative flex justify-end">

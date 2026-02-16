@@ -6,9 +6,10 @@ import { serverAddRoute } from "@/app/api/project/add_route";
 import { RiLoaderFill } from "@remixicon/react";
 import { TrashIcon } from "@heroicons/react/16/solid";
 import ColorInput from "./color_input";
-import { ProjectFunctionUpdateProject } from "@/app/(layout-map)/t/[slug]/content";
+import { ProjectFunctionUpdateProject, userCanEdit } from "@/app/(layout-map)/t/[slug]/content";
 import { hereMultimodalRouteSectionsToFeatures } from "@/app/utils/backend/here_route_sections_to_features";
 import { DateTime } from "luxon";
+import TcButton from "./button";
 
 export default function RoutePlanningCustomizer({
   project,
@@ -81,16 +82,14 @@ export default function RoutePlanningCustomizer({
     if (shouldIgnoreUpdates.current) return;
     updateProject({
       ...project,
-      // @ts-expect-error Complains about name and color being possibly undefined, but that's okay
       routes: project.routes.map((r) => {
+        const styleData = r.styleData ?? {}
+        if (routeColor) styleData.color = routeColor
         if (r.id === dbRoute?.id) {
           return {
             ...r,
-            name: (routeName ?? "") == "" ? undefined : routeName,
-            styleData: {
-              ...r.styleData,
-              color: routeColor ?? undefined,
-            },
+            name: (routeName?.trim() ?? "") == "" ? placeHolderRouteName : routeName!,
+            styleData,
           };
         }
         return r;
@@ -127,19 +126,20 @@ export default function RoutePlanningCustomizer({
   if (!dbRoute)
     return (
       <div className="p-4 border-t border-gray-100 flex-none">
-        <button
+        <TcButton
           onClick={() => {
             addRouteToProject(route);
           }}
-          disabled={isAddingRoute}
-          className="tc-button tc-button-primary w-full"
+          disabled={isAddingRoute || !userCanEdit}
+          primary
+          className="w-full"
         >
           {isAddingRoute ? (
             <RiLoaderFill className="animate-spin size-4" />
           ) : (
             "Add to Project"
           )}
-        </button>
+        </TcButton>
       </div>
     );
 
@@ -151,21 +151,24 @@ export default function RoutePlanningCustomizer({
           type="text"
           defaultValue={dbRoute.name}
           placeholder={placeHolderRouteName}
+          disabled={!userCanEdit}
           onChange={(e) => setRouteName(e.target.value)}
         />
       </div>
       <ColorInput
         initialColor={routeColor}
         onColorChange={(c) => setRouteColor(c ?? undefined)}
+        viewOnly={!userCanEdit}
       />
       <div className="border-b border-dashed border-gray-200"></div>
-      <button
+      <TcButton
         onClick={deleteRoute}
-        className="tc-button tc-button-destructive w-full"
+        disabled={!userCanEdit}
+        className=" w-full"
       >
         <TrashIcon className="size-4" />
         Remove from Project
-      </button>
+      </TcButton>
     </div>
   );
 }

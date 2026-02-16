@@ -12,6 +12,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MdArrowForward, MdChevronRight } from "react-icons/md";
 import { calculateStartFor } from "../utils/logic/calculate_dates";
+import { Settings } from "luxon";
 
 export default async function Home() {
   const user = await getUser();
@@ -19,6 +20,8 @@ export default async function Home() {
   if (!user) {
     redirect("/login");
   }
+
+  Settings.defaultLocale = user.localeSettings.time == 12 ? 'en-US' : 'en-GB'
 
   const projects = await prisma.project.findMany({
     where: {

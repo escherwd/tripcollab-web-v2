@@ -27,7 +27,7 @@ import { projectPinToMarker } from "@/app/utils/backend/project_pin_to_marker";
 import { Prisma } from "@prisma/client";
 import { hereMultimodalRouteSectionsToFeatures } from "@/app/utils/backend/here_route_sections_to_features";
 import { HereMultimodalRouteSection } from "@/app/api/routes/here_multimodal";
-import { projectEventReceiver } from "@/app/utils/controllers/project_controller";
+import { projectEmitter, projectEventReceiver } from "@/app/utils/controllers/project_controller";
 import _ from "lodash";
 import { bbox, center, distance, point, points } from "@turf/turf";
 import PinGroup from "./pin_group";
@@ -302,7 +302,7 @@ export default function GlobalAppMap() {
 
   const [zoomLevel, setZoomLevel] = useState<number>(1);
 
-  const [mapStyle, setMapStyle] = useState<string>(MAP_STYLES['light_simple']);
+  const [mapStyle, setMapStyle] = useState<string>(MAP_STYLES['cartographer']);
   const [mapProjection, setMapProjection] = useState<"mercator" | "globe">(
     "globe",
   );
@@ -641,6 +641,18 @@ export default function GlobalAppMap() {
     mapController.openMarker(projectPinToMarker(pin));
   };
 
+  const handleContextMenu = (
+    e: MapMouseEvent
+  ) => {
+    e.preventDefault()
+    projectEventReceiver.didRightClickMap({
+      x: e.point.x,
+      y: e.point.y,
+      lat: e.lngLat.lat,
+      lng: e.lngLat.lng
+    })
+  }
+
   const updateOpenMarkerPopupBounds = (
     marker: MapMarker,
     mapRef: MapRef | null,
@@ -731,6 +743,7 @@ export default function GlobalAppMap() {
           bearing: 0,
         }}
         onClick={handleMapClick}
+        onContextMenu={handleContextMenu}
         interactive={true}
         projection={mapProjection}
         mapStyle={mapStyle}

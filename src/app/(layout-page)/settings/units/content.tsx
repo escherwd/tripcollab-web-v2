@@ -44,11 +44,12 @@ export default function UnitSettingsContent({ user }: { user: AppUser }) {
         </select>
       </div>
       <div className="tc-settings-input-group">
-        <div>Day Cycle</div>
+        <div>Date & Time Format</div>
         <select className="tc-input" value={timeType} onChange={(e) => setTimeType(Number.parseInt(e.target.value) === 24 ? 24 : 12)}>
-          <option value={24}>24 Hour</option>
-          <option value={12}>12 Hour (am/pm)</option>
+          <option value={24}>24 Hour – DD/MM/YYYY</option>
+          <option value={12}>12 Hour (am/pm) – MM/DD/YYYY</option>
         </select>
+        <span>Time input fields will follow system settings.</span>
       </div>
       <div className="border-t border-gray-100 gap-4 items-center py-4 flex justify-end sticky bottom-0 w-full bg-white">
         {isUpdating && <RiLoaderFill className="animate-spin size-6" />}

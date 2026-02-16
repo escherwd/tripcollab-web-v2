@@ -96,6 +96,7 @@ export const serverAddRoute = async (
             .as("minutes") ?? 0),
         0
       ),
+      styleData: {}
     },
   });
 

@@ -24,7 +24,7 @@ export const renderFeatureToMarker = (feature: GeoJSONFeature, e: MapMouseEvent)
       coordinate: coordinate,
       appleMapsPlace: {
         name: properties?.name_en ?? feature.properties?.name ?? "Dropped Pin",
-        muid: isPoi ? "mapbox-feature-needs-muid:" + vectorPlaceSearchQuery(properties) : "mapbox-feature-needs-address:" + `${coordinate.lat},${coordinate.lng}`,
+        muid: isPoi ? "mapbox-feature-needs-muid:" + vectorPlaceSearchQuery(properties) : "needs-reverse-geocode:" + `${coordinate.lat},${coordinate.lng}`,
         coordinate: coordinate,
         categoryId: mapboxPlaceClassToAppleType(
           properties?.type ?? feature.properties?.class ?? ""

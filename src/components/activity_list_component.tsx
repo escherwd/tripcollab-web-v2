@@ -9,7 +9,7 @@ import MapPlaceIcon, {
 import { act, useEffect, useMemo, useRef, useState } from "react";
 import _ from "lodash";
 import { DateTime, Duration } from "luxon";
-import { ProjectFunctionOpenExistingRoute } from "@/app/(layout-map)/t/[slug]/content";
+import { ProjectFunctionOpenExistingRoute, userLocaleSettings } from "@/app/(layout-map)/t/[slug]/content";
 import colors from "tailwindcss/colors";
 import { calendarDayDifference } from "@/app/utils/logic/date_utils";
 

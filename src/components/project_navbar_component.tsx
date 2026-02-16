@@ -1,6 +1,5 @@
 import {
   ChangeEvent,
-  ChangeEventHandler,
   FocusEvent,
   useEffect,
   useRef,
@@ -8,7 +7,7 @@ import {
 } from "react";
 import { MapProject } from "./global_map";
 import { RiLoaderFill } from "@remixicon/react";
-import { ProjectFunctionUpdateProject } from "@/app/(layout-map)/t/[slug]/content";
+import { ProjectFunctionUpdateProject, userCanEdit } from "@/app/(layout-map)/t/[slug]/content";
 import ProjectSharePopup from "./project_share_popup";
 import UserAvatars from "./user_avatars";
 import { AppUser } from "@/backend/auth/get_user";
@@ -22,7 +21,7 @@ export default function ProjectNavbarComponent({
   project: MapProject;
   serverOperationsInProgress: number;
   updateProject: ProjectFunctionUpdateProject;
-  currentUser?: AppUser,
+  currentUser?: AppUser;
 }) {
   const [projectName, setProjectName] = useState(project.name);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
@@ -50,6 +49,8 @@ export default function ProjectNavbarComponent({
       nameInputRef.current.size = projectName.length || 1;
   }, [projectName, nameInputRef]);
 
+  
+
   return (
     <>
       {sharePopupOpen && (
@@ -62,15 +63,25 @@ export default function ProjectNavbarComponent({
       )}
       <div className="flex gap-2 justify-between items-center -ml-1">
         <span className="font-mono text-sm font-medium text-gray-400">/</span>
-
-        <input
-          ref={nameInputRef}
-          value={projectName}
-          onChange={nameChangeEvent}
-          onBlur={nameBlurEvent}
-          onKeyDown={(e) => (e.key === "Enter" ? e.currentTarget.blur() : null)}
-          className="text-gray-700 -mx-1 hover:bg-gray-100 focus:bg-gray-100 px-4 py-2 rounded-lg transition-colors min-w-32 max-w-128"
-        />
+        {!userCanEdit ? (
+          <div className="flex gap-2 items-center">
+            <div className="text-gray-700 pl-3">{projectName}</div>
+            <div className="text-xs bg-gray-100 text-gray-400 rounded-lg px-2 py-0.5 font-medium">
+              View Only
+            </div>
+          </div>
+        ) : (
+          <input
+            ref={nameInputRef}
+            value={projectName}
+            onChange={nameChangeEvent}
+            onBlur={nameBlurEvent}
+            onKeyDown={(e) =>
+              e.key === "Enter" ? e.currentTarget.blur() : null
+            }
+            className="text-gray-700 -mx-1 hover:bg-gray-100 focus:bg-gray-100 px-4 py-2 rounded-lg transition-colors min-w-32 max-w-128"
+          />
+        )}
 
         <div className="flex-1"></div>
         <div
@@ -88,9 +99,11 @@ export default function ProjectNavbarComponent({
           Share
           {project.projectShares.length > 0 && (
             <div className="h-5">
-               <UserAvatars itemClass="border-gray-950! border-1!" users={project.projectShares.map((ps) => ps.user)} />
+              <UserAvatars
+                itemClass="border-gray-950! border-1!"
+                users={project.projectShares.map((ps) => ps.user)}
+              />
             </div>
-           
           )}
         </button>
       </div>

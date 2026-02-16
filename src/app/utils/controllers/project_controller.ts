@@ -23,16 +23,24 @@ export const projectEmitter = new EventTarget();
 // // Simply acts as an interface between components and the current ProjectPage instance (whatever (if any) is currently mounted)
 // export const projectController = new ProjectController();
 
+export type MapRightClickEvent = {
+  x: number,
+  y: number, 
+  lat: number,
+  lng: number,
+}
+
 class ProjectEventReceiver {
+
   didClickExistingRoute(dbRoute: Prisma.RouteGetPayload<any>) {
     projectEmitter.dispatchEvent(
       new CustomEvent("open-existing-route", { detail: dbRoute })
     );
   }
 
-  didClickRoutePlanner(fromOrigin: MapMarker | null) {
+  didClickRoutePlanner(fromOrigin: MapMarker | null, toDestination: MapMarker | null = null) {
     projectEmitter.dispatchEvent(
-      new CustomEvent("open-route-planner", { detail: fromOrigin })
+      new CustomEvent("open-route-planner", { detail: { fromOrigin, toDestination } })
     );
   }
 
@@ -46,6 +54,12 @@ class ProjectEventReceiver {
     projectEmitter.dispatchEvent(
       new CustomEvent("rotate-map", { detail: rotation })
     );
+  }
+
+  didRightClickMap(event: MapRightClickEvent) {
+    projectEmitter.dispatchEvent(
+      new CustomEvent("map-right-click", { detail: event})
+    )
   }
 }
 
