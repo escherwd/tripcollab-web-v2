@@ -6,7 +6,7 @@ export async function serverLogOut() {
     // Any server-side logout logic can go here, such as clearing cookies or sessions
     // For WorkOS AuthKit, the client-side signOut function handles the logout process
 
-    await signOut({ returnTo: '/' });
+    await signOut({ returnTo: '/welcome' });
 
     return;
 }

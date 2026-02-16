@@ -41,7 +41,7 @@ export default async function ProfilePage({
 
   return (
     <>
-      {true && (
+      {false && (
         <div className="h-48 w-full max-w-3xl mx-auto bg-gray-100 rounded-lg overflow-hidden -mb-24">
           <img
             src="/images/germany1.jpg"
@@ -79,10 +79,10 @@ export default async function ProfilePage({
             </div>
 
             <div className="">
-              <h1 className="text-3xl font-display font-bold tracking-tight">
+              <h1 className="text-2xl font-display font-bold tracking-tight">
                 {user.firstName}
               </h1>
-              <div className="text-gray-500 text-lg">@{user.username}</div>
+              <div className="text-gray-500 mt-1">@{user.username}</div>
               <div className="mt-4 text-gray-500">{user.bio}</div>
               <div className="flex gap-8 mt-5 text-gray-500">
                 {user.location && (

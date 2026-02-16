@@ -10,7 +10,7 @@ import ProjectRow from "@/components/project_row";
 import { PlusIcon } from "@heroicons/react/16/solid";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MdArrowForward, MdChevronRight } from "react-icons/md";
+import { MdArrowForward, MdChevronRight, MdMap } from "react-icons/md";
 import { calculateStartFor } from "../utils/logic/calculate_dates";
 import { Settings } from "luxon";
 
@@ -18,10 +18,17 @@ export default async function Home() {
   const user = await getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/welcome");
   }
 
-  Settings.defaultLocale = user.localeSettings.time == 12 ? 'en-US' : 'en-GB'
+  Settings.defaultLocale = user.localeSettings.time == 12 ? "en-US" : "en-GB";
+
+  const welcomeMessage = () => {
+    const date = new Date();
+    if (date.getHours() > 17) return `Good Evening, ${user.firstName}`;
+    if (date.getHours() > 12) return `Good Afternoon, ${user.firstName}`;
+    return `Good Morning, ${user.firstName}`;
+  };
 
   const projects = await prisma.project.findMany({
     where: {
@@ -99,7 +106,7 @@ export default async function Home() {
           <div className="flex pt-[10%] flex-col items-start justify-center w-full max-w-xl gap-12 relative">
             <div>
               <h1 className="text-4xl font-bold font-display text-white">
-                Welcome Back, {user?.firstName}.
+                {welcomeMessage()}
               </h1>
               <p className="text-lg mt-3 text-white/50">
                 Let&apos;s plan your next trip.
@@ -143,17 +150,25 @@ export default async function Home() {
               <div className="tc-small-heading inline-block tc-small-heading-white tc-blurred-bg-element">
                 My Projects
               </div>
-              <div className="rounded-lg shadow-lg bg-white divide-y divide-gray-100 overflow-hidden">
-                {projects.map((project) => {
-                  return <ProjectRow key={project.id} project={project} />;
-                })}
-              </div>
-              <div className="flex items-center justify-center pt-6">
-                <TcButton className="!bg-white !px-6 hover:!bg-gray-100 shadow-lg">
-                  Manage All Projects
-                  <MdArrowForward />
-                </TcButton>
-              </div>
+              {projects.length > 0 ? 
+                <>
+                  <div className="rounded-lg shadow-lg bg-white divide-y divide-gray-100 overflow-hidden">
+                    {projects.map((project) => {
+                      return <ProjectRow key={project.id} project={project} />;
+                    })}
+                  </div>
+                  <div className="flex items-center justify-center pt-6">
+                    <TcButton className="!bg-white !px-6 hover:!bg-gray-100 shadow-lg">
+                      Manage All Projects
+                      <MdArrowForward />
+                    </TcButton>
+                  </div>
+                </>
+                : <div className="rounded-lg shadow-lg bg-white px-4 py-10 w-full flex flex-col items-center justify-center gap-4">
+                  <MdMap className="size-10 text-gray-300" />
+                  <span className="text-gray-400">Looks like you don&apos;t have any projects yet!</span>
+                </div>
+              }
             </div>
           </div>
         </div>

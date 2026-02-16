@@ -905,6 +905,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@isaacs/cliui@npm:^9.0.0":
+  version: 9.0.0
+  resolution: "@isaacs/cliui@npm:9.0.0"
+  checksum: 10c0/971063b7296419f85053dacd0a0285dcadaa3dfc139228b23e016c1a9848121ad4aa5e7fcca7522062014e1eb6239a7424188b9f2cba893a79c90aae5710319c
+  languageName: node
+  linkType: hard
+
 "@isaacs/fs-minipass@npm:^4.0.0":
   version: 4.0.1
   resolution: "@isaacs/fs-minipass@npm:4.0.1"
@@ -4073,6 +4080,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/minimatch@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "@types/minimatch@npm:6.0.0"
+  dependencies:
+    minimatch: "npm:*"
+  checksum: 10c0/901fc4208cf6f5ab0e86bf86504055fb387f76092e06e604a3f2403db1c20e613c42104b235fde05552e0632d8f82e4ceacb83351d8700c7ffc5c31010a80804
+  languageName: node
+  linkType: hard
+
 "@types/node@npm:*":
   version: 24.2.0
   resolution: "@types/node@npm:24.2.0"
@@ -4589,23 +4605,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@workos-inc/authkit-nextjs@npm:^2.4.6":
-  version: 2.4.6
-  resolution: "@workos-inc/authkit-nextjs@npm:2.4.6"
+"@workos-inc/authkit-nextjs@npm:^2.14.0":
+  version: 2.14.0
+  resolution: "@workos-inc/authkit-nextjs@npm:2.14.0"
   dependencies:
-    "@workos-inc/node": "npm:^7.37.1"
+    "@workos-inc/node": "npm:^8.2.0"
     iron-session: "npm:^8.0.1"
     jose: "npm:^5.2.3"
     path-to-regexp: "npm:^6.2.2"
   peerDependencies:
-    next: ^13.5.9 || ^14.2.26 || ^15.2.3
+    next: ^13.5.9 || ^14.2.26 || ^15.2.3 || ^16
     react: ^18.0 || ^19.0.0
     react-dom: ^18.0 || ^19.0.0
-  checksum: 10c0/d4b23d9d48272fb41dca3a5b58255e9678d5d6ba12dd2fcf39e958a7d2318879644c56bf725b2e7577c752361a5647f215aa4a6826fb03e63b23a7f572a3af33
+  checksum: 10c0/ac11f24ac22f6e943181b95ccca9930363e972c18f0ad66616d0c7bdb522ccff2628d05c4fa817f2095a2fb95bdb3e2c8ad77f2b57be04cbfca9d97fc811866e
   languageName: node
   linkType: hard
 
-"@workos-inc/node@npm:^7.37.1, @workos-inc/node@npm:^7.65.0":
+"@workos-inc/node@npm:^7.65.0":
   version: 7.65.0
   resolution: "@workos-inc/node@npm:7.65.0"
   dependencies:
@@ -4615,6 +4631,16 @@ __metadata:
     pluralize: "npm:8.0.0"
     qs: "npm:6.14.0"
   checksum: 10c0/83bc984e3133ffd56cc866bf298caa130f24cb0d06fbe81b143d123763582a8fdf014be58a583aac3c5dfd0ce999de492a9442ad46502ed6e771276e09ec85ea
+  languageName: node
+  linkType: hard
+
+"@workos-inc/node@npm:^8.2.0":
+  version: 8.5.0
+  resolution: "@workos-inc/node@npm:8.5.0"
+  dependencies:
+    iron-webcrypto: "npm:^2.0.0"
+    jose: "npm:~6.1.0"
+  checksum: 10c0/8429962c366fed39153ee7ee9d86c95abccda5b19f4f6d283bfa01a71f0aef29ac2413d2ac9f5e535b445e0257103dd0f9bf7c9e5a8ce5222aeac762414f0451
   languageName: node
   linkType: hard
 
@@ -5145,6 +5171,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"balanced-match@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "balanced-match@npm:4.0.2"
+  dependencies:
+    jackspeak: "npm:^4.2.3"
+  checksum: 10c0/493eee4bece3f8b270cea8d3d6d1122ce008dd6b0d5aca8a3f1e623be6897be18c926018eadc454bd719bb7cc46d939c39fa2a05fff86b30f65382f020f6926d
+  languageName: node
+  linkType: hard
+
 "base64-js@npm:^1.3.1":
   version: 1.5.1
   resolution: "base64-js@npm:1.5.1"
@@ -5215,6 +5250,15 @@ __metadata:
   dependencies:
     balanced-match: "npm:^1.0.0"
   checksum: 10c0/6d117a4c793488af86b83172deb6af143e94c17bc53b0b3cec259733923b4ca84679d506ac261f4ba3c7ed37c46018e2ff442f9ce453af8643ecd64f4a54e6cf
+  languageName: node
+  linkType: hard
+
+"brace-expansion@npm:^5.0.2":
+  version: 5.0.2
+  resolution: "brace-expansion@npm:5.0.2"
+  dependencies:
+    balanced-match: "npm:^4.0.2"
+  checksum: 10c0/60c765e5df6fc0ceca3d5703202ae6779db61f28ea3bf93a04dbf0d50c22ef8e4644e09d0459c827077cd2d09ba8f199a04d92c36419fcf874601a5565013174
   languageName: node
   linkType: hard
 
@@ -7491,6 +7535,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"iron-webcrypto@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "iron-webcrypto@npm:2.0.0"
+  dependencies:
+    uint8array-extras: "npm:^1.5.0"
+  checksum: 10c0/c3e2bdb9e770a8c442c8f5f7ba9f781c43736f3f43ecef7c5ed2b02cfa2d2a0dc106f588bfe2a9f289fe347af6f1ce938fb635fd47c2bb88014c560564890914
+  languageName: node
+  linkType: hard
+
 "is-array-buffer@npm:^3.0.4, is-array-buffer@npm:^3.0.5":
   version: 3.0.5
   resolution: "is-array-buffer@npm:3.0.5"
@@ -7903,6 +7956,15 @@ __metadata:
     "@pkgjs/parseargs":
       optional: true
   checksum: 10c0/6acc10d139eaefdbe04d2f679e6191b3abf073f111edf10b1de5302c97ec93fffeb2fdd8681ed17f16268aa9dd4f8c588ed9d1d3bffbbfa6e8bf897cbb3149b9
+  languageName: node
+  linkType: hard
+
+"jackspeak@npm:^4.2.3":
+  version: 4.2.3
+  resolution: "jackspeak@npm:4.2.3"
+  dependencies:
+    "@isaacs/cliui": "npm:^9.0.0"
+  checksum: 10c0/b5c0c414f1607c2aa0597f4bf2c03b8443897fccd5fd3c2b3e4f77d556b2bc7c3d3413828ba91e0789f6fb40ad90242f7f89fb20aee9e9d705bc1681f7564f67
   languageName: node
   linkType: hard
 
@@ -8382,6 +8444,13 @@ __metadata:
   version: 5.6.3
   resolution: "jose@npm:5.6.3"
   checksum: 10c0/c33d8d37b86a17b1f720c667a1208248171b602375131828f645fff0d71a2fbe9b5e2a47c3fd9b7c3e41f3bf25761398150d1f158a2ee1b616ac90cf56f5e862
+  languageName: node
+  linkType: hard
+
+"jose@npm:~6.1.0":
+  version: 6.1.3
+  resolution: "jose@npm:6.1.3"
+  checksum: 10c0/b9577b4a7a5e84131011c23823db9f5951eae3ba796771a6a2401ae5dd50daf71104febc8ded9c38146aa5ebe94a92ac09c725e699e613ef26949b9f5a8bc30f
   languageName: node
   linkType: hard
 
@@ -8948,6 +9017,15 @@ __metadata:
   version: 1.0.1
   resolution: "min-indent@npm:1.0.1"
   checksum: 10c0/7e207bd5c20401b292de291f02913230cb1163abca162044f7db1d951fa245b174dc00869d40dd9a9f32a885ad6a5f3e767ee104cf278f399cb4e92d3f582d5c
+  languageName: node
+  linkType: hard
+
+"minimatch@npm:*, minimatch@npm:^10.2.0":
+  version: 10.2.0
+  resolution: "minimatch@npm:10.2.0"
+  dependencies:
+    brace-expansion: "npm:^5.0.2"
+  checksum: 10c0/256e72812bb99a86cdc788bf46a4da3f6e139db9123e20ed85a6795b93fdc0b76468ac511eb5535a023adb02a53fd598f971e990d0ca3bd6de6d41ea0199def1
   languageName: node
   linkType: hard
 
@@ -11273,12 +11351,13 @@ __metadata:
     "@types/lodash": "npm:^4.17.20"
     "@types/luxon": "npm:^3.7.1"
     "@types/mapbox-gl": "npm:^3.4.1"
+    "@types/minimatch": "npm:^6.0.0"
     "@types/node": "npm:^20"
     "@types/react": "npm:^19"
     "@types/react-dom": "npm:^19"
     "@types/react-map-gl": "npm:^6.1.7"
     "@vercel/analytics": "npm:^1.5.0"
-    "@workos-inc/authkit-nextjs": "npm:^2.4.6"
+    "@workos-inc/authkit-nextjs": "npm:^2.14.0"
     "@workos-inc/node": "npm:^7.65.0"
     "@yarnpkg/pnpify": "npm:^4.1.6"
     a11y-contrast-color: "npm:^1.1.0"
@@ -11292,6 +11371,7 @@ __metadata:
     lodash: "npm:^4.17.21"
     luxon: "npm:^3.7.2"
     mapbox-gl: "npm:^3.14.0"
+    minimatch: "npm:^10.2.0"
     next: "npm:15.4.10"
     prisma: "npm:6.15.0"
     prisma-json-types-generator: "npm:^3.6.2"
@@ -11501,6 +11581,13 @@ __metadata:
   dependencies:
     typewise-core: "npm:^1.2.0"
   checksum: 10c0/0e300a963cd344f9f4216343eb1c9714e1aee12c5b928ae3ff4a19b4b1edcd82356b8bd763905bd72528718a3c863612f8259cb047934b59bdd849f305e12e80
+  languageName: node
+  linkType: hard
+
+"uint8array-extras@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "uint8array-extras@npm:1.5.0"
+  checksum: 10c0/0e74641ac7dadb02eadefc1ccdadba6010e007757bda824960de3c72bbe2b04e6d3af75648441f412148c4103261d54fcb60be45a2863beb76643a55fddba3bd
   languageName: node
   linkType: hard
 

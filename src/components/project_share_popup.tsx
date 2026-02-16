@@ -331,15 +331,18 @@ export default function ProjectSharePopup({
             )}
           </div>
 
-          <div
-            className={`flex gap-1 mt-3 items-center text-sm text-gray-400 transition-opacity ${sessionProjectShares.length > 0 ? "opacity-100" : "opacity-0"}`}
-          >
-            <MdInfoOutline />
-            <span>
-              Users with <span className="font-semibold">edit</span> access can
-              add/edit these users
-            </span>
-          </div>
+          {userCanEdit && (
+            <div
+              className={`flex gap-1 mt-3 items-center text-sm text-gray-400 transition-opacity ${sessionProjectShares.length > 0 ? "opacity-100" : "opacity-0"}`}
+            >
+              <MdInfoOutline />
+
+              <span>
+                Users with edit access
+                can manage these users
+              </span>
+            </div>
+          )}
         </div>
       </div>
       <div className="flex-0 border-t border-gray-100 p-4 gap-2 flex items-center justify-end">

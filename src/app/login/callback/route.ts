@@ -15,7 +15,7 @@ export const GET = handleAuth({
 
         if (!user) {
             // Check if username is taken
-            let newUsername = data.user.metadata.username ?? data.user.email.split('@')[0];
+            let newUsername = data.user.metadata.username ?? data.user.firstName?.toLowerCase() ?? 'mapper';
             while (true) {
                 const existingUser = await prisma.user.findUnique({
                     where: {
@@ -39,6 +39,17 @@ export const GET = handleAuth({
                     profilePictureUrl: data.user.profilePictureUrl ?? '',
                 },
             });
+
+            const newUserShareProjectId = process.env.NEW_USER_SHARE_PROJECT_ID
+            if (newUserShareProjectId) {
+                await prisma.projectShare.create({
+                    data: {
+                        userId: newUser.id,
+                        projectId: newUserShareProjectId,
+                        canEdit: false
+                    }
+                })
+            }
 
             console.log('New user created with id: ', newUser.id, ' and workosId: ', newUser.workosId);
         }

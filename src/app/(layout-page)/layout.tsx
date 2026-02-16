@@ -1,20 +1,25 @@
 import { getUser } from "@/backend/auth/get_user";
 import Navbar from "@/components/navbar";
+import { MdMobileOff, MdPhoneDisabled } from "react-icons/md";
 
+export default async function PageLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const user = await getUser();
 
-export default async function PageLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <style>{`body { --page-bg-color: white; --bprogress-color: #000000 }`}</style>
 
-    const user = await getUser();
+      
 
-    return (
-        <>
-            <style>{`body { --page-bg-color: white; --bprogress-color: #000000 }`}</style>
-            <Navbar notFloating user={user} />
-            <div className="h-full relative pt-navbar">
-                <main className="p-2 pt-0">
-                    {children}
-                </main>
-            </div>
-        </>
-    );
+      <Navbar notFloating user={user} />
+
+      <div className="h-full relative pt-navbar">
+        <main className="p-2 pt-0">{children}</main>
+      </div>
+    </>
+  );
 }

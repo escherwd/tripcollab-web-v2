@@ -31,6 +31,6 @@ export const firstDateForProject = (project: MapProject | undefined): DateTime |
       return 0;
     }
   })[0];
-  if (!firstActivity.dateStart) return;
+  if (!firstActivity?.dateStart) return;
   return DateTime.fromJSDate(firstActivity.dateStart, { zone: (firstActivity as MapPin).zoneName ?? (firstActivity as MapRoute).zoneStart })
 };

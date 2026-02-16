@@ -74,6 +74,9 @@ export default async function ProjectPage({
 
   if (!project) redirect('/404');
 
+  if (!project.public && project.userId != user?.id && !project.projectShares.find(ps => ps.id == user?.id))
+    redirect('/404')
+
   // Calculate the initial map bounds (server side)
   const projectAllPoints = points([
     ...project.pins.map((pin) => [pin.longitude, pin.latitude]),
