@@ -17,6 +17,13 @@ type AppleMapsReverseGeocodeResult = {
     text: string;
     muid: string;
   };
+  relatedPlaceAtAddress?: {
+    muid: string;
+    coordinate: {
+      lat: number;
+      lng: number;
+    };
+  };
 };
 
 export const appleMapsReverseGeocode = async (coordinate: {
@@ -57,6 +64,8 @@ export const appleMapsReverseGeocode = async (coordinate: {
     {},
   );
 
+  console.log(components)
+
   return {
     coordinate: coordinate,
     address:
@@ -70,6 +79,16 @@ export const appleMapsReverseGeocode = async (coordinate: {
           ].containmentPlace?.containmentLine?.formatString?.[0]
             ?.replaceAll("{s:s}", "")
             .replaceAll("{/s:s}", ""),
+        }
+      : undefined,
+    relatedPlaceAtAddress: components["COMPONENT_TYPE_CONTAINMENT_PLACE"]
+      ?.relatedPlace?.mapsId?.[0].shardedId
+      ? {
+          muid: components["COMPONENT_TYPE_CONTAINMENT_PLACE"].relatedPlace
+            .mapsId[0].shardedId.muid,
+          coordinate:
+            components["COMPONENT_TYPE_CONTAINMENT_PLACE"].relatedPlace
+              .mapsId[0].shardedId.center,
         }
       : undefined,
     timeZone:

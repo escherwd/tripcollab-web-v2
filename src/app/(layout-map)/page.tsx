@@ -12,7 +12,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MdArrowForward, MdChevronRight, MdMap } from "react-icons/md";
 import { calculateStartFor } from "../utils/logic/calculate_dates";
-import { Settings } from "luxon";
+import { DateTime, Settings } from "luxon";
 
 export default async function Home() {
   const user = await getUser();
@@ -24,9 +24,9 @@ export default async function Home() {
   Settings.defaultLocale = user.localeSettings.time == 12 ? "en-US" : "en-GB";
 
   const welcomeMessage = () => {
-    const date = new Date();
-    if (date.getHours() > 17) return `Good Evening, ${user.firstName}`;
-    if (date.getHours() > 12) return `Good Afternoon, ${user.firstName}`;
+    const date = DateTime.now()
+    if (date.hour > 17) return `Good Evening, ${user.firstName}`;
+    if (date.hour > 12) return `Good Afternoon, ${user.firstName}`;
     return `Good Morning, ${user.firstName}`;
   };
 

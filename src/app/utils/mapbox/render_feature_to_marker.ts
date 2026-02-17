@@ -22,6 +22,11 @@ export const renderFeatureToMarker = (feature: GeoJSONFeature, e: MapMouseEvent)
       id: undefined,
       ephemeralId: feature.id?.toString() ?? randomBytes(8).toString("hex"),
       coordinate: coordinate,
+      mapboxPlace: {
+        name: properties?.name_en ?? feature.properties?.name,
+        countryCode: properties?.iso_3166_1,
+        category: properties?.category
+      },
       appleMapsPlace: {
         name: properties?.name_en ?? feature.properties?.name ?? "Dropped Pin",
         muid: isPoi ? "mapbox-feature-needs-muid:" + vectorPlaceSearchQuery(properties) : "needs-reverse-geocode:" + `${coordinate.lat},${coordinate.lng}`,

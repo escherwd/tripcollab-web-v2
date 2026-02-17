@@ -121,9 +121,7 @@ export default function MapPlacePopup({
     const data = await getPlaceAppleMaps(marker.appleMapsPlace?.muid, {
       lng: bounds.getCenter().lng,
       lat: bounds.getCenter().lat,
-      deltaLng: bounds.getNorthEast().lng - bounds.getSouthWest().lng,
-      deltaLat: bounds.getNorthEast().lat - bounds.getSouthWest().lat,
-    });
+    }, marker.mapboxPlace);
 
     if (!isMounted.current) return;
 

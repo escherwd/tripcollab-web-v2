@@ -58,6 +58,11 @@ export type MapMarker<T = AppleMapsPlaceResult> = {
     lng: number;
   };
   appleMapsPlace?: T;
+  mapboxPlace?: {
+    name: string,
+    countryCode?: string,
+    category?: string
+  };
   mapboxFeatureId?: string;
   customColor?: string;
 };
