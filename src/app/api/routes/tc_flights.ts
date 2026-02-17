@@ -164,6 +164,7 @@ export const tcFlightRoute = async (
   // Articulate flight into a HereMultimodalRoute
   const route: HereMultimodalRoute = {
     id: `flight-${startAirport.iata}-${endAirport.iata}-${Date.now()}`,
+    customName: `${startAirport.iata} to ${endAirport.iata}`,
     modality: "flight",
     sections: [
       // Section: idle time at departure airport

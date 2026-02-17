@@ -8,7 +8,7 @@ import { DateTime, Zone } from "luxon";
 import { useMemo, useState } from "react";
 import CalendarComponent from "./calendar_component";
 import { Prisma } from "@prisma/client";
-import { debounce } from "@/app/utils/ui/debounce";
+import { debounce, useDebounce } from "@/app/utils/ui/debounce";
 import _, { set } from "lodash";
 import { projectEventReceiver } from "@/app/utils/controllers/project_controller";
 import PanelIconButton from "./panel_icon_button";
@@ -115,6 +115,7 @@ export default function PopupScheduleComponent({
       ? (dateTimeEnd?.diff(newDateTimeStart).as("minutes") ?? 0)
       : null;
 
+      setDateTimeStart(newDateTimeStart);
     if ((duration ?? 0) < 0) {
       // Ensure leave time is after start time
       console.log("Start time must be before leave time");
@@ -125,17 +126,18 @@ export default function PopupScheduleComponent({
       dateStart: newDateTimeStart?.toJSDate(),
       duration: duration,
     });
-    setDateTimeStart(newDateTimeStart);
+    // setDateTimeStart(newDateTimeStart);
   };
 
-  const onStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const onStartTimeChange = useDebounce((e: React.ChangeEvent<HTMLInputElement>) => {
     const minutes =
       parseInt(e.target.value.split(":")[0]) * 60 +
       parseInt(e.target.value.split(":")[1]);
     // setTimeStart(minutes);
 
     setNewStartTime(minutes);
-  };
+  }, 250);
 
   const setNewLeaveTime = (minutes: number) => {
     if (!dateTimeStart) {
@@ -151,16 +153,16 @@ export default function PopupScheduleComponent({
 
     const duration = newDateTimeLeave?.diff(dateTimeStart).as("minutes") ?? 0;
 
+    setDateTimeEnd(newDateTimeLeave);
     if (duration < 0) {
       // Ensure leave time is after start time
-      console.log("Leave time must be after start time");
-      return;
+      return
+      // setDateTimeEnd(dateTimeStart.plus({ hours: 2 }))
     }
     savePinUpdates({ duration: duration });
-    setDateTimeEnd(newDateTimeLeave);
   };
 
-  const onLeaveTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onLeaveTimeChange = useDebounce((e: React.ChangeEvent<HTMLInputElement>) => {
     console.log("onLeaveTimeChange called");
 
     const minutes =
@@ -169,7 +171,7 @@ export default function PopupScheduleComponent({
 
     setNewLeaveTime(minutes);
     // savePinUpdates({ timeLeave: minutes });
-  };
+  }, 250);
 
   const onNumDaysChange = (
     date?: DateTime<boolean> | undefined,
@@ -323,7 +325,7 @@ export default function PopupScheduleComponent({
             />
           </div>
           <div className="grid grid-rows-2  h-18">
-            <div className="py-2 pl-2 pr-0.5 gap-1 border-t flex items-center justify-around border-gray-200">
+            <div className="py-2 px-2 gap-1 border-t flex items-center justify-around border-gray-200">
               <div className="text-sm text-gray-500">
                 Arrive
                 {numDays > 0 && dateTimeStart && (
@@ -358,7 +360,7 @@ export default function PopupScheduleComponent({
               )}
             </div>
             <div
-              className={`py-2 pl-2 pr-0.5 border-t gap-1 flex items-center justify-around border-gray-200 transition-colors ${
+              className={`py-2 px-2 border-t gap-1 flex items-center justify-around border-gray-200 transition-colors ${
                 durationError ? "bg-red-100" : ""
               } ${true === null ? "opacity-50 [&>*]:pointer-events-none cursor-not-allowed" : ""}`}
             >

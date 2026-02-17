@@ -21,7 +21,7 @@ export const serverAddRoute = async (
   destination: MapMarker,
   modality: HereMultimodalRouteModality,
   route: HereMultimodalRoute,
-  date?: string // ISO string
+  date?: string, // ISO string
 ) => {
   const user = await getUser();
 
@@ -43,7 +43,7 @@ export const serverAddRoute = async (
 
   const dateObj = date ? DateTime.fromISO(date, { setZone: true }) : undefined;
 
-  console.log(date, dateObj?.zoneName)
+  console.log(date, dateObj?.zoneName);
 
   // Create the route
   const newRoute = await prisma.route.create({
@@ -55,18 +55,20 @@ export const serverAddRoute = async (
       originName:
         origin.appleMapsPlace?.name ??
         `Pin at (${origin.coordinate.lat.toFixed(
-          4
+          4,
         )}, ${origin.coordinate.lng.toFixed(4)})`,
       destLat: destination.coordinate.lat,
       destLng: destination.coordinate.lng,
       destName:
         destination.appleMapsPlace?.name ??
         `Pin at (${destination.coordinate.lat.toFixed(
-          4
+          4,
         )}, ${destination.coordinate.lng.toFixed(4)})`,
-      name: origin.appleMapsPlace?.name && destination.appleMapsPlace?.name
-        ? `${origin.appleMapsPlace.name} to ${destination.appleMapsPlace.name}`
-        : "New Route",
+      name:
+        route.customName ??
+        (origin.appleMapsPlace?.name && destination.appleMapsPlace?.name
+          ? `${origin.appleMapsPlace.name} to ${destination.appleMapsPlace.name}`
+          : "New Route"),
       originAppleMapsMuid: origin.appleMapsPlace?.muid,
       originMapboxFeatureId: origin.mapboxFeatureId,
       destAppleMapsMuid: destination.appleMapsPlace?.muid,
@@ -94,9 +96,9 @@ export const serverAddRoute = async (
           (DateTime.fromISO(section.arrival.time)
             .diff(DateTime.fromISO(section.departure.time))
             .as("minutes") ?? 0),
-        0
+        0,
       ),
-      styleData: {}
+      styleData: {},
     },
   });
 

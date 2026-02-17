@@ -43,7 +43,7 @@
         @apply text-sm text-gray-500 w-full leading-tight flex gap-1 items-center;
 
         .tc-activity-list-item-time {
-            @apply text-gray-400 text-xs;
+            @apply text-gray-400 text-xs whitespace-nowrap;
         }
 
         > span {
@@ -75,7 +75,13 @@
 
         .tc-activity-list-item-text {
             @apply text-xs opacity-50 -ml-[3px];
+
+            
         }
+
+        .tc-activity-list-item-time {
+                @apply whitespace-nowrap;
+            }
 
         .tc-activity-list-item-duration-track {
             @apply opacity-0 delay-0 duration-150; 

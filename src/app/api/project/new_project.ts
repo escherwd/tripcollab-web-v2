@@ -15,6 +15,7 @@ export const serverCreateNewProject = async () => {
         userId: user.id,
         name: "Untitled Project",
         slug: crypto.randomUUID().slice(0, 8),
+        public: false
     }
   })
 

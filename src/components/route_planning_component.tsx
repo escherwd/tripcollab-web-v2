@@ -132,6 +132,12 @@ export default function RoutePlanningComponent({
   const [selectedModality, setSelectedModality] =
     useState<HereMultimodalRouteModality>("transit");
 
+  // Calculate default route options
+  // useEffect(() => {
+  //   if (inputFocused === 'from' && (fromSearchQuery?.trim() ?? '') === '')
+
+  // }, [toSearchQuery, fromSearchQuery, inputFocused])
+
   useEffect(() => {
     console.log("showingDbRoute changed:", showingDbRoute);
 
@@ -231,42 +237,39 @@ export default function RoutePlanningComponent({
     query: string,
     otherLocation?: { lng: number; lat: number },
   ) => {
-    if (query.length > 0) {
-      const bounds = await mapController.getMapBounds();
+    const bounds = await mapController.getMapBounds();
 
-      if (!bounds) return;
+    if (!bounds) return;
 
-      const data = await autocompleteAppleMaps(
-        query,
-        {
-          lng: bounds.getCenter().lng,
-          lat: bounds.getCenter().lat,
-          deltaLng: bounds.getNorthEast().lng - bounds.getSouthWest().lng,
-          deltaLat: bounds.getNorthEast().lat - bounds.getSouthWest().lat,
-        },
-        otherLocation
-          ? { lng: otherLocation.lng, lat: otherLocation.lat }
-          : undefined,
-        project.pins.map((pin) => ({
-          id: pin.id,
-          appleMapsMuid: pin.appleMapsMuid ?? undefined,
-          name: pin.name,
-        })),
-      );
-      return data;
-    } else {
-      return null;
-    }
+    const data = await autocompleteAppleMaps(
+      query,
+      {
+        lng: bounds.getCenter().lng,
+        lat: bounds.getCenter().lat,
+        deltaLng: bounds.getNorthEast().lng - bounds.getSouthWest().lng,
+        deltaLat: bounds.getNorthEast().lat - bounds.getSouthWest().lat,
+      },
+      otherLocation
+        ? { lng: otherLocation.lng, lat: otherLocation.lat }
+        : undefined,
+      project.pins.map((pin) => ({
+        id: pin.id,
+        appleMapsMuid: pin.appleMapsMuid ?? undefined,
+        name: pin.name,
+      })),
+    );
+    return data;
   };
 
   const latestFromQuery = useRef("");
   useEffect(() => {
-    if (!fromSearchQuery || fromSearchQuery.length < 1) {
-      setFromAutocompleteResults(null);
-      return;
-    }
+    // if (!fromSearchQuery || fromSearchQuery.length < 1) {
+    //   setFromAutocompleteResults(null);
+    //   return;
+    // }
+    // if (!fromSearchQuery) return;
 
-    const currentSearch = `${fromSearchQuery}`;
+    const currentSearch = `${fromSearchQuery ?? ""}`;
     latestFromQuery.current = currentSearch;
 
     (async () => {
@@ -306,12 +309,12 @@ export default function RoutePlanningComponent({
 
   const latestToQuery = useRef("");
   useEffect(() => {
-    if (!toSearchQuery || toSearchQuery.length < 1) {
-      setToAutocompleteResults(null);
-      return;
-    }
+    // if (!toSearchQuery || toSearchQuery.length < 1) {
+    //   setToAutocompleteResults(null);
+    //   return;
+    // }
 
-    const currentSearch = `${toSearchQuery}`;
+    const currentSearch = `${toSearchQuery ?? ""}`;
     latestToQuery.current = currentSearch;
 
     (async () => {
@@ -528,31 +531,42 @@ export default function RoutePlanningComponent({
   }, [routeTime]);
 
   const onRouteTimeChange = useCallback((value: typeof routeTime) => {
-    console.log("Route time changed:", value);
-    if (value.date === routeTime.date && value.type === routeTime.type) return;
+    console.log("Route time changed from to:", routeTime, value);
+    if (value.date === routeTime.date && value.type === routeTime.type) {
+      console.log("skipping setroute", routeTime, value);
+      return;
+    }
     setRouteTime(value);
   }, []);
 
-  const closeSubPage = () => {
+  const closeSubPage = async (optionalNewRouteDateTime?: DateTime) => {
     if (calendarPageOpen) {
+      // await new Promise((r) => setTimeout(r, 100))
+      console.log(routeTime);
       // Close calendar
       setCalendarPageOpen(false);
+      if (optionalNewRouteDateTime) {
+        setRouteTime((rt) => ({
+          ...rt,
+          date: optionalNewRouteDateTime,
+        }));
+      }
       // Early return if no route selected
       if (!to || !from) return;
+
+      const newRouteDateTime = optionalNewRouteDateTime ?? routeTime.date;
       // Early return if time didn't change since prev. search results
       if (
-        routeTime.date.toISO() === routeSearchResults?.time?.date &&
+        newRouteDateTime?.toISO() === routeSearchResults?.time?.date &&
         routeTime.type === routeSearchResults?.time?.type
       )
         return;
 
       // Recalculate route with new time
-      calculateRoutes(
-        from.coordinate,
-        to.coordinate,
-        selectedModality,
-        routeTime,
-      );
+      calculateRoutes(from.coordinate, to.coordinate, selectedModality, {
+        ...routeTime,
+        date: newRouteDateTime,
+      });
 
       return;
     } else if (selectedRoute) {
@@ -576,7 +590,9 @@ export default function RoutePlanningComponent({
             >
               <PanelIconButton
                 icon={<ArrowLeftIcon />}
-                onClick={closeSubPage}
+                onClick={() => {
+                  closeSubPage();
+                }}
               />
             </div>
           )}
@@ -611,6 +627,7 @@ export default function RoutePlanningComponent({
               pinFrom={associatedMapPins.from}
               onChange={onRouteTimeChange}
               initialDate={routeTime.date}
+              onClose={closeSubPage}
             />
           </div>
           <div

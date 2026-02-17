@@ -53,7 +53,7 @@ function ProjectShareUserRow({
         <div className="flex gap-1.5 items-center">
           {user.firstName}
           {isCurrentUser && (
-            <div className="px-2 py-0.5 bg-purple-100 font-medium text-purple-400 text-xs rounded">
+            <div className="px-2 py-0.5 bg-gray-100 font-medium text-gray-400 text-xs rounded">
               You
             </div>
           )}
@@ -179,7 +179,7 @@ export default function ProjectSharePopup({
   };
 
   const onCopyUrlClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    navigator.clipboard.writeText(`https://tripcollab.app/t/${project.slug}`);
+    navigator.clipboard.writeText(`https://wip.tripcollab.app/t/${project.slug}`);
     const target = event.currentTarget;
     target.innerText = "copied";
     setTimeout(() => {
@@ -258,11 +258,11 @@ export default function ProjectSharePopup({
             </div>
           </div>
           {isPublic && (
-            <div className="py-2 px-4 text-sm flex gap-2 bg-green-50 text-green-600 rounded-b-lg">
+            <div className="py-2 px-4 text-sm flex gap-2 bg-green-600 text-white rounded-b-lg">
               <div className="flex-1">
                 Published at{" "}
                 <span className="font-semibold">
-                  tripcollab.app/t/{project.slug}
+                  wip.tripcollab.app/t/{project.slug}
                 </span>
               </div>
               <a

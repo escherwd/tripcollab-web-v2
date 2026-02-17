@@ -164,6 +164,7 @@ export default function RoutePlanningCustomizer({
       <TcButton
         onClick={deleteRoute}
         disabled={!userCanEdit}
+        destructive
         className=" w-full"
       >
         <TrashIcon className="size-4" />

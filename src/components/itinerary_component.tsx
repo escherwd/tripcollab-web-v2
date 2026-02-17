@@ -28,7 +28,7 @@ export default function ItineraryComponent({
         <ActivityListComponent project={project} openExistingRoute={openExistingRoute} />
       </div>
       <div className="tc-panel flex-shrink-0 h-68">
-        <CalendarComponent project={project} initialAnchorDate={anchorDate} />
+        <CalendarComponent project={project} initialAnchorDate={anchorDate} readonly />
       </div>
     </div>
   );

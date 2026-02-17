@@ -9,7 +9,10 @@ import MapPlaceIcon, {
 import { act, useEffect, useMemo, useRef, useState } from "react";
 import _ from "lodash";
 import { DateTime, Duration } from "luxon";
-import { ProjectFunctionOpenExistingRoute, userLocaleSettings } from "@/app/(layout-map)/t/[slug]/content";
+import {
+  ProjectFunctionOpenExistingRoute,
+  userLocaleSettings,
+} from "@/app/(layout-map)/t/[slug]/content";
 import colors from "tailwindcss/colors";
 import { calendarDayDifference } from "@/app/utils/logic/date_utils";
 
@@ -174,6 +177,20 @@ export default function ActivityListComponent({
           ...(groups[endDateISO] ?? []),
         ];
       }
+    }
+
+    // Make sure each day is sorted correctly by time
+    for (const day in groups) {
+      groups[day] = groups[day].toSorted(
+        (a, b) =>
+        {
+          const aTime = a.timeStart ?? a.timeEnd as DateTime<true>
+          const bTime = b.timeStart ?? b.timeEnd as DateTime<true>
+          return (aTime.diff(aTime.startOf("day")).as('minutes') ?? 0) -
+          (bTime.diff(bTime.startOf("day")).as('minutes') ?? 0)
+        }
+          ,
+      );
     }
 
     return groups;
@@ -457,13 +474,13 @@ export default function ActivityListComponent({
                               style={{ backgroundColor: activity.color }}
                             ></div>
                             <div className="text-xs w-full text-gray-400 flex items-center justify-between">
-                              <span>
+                              <span className="line-clamp-1 overflow-ellipsis">
                                 {activity.activityType != "transit"
                                   ? `Depart ${activity.name}`
                                   : `Arrive to ${activity.name}`}
                               </span>
                               {activity.timeEnd && (
-                                <span>
+                                <span className="whitespace-nowrap">
                                   {activity.timeEnd.toLocaleString(
                                     DateTime.TIME_SIMPLE,
                                   )}

@@ -31,7 +31,7 @@ export default function TcButton({
 
   return (
     <button
-      className={`tc-button ${primary ? "tc-button-primary" : ""} ${className ?? ""}`}
+      className={`tc-button ${primary ? "tc-button-primary" : ""} ${destructive ? "tc-button-destructive" : ""} ${className ?? ""}`}
       onClick={onClick}
       disabled={disabled}
     >

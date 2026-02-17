@@ -27,19 +27,26 @@ export default function RoutePlanningCalendarSubpage({
   pinFrom,
   pinTo,
   onChange,
+  onClose,
 }: {
   initialDate: DateTime;
   project: MapProject;
   pinFrom?: MapPin;
   pinTo?: MapPin;
   onChange?: (value: { type: RoutePlanningTimeType; date: DateTime }) => void;
+  onClose: (date: DateTime) => void;
 }) {
   const [dateType, setDateType] = useState<RoutePlanningTimeType>("depart");
-  const [date, setDate] = useState<DateTime>(initialDate);
+  // const [date, setDate] = useState<DateTime>(initialDate);
 
-  const [time, setTime] = useState<number>(
-    ROUTE_DEPARTURE_DEFAULT_TIME_OF_DAY_MINUTES,
-  ); // minutes from midnight
+  // const [time, setTime] = useState<number>(
+  //   ROUTE_DEPARTURE_DEFAULT_TIME_OF_DAY_MINUTES,
+  // ); // minutes from midnight
+
+  const [dateAndTime, setDateAndTime] = useState({
+    date: initialDate,
+    time: ROUTE_DEPARTURE_DEFAULT_TIME_OF_DAY_MINUTES,
+  });
 
   const suggestion = useMemo<
     | {
@@ -69,23 +76,44 @@ export default function RoutePlanningCalendarSubpage({
     return undefined;
   }, [pinFrom, pinTo, dateType]);
 
-  const setTimeFromDate = (dt: DateTime) => {
-    setDate(dt);
-    setTime(dt.hour * 60 + dt.minute);
+  const setTimeFromDateAndClose = (dt: DateTime) => {
+    const date = constructDate(
+      dt,
+      dt.hour * 60 + dt.minute,
+      initialDate.zoneName ?? undefined,
+    );
+    setDateAndTime({
+      date: dt,
+      time: dt.hour * 60 + dt.minute
+    })
+    if (date) onClose(date);
+    // setTime(dt.hour * 60 + dt.minute);
+    // setDate(dt);
+  };
+
+  const constructDate = (date: DateTime, time: number, zone?: string) => {
+    return date
+      .set({ hour: Math.floor(time / 60), minute: time % 60 })
+      .setZone(zone, { keepLocalTime: true });
   };
 
   useEffect(() => {
-    const dateStr = date
-      .set({ hour: Math.floor(time / 60), minute: time % 60 })
-      .setZone(initialDate.zone, { keepLocalTime: true })
-      
-      // .toISO({ includeOffset: false });
+    const dateStr = constructDate(
+      dateAndTime.date,
+      dateAndTime.time,
+      initialDate.zoneName ?? undefined,
+    );
+
+    // .toISO({ includeOffset: false });
     if (dateStr)
       onChange?.({
         type: dateType,
         date: dateStr,
       });
-  }, [date, time, onChange, dateType]);
+    else {
+      console.log("COULD NOT CALL ONCHANGE");
+    }
+  }, [dateAndTime, onChange, dateType]);
 
   return (
     <div className="w-full p-4 flex flex-col gap-6">
@@ -113,7 +141,9 @@ export default function RoutePlanningCalendarSubpage({
         <div>
           <div className="text-gray-500 text-sm mb-3">Suggestion</div>
           <div
-            onClick={() => setTimeFromDate(suggestion.date)}
+            onClick={() => {
+              setTimeFromDateAndClose(suggestion.date);
+            }}
             className="pl-2 pr-2 py-3 bg-gray-100 hover:bg-gray-200 transition-colors rounded-lg text-sm flex gap-2 items-center cursor-pointer"
           >
             <div className="flex items-center">
@@ -172,11 +202,17 @@ export default function RoutePlanningCalendarSubpage({
             className="flex-1 text-lg"
             onChange={(e) => {
               const [hours, minutes] = e.target.value.split(":").map(Number);
-              setTime(hours * 60 + minutes);
+              setDateAndTime((dt) => ({
+                ...dt,
+                time: hours * 60 + minutes,
+              }));
             }}
-            value={`${Math.floor(time / 60)
+            value={`${Math.floor(dateAndTime.time / 60)
               .toString()
-              .padStart(2, "0")}:${(time % 60).toString().padStart(2, "0")}`}
+              .padStart(
+                2,
+                "0",
+              )}:${(dateAndTime.time % 60).toString().padStart(2, "0")}`}
           />
         </div>
       </div>
@@ -187,9 +223,11 @@ export default function RoutePlanningCalendarSubpage({
           <CalendarComponent
             dense
             project={project}
-            initialAnchorDate={date}
-            date={date}
-            onDateChange={(d) => (d ? setDate(d) : null)}
+            initialAnchorDate={dateAndTime.date}
+            date={dateAndTime.date}
+            onDateChange={(d) =>
+              d ? setDateAndTime((dt) => ({ ...dt, date: d })) : null
+            }
             readonly={false}
           />
         </div>

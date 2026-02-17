@@ -299,8 +299,8 @@ export default function MapPlacePopup({
       />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="pl-4 pt-4 pb-3 border-b border-gray-100 mb-4 pr-14">
-          <div className="flex-1 flex flex-col gap-1">
+        <div className="pl-4 pt-4 pb-3.5 border-b border-gray-100 mb-4 pr-14">
+          <div className="flex-1 flex flex-col gap-1.5">
             <div className="text-xl font-display font-semibold leading-6">
               {marker.appleMapsPlace?.name}
             </div>

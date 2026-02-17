@@ -139,6 +139,8 @@ export type HereMultimodalRoute = {
   id: string;
   modality: HereMultimodalRouteModality;
   sections: HereMultimodalRouteSection[];
+  /* Overide for name when adding to DB */
+  customName?: string;
   /* Total distance in meters */
   totalDistance: number;
   /* Starting time ISO string */

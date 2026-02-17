@@ -27,7 +27,10 @@ import { projectPinToMarker } from "@/app/utils/backend/project_pin_to_marker";
 import { Prisma } from "@prisma/client";
 import { hereMultimodalRouteSectionsToFeatures } from "@/app/utils/backend/here_route_sections_to_features";
 import { HereMultimodalRouteSection } from "@/app/api/routes/here_multimodal";
-import { projectEmitter, projectEventReceiver } from "@/app/utils/controllers/project_controller";
+import {
+  projectEmitter,
+  projectEventReceiver,
+} from "@/app/utils/controllers/project_controller";
 import _ from "lodash";
 import { bbox, center, distance, point, points } from "@turf/turf";
 import PinGroup from "./pin_group";
@@ -59,9 +62,9 @@ export type MapMarker<T = AppleMapsPlaceResult> = {
   };
   appleMapsPlace?: T;
   mapboxPlace?: {
-    name: string,
-    countryCode?: string,
-    category?: string
+    name: string;
+    countryCode?: string;
+    category?: string;
   };
   mapboxFeatureId?: string;
   customColor?: string;
@@ -307,7 +310,7 @@ export default function GlobalAppMap() {
 
   const [zoomLevel, setZoomLevel] = useState<number>(1);
 
-  const [mapStyle, setMapStyle] = useState<string>(MAP_STYLES['cartographer']);
+  const [mapStyle, setMapStyle] = useState<string>(MAP_STYLES["cartographer"]);
   const [mapProjection, setMapProjection] = useState<"mercator" | "globe">(
     "globe",
   );
@@ -503,17 +506,19 @@ export default function GlobalAppMap() {
     const listenerOpenMarker = (e: CustomEventInit<MapMarker | null>) => {
       setOpenMarker(e.detail ?? null);
       if (!e.detail) return;
-      const overflow = updateOpenMarkerPopupBounds(e.detail, map.current);
-      if (overflow) {
-        mapController.flyTo(
-          {
-            center: [e.detail.coordinate.lng, e.detail.coordinate.lat],
-            animate: true,
-            duration: 1000,
-          },
-          true,
-        );
-      }
+      setTimeout(() => {
+        const overflow = updateOpenMarkerPopupBounds(e.detail!, map.current);
+        if (overflow) {
+          mapController.flyTo(
+            {
+              center: [e.detail!.coordinate.lng, e.detail!.coordinate.lat],
+              animate: true,
+              duration: 1000,
+            },
+            true,
+          );
+        }
+      }, 100);
     };
 
     mapEmitter.addEventListener("open-marker", listenerOpenMarker);
@@ -562,7 +567,9 @@ export default function GlobalAppMap() {
       listenerSetGeoJSONFeatures,
     );
 
-    const listenerUpdateMapStyle = (e: CustomEventInit<keyof typeof MAP_STYLES>) => {
+    const listenerUpdateMapStyle = (
+      e: CustomEventInit<keyof typeof MAP_STYLES>,
+    ) => {
       if (e.detail) setMapStyle(MAP_STYLES[e.detail]);
     };
 
@@ -574,7 +581,7 @@ export default function GlobalAppMap() {
       mapEmitter.removeEventListener("open-marker", listenerOpenMarker);
       mapEmitter.removeEventListener("set-project", listenerSetProject);
       // Delete the current map instance from the mapController
-      mapEmitter.dispatchEvent(new CustomEvent("map-mount", { detail: null }))
+      mapEmitter.dispatchEvent(new CustomEvent("map-mount", { detail: null }));
     };
   }, [map]);
 
@@ -646,17 +653,15 @@ export default function GlobalAppMap() {
     mapController.openMarker(projectPinToMarker(pin));
   };
 
-  const handleContextMenu = (
-    e: MapMouseEvent
-  ) => {
-    e.preventDefault()
+  const handleContextMenu = (e: MapMouseEvent) => {
+    e.preventDefault();
     projectEventReceiver.didRightClickMap({
       x: e.point.x,
       y: e.point.y,
       lat: e.lngLat.lat,
-      lng: e.lngLat.lng
-    })
-  }
+      lng: e.lngLat.lng,
+    });
+  };
 
   const updateOpenMarkerPopupBounds = (
     marker: MapMarker,
