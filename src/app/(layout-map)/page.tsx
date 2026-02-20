@@ -106,7 +106,7 @@ export default async function Home() {
         <Navbar user={user} />
       </div>
 
-      <div className="fixed size-full overflow-scroll fade-in">
+      <div className="fixed size-full overflow-y-scroll fade-in">
         <div className="tc-page-padding flex flex-col items-center justify-start">
           <div className="flex pt-[10%] flex-col items-start justify-center w-full max-w-xl gap-12 relative">
             <div>

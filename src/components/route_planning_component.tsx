@@ -862,7 +862,7 @@ export default function RoutePlanningComponent({
               </TcButton>
             ))}
           </div>
-          <div className="flex-1 relative overflow-scroll border-t border-gray-100">
+          <div className="flex-1 relative overflow-y-scroll border-t border-gray-100">
             {isCalculatingRoute && (
               <div className="absolute inset-0 flex gap-2 items-start justify-center pt-4">
                 <RiLoaderFill className="text-gray-400 size-5 animate-spin" />

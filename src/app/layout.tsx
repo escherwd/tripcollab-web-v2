@@ -60,7 +60,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${plexSans.variable} ${plexMono.variable} ${dmSans.variable} ${inter.variable} ${platypi.variable} w-screen min-h-screen`}
+        className={`${plexSans.variable} ${plexMono.variable} ${dmSans.variable} ${inter.variable} ${platypi.variable} w-full min-h-screen`}
       >
         <div
           id="mobile-overlay"

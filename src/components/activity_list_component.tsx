@@ -435,7 +435,7 @@ export default function ActivityListComponent({
         ref={activityListContainer}
       >
         <div
-          className="tc-activity-list-scroll-view tc-scrollbar-hidden z-10 relative"
+          className="tc-activity-list-scroll-view z-10 relative"
           ref={activityScrollView}
         >
           <div className={`mx-2 my-2 z-10 bg-white pointer-events-auto`}>

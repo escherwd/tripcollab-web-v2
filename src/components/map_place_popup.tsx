@@ -285,7 +285,7 @@ export default function MapPlacePopup({
   }, [place, pin]);
 
   return (
-    <div className="size-full flex flex-col bg-white rounded-lg shadow-lg z-40 relative">
+    <div className="size-full flex flex-col bg-white rounded-lg shadow-lg z-40 relative overflow-hidden">
       {/* <button
         onClick={onClose}
         className="absolute z-50 top-4 right-4 bg-gray-100 hover:bg-gray-200 cursor-pointer rounded-full p-1 text-gray-500 hover:text-gray-700"

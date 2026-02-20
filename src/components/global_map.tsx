@@ -306,8 +306,8 @@ export default function GlobalAppMap() {
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [openMarker, setOpenMarker] = useState<MapMarker | null>(null);
   const [openMarkerPopupBounds, setOpenMarkerPopupBounds] = useState<{
-    left: number | undefined;
-    top: number | undefined;
+    left: number | string | undefined;
+    top: number | string | undefined;
     width: number;
     height: number;
     marginTop: number;
@@ -729,8 +729,8 @@ export default function GlobalAppMap() {
     const transformOrigin = placedAbove ? "bottom center" : "top center";
 
     // Update popup position directly through ref (needs to be fast)
-    openMarkerRef.current?.style.setProperty("left", `${x}px`);
-    openMarkerRef.current?.style.setProperty("top", `${y}px`);
+    openMarkerRef.current?.style.setProperty("--popup-left", `${x}px`);
+    openMarkerRef.current?.style.setProperty("--popup-top", `${y}px`);
     openMarkerRef.current?.style.setProperty(
       "transform-origin",
       transformOrigin,
@@ -739,8 +739,8 @@ export default function GlobalAppMap() {
     // Configure rest of style through react state (slower to update)
     setOpenMarkerPopupBounds({
       // These are okay to be set when ref doesn't exist yet (as initial render)
-      left: openMarkerRef.current ? undefined : x,
-      top: openMarkerRef.current ? undefined : y,
+      left: `var(--popup-left, ${x})`,
+      top: `var(--popup-top, ${y})`,
       width: size.width,
       height: size.height - 30,
       marginTop: placedAbove ? 0 : 30,

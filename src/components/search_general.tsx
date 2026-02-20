@@ -266,7 +266,7 @@ export default function GeneralSearchComponent({
 
         {isShowingResults && (
           <div
-            className="flex-1 flex flex-col tc-panel w-full transition-all duration-300 fade-in overflow-scroll bg-white"
+            className="flex-1 flex flex-col tc-panel w-full transition-all duration-300 fade-in overflow-y-scroll bg-white"
             style={{
               marginTop: autocompleteResults ? "0px" : "-8px",
             }}
@@ -290,7 +290,7 @@ export default function GeneralSearchComponent({
                 No results Found.
               </div>
             )}
-            <div className="flex-1 overflow-scroll">
+            <div className="flex-1 overflow-y-scroll">
               {searchResults?.results.map((result) => (
                 <button
                   key={result.muid}

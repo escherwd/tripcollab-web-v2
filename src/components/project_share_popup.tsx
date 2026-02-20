@@ -216,7 +216,7 @@ export default function ProjectSharePopup({
 
   return (
     <PopupWindow title="Sharing" onClose={() => onClose?.()}>
-      <div className="p-4 flex-1 overflow-scroll min-h-[400px]">
+      <div className="p-4 flex-1 overflow-y-scroll min-h-[400px]">
         <div className="pt-0">
           <div className="tc-small-heading">Owner</div>
           <div className="rounded-lg bg-gray-50">
@@ -291,7 +291,7 @@ export default function ProjectSharePopup({
 
           <div className="relative w-full">
             {userAddSearchResults && (
-              <div className="absolute w-full z-20 top-0 left-0 right-0 h-42 bg-white divide-y divide-gray-100 rounded-lg shadow-lg overflow-scroll">
+              <div className="absolute w-full z-20 top-0 left-0 right-0 h-42 bg-white divide-y divide-gray-100 rounded-lg shadow-lg overflow-y-scroll">
                 {userAddSearchResults.length > 0 ? (
                   userAddSearchResults.map((user) => (
                     <button

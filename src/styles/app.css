@@ -24,7 +24,31 @@ body {
 
   --bprogress-color: #000;
   --bprogress-box-shadow: none;
+
+  scrollbar-width: thin;
 }
+
+/* width */
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}
+
+
 
 button:focus, input:focus, textarea:focus {
   @apply outline-gray-200;

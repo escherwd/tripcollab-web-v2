@@ -24,7 +24,7 @@ export default function SearchAutocompleteComponent({
 }) {
   return (
     <div
-      className="tc-panel w-full !overflow-scroll duration-300 transition-all relative bg-white rounded-lg shadow-lg"
+      className="tc-panel w-full !overflow-y-scroll duration-300 transition-all relative bg-white rounded-lg shadow-lg"
       style={{
         height: results ? "256px" : "0px",
         opacity: results ? "1" : "0",
