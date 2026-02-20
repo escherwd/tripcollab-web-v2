@@ -35,6 +35,7 @@ import _ from "lodash";
 import { bbox, center, distance, point, points } from "@turf/turf";
 import PinGroup from "./pin_group";
 import {
+  MAP_DEFAULT_STYLE,
   MAP_STYLES,
   MAP_UI_POPOVER_MIN_HEIGHT,
   MAP_UI_POPOVER_STAY_IN_FRAME,
@@ -106,7 +107,7 @@ class MapController {
 
   private project: MapProject | null = null;
 
-  private mapStyle: keyof typeof MAP_STYLES = "cartographer";
+  private mapStyle: keyof typeof MAP_STYLES = MAP_DEFAULT_STYLE;
 
   padding: MapPadding = {
     top: 64,
@@ -163,6 +164,13 @@ class MapController {
     mapEmitter.dispatchEvent(
       new CustomEvent("style-update", { detail: mapStyle }),
     );
+  }
+
+  getMapStyle() {
+    return {
+      key: this.mapStyle,
+      uri: MAP_STYLES[this.mapStyle]
+    }
   }
 
   /**
@@ -310,7 +318,7 @@ export default function GlobalAppMap() {
 
   const [zoomLevel, setZoomLevel] = useState<number>(1);
 
-  const [mapStyle, setMapStyle] = useState<string>(MAP_STYLES["cartographer"]);
+  const [mapStyle, setMapStyle] = useState<string>(mapController.getMapStyle().uri);
   const [mapProjection, setMapProjection] = useState<"mercator" | "globe">(
     "globe",
   );
@@ -322,8 +330,9 @@ export default function GlobalAppMap() {
     MapFeatureWithLayerSpec[]
   >([]);
 
-  const mapZoomStartEndListener = (e: { type: string }) => {
-    if (e.type === "zoomstart" || e.type === "movestart") {
+  const mapZoomStartEndListener = (e: { type: string, originalEvent?: MouseEvent | WheelEvent | TouchEvent }) => {
+    if ((e.type === "zoomstart" || e.type === "movestart") && e.originalEvent) {
+      // Existence of originalEvent implies this was a user interaction
       openMarkerRef.current?.classList.add("scale-30", "pointer-events-none");
     } else if (e.type === "zoomend" || e.type === "moveend") {
       openMarkerRef.current?.classList.remove(
@@ -593,6 +602,9 @@ export default function GlobalAppMap() {
         updateOpenMarkerPopupBounds(openMarker, e.target);
       }
     };
+
+    if (openMarker)
+      updateOpenMarkerPopupBounds(openMarker, currentMap)
 
     currentMap?.on("move", moveListener);
 

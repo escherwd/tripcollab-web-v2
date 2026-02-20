@@ -33,8 +33,8 @@ const getPlaceAppleMaps = async (
     // deltaLng?: number;
     // deltaLat?: number;
   },
-  hints?: MapMarker['mapboxPlace'] & {
-    shouldAttemptToFindContainingPlace?: boolean
+  hints?: MapMarker["mapboxPlace"] & {
+    shouldAttemptToFindContainingPlace?: boolean;
   },
 ): Promise<AppleMapsPlace | null> => {
   if (muid.startsWith("mapbox-feature-needs-muid")) {
@@ -42,7 +42,7 @@ const getPlaceAppleMaps = async (
     // const query = muid.split(":")[1];
 
     if (!hints) {
-      throw "A place name is required for reverse lookup"
+      throw "A place name is required for reverse lookup";
     }
 
     // 1 degree of latitude = ~111km
@@ -64,22 +64,30 @@ const getPlaceAppleMaps = async (
 
     const result = results.results?.[0];
 
-    if (
-      !result?.muid ||
-      Math.abs(result.coordinate.lat - loc.lat) > 10000 * (1 / 111000) ||
-      Math.abs(result.coordinate.lng - loc.lng) > 10000 * (1 / 111000)
-    ) {
-      // No found location or it is too far from input coordinate (~10km) to be considered an accurate match
-      // Attempt to use pure reverse geocode to find containing place
-
+    // No Apple Maps ID - Use pure reverse geocode
+    if (!result?.muid) {
       return await getPlaceAppleMaps("needs-reverse-geocode", loc, {
         ...hints,
-        shouldAttemptToFindContainingPlace: true
+        shouldAttemptToFindContainingPlace: true,
+      });
+    }
+
+    if (
+      !(
+        hints.category &&
+        ["country", "state", "territory", "region"].includes(hints.category)
+      ) &&
+      (Math.abs(result.coordinate.lat - loc.lat) > 10000 * (1 / 111000) ||
+        Math.abs(result.coordinate.lng - loc.lng) > 10000 * (1 / 111000))
+    ) {
+      // Location is not a territory and is too far from input point to be though of as accurate
+      return await getPlaceAppleMaps("needs-reverse-geocode", loc, {
+        ...hints,
+        shouldAttemptToFindContainingPlace: true,
       });
     }
 
     muid = result.muid;
-
   } else if (muid.startsWith("needs-reverse-geocode")) {
     // Reverse geo-code using Apple Maps for given coordinate
     const locationResult = await appleMapsReverseGeocode(loc);
@@ -88,7 +96,7 @@ const getPlaceAppleMaps = async (
       return null;
     }
 
-    console.log(locationResult.relatedPlaceAtAddress)
+    console.log(locationResult.relatedPlaceAtAddress);
 
     if (
       !hints?.shouldAttemptToFindContainingPlace ||
@@ -103,7 +111,7 @@ const getPlaceAppleMaps = async (
         containmentPlace: locationResult?.containmentPlace,
       };
 
-    muid = locationResult.relatedPlaceAtAddress.muid
+    muid = locationResult.relatedPlaceAtAddress.muid;
   }
 
   const body = {
@@ -117,7 +125,6 @@ const getPlaceAppleMaps = async (
     clientTimeInfo: appleMapsGenerateClientTimeInfo(),
     analyticMetadata: appleMapsGenerateAnalyticsBody(),
   };
-
 
   const response = await fetch(`https://maps.apple.com/data/place`, {
     method: "POST",

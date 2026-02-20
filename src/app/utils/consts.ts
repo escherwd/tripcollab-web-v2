@@ -15,6 +15,7 @@ export const MAP_STYLES = {
     'satellite': 'mapbox://styles/escherwd/cmjg9laiv004a01rc5ir733v2',
     'cartographer': 'mapbox://styles/escherwd/cmkqa99g0001601sof6iw47rf',
 }
+export const MAP_DEFAULT_STYLE: keyof typeof MAP_STYLES = 'light_simple'
 
 // ## SEARCHING ##
 export const SEARCH_LOCAL_RESULTS_MAX = 5;

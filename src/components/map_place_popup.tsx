@@ -119,8 +119,8 @@ export default function MapPlacePopup({
     }
 
     const data = await getPlaceAppleMaps(marker.appleMapsPlace?.muid, {
-      lng: bounds.getCenter().lng,
-      lat: bounds.getCenter().lat,
+      lng: marker.coordinate.lng,
+      lat: marker.coordinate.lat,
     }, marker.mapboxPlace);
 
     if (!isMounted.current) return;

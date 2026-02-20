@@ -24,10 +24,15 @@ export default async function Home() {
   Settings.defaultLocale = user.localeSettings.time == 12 ? "en-US" : "en-GB";
 
   const welcomeMessage = () => {
-    const date = DateTime.now()
-    if (date.hour > 17) return `Good Evening, ${user.firstName}`;
-    if (date.hour > 12) return `Good Afternoon, ${user.firstName}`;
-    return `Good Morning, ${user.firstName}`;
+    // const date = DateTime.now()
+    // if (date.hour > 17) return `Good Evening, ${user.firstName}`;
+    // if (date.hour > 12) return `Good Afternoon, ${user.firstName}`;
+    // return `Good Morning, ${user.firstName}`;
+    if (DateTime.fromJSDate(user.createdAt).diffNow("days").negate().days < 3) {
+      return `Welcome, ${user.firstName}!`;
+    } else {
+      return `Welcome Back, ${user.firstName}`;
+    }
   };
 
   const projects = await prisma.project.findMany({
@@ -150,7 +155,7 @@ export default async function Home() {
               <div className="tc-small-heading inline-block tc-small-heading-white tc-blurred-bg-element">
                 My Projects
               </div>
-              {projects.length > 0 ? 
+              {projects.length > 0 ? (
                 <>
                   <div className="rounded-lg shadow-lg bg-white divide-y divide-gray-100 overflow-hidden">
                     {projects.map((project) => {
@@ -164,11 +169,14 @@ export default async function Home() {
                     </TcButton>
                   </div>
                 </>
-                : <div className="rounded-lg shadow-lg bg-white px-4 py-10 w-full flex flex-col items-center justify-center gap-4">
+              ) : (
+                <div className="rounded-lg shadow-lg bg-white px-4 py-10 w-full flex flex-col items-center justify-center gap-4">
                   <MdMap className="size-10 text-gray-300" />
-                  <span className="text-gray-400">Looks like you don&apos;t have any projects yet!</span>
+                  <span className="text-gray-400">
+                    Looks like you don&apos;t have any projects yet!
+                  </span>
                 </div>
-              }
+              )}
             </div>
           </div>
         </div>

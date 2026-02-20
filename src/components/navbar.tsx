@@ -23,11 +23,11 @@ export default function Navbar({
           href="/"
           className="tc-nav-button !text-base font-display font-semibold !px-4 text-black! flex gap-2 items-center"
         >
-          <img
+          {/* <img
             className="w-[22px]"
             src="/tripcollab-logo.svg"
             alt="tripcollab logo"
-          />
+          /> */}
           <span className="-mt-[3px]">tripcollab</span>
         </Link>
         <div className="flex-1 min-w-0">{children}</div>
