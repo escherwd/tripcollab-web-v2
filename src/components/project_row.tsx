@@ -38,7 +38,7 @@ export default function ProjectRow({ project }: { project: MapProject }) {
       </div>
       <div className="w-12 h-5 relative flex justify-end">
         
-          <UserAvatars users={[project.user].concat(project.projectShares.map(ps => ps.user)).slice(0,3)} />
+          <UserAvatars users={[project.user].concat(project.projectShares.map(ps => ps.user)).slice(0,2)} />
 
       </div>
       <div>
