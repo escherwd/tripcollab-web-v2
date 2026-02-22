@@ -671,9 +671,9 @@ export default function RoutePlanningComponent({
                           {selectedRoute.departureTime && (
                             <span>
                               {" – "}
-                              {DateTime.fromISO(
-                                selectedRoute.departureTime,
-                              ).toLocaleString(DateTime.TIME_SIMPLE)}
+                              {DateTime.fromISO(selectedRoute.departureTime)
+                                .setZone(selectedRoute.zones.start)
+                                .toLocaleString(DateTime.TIME_SIMPLE)}
                               &nbsp;
                               {selectedRoute.zones.end !=
                                 selectedRoute.zones.start && (
