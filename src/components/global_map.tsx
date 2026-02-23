@@ -26,7 +26,10 @@ import { projectPinToMarker } from "@/app/utils/backend/project_pin_to_marker";
 // import { Feature } from "geojson";
 import { Prisma } from "@prisma/client";
 import { hereMultimodalRouteSectionsToFeatures } from "@/app/utils/backend/here_route_sections_to_features";
-import { HereMultimodalRouteSection } from "@/app/api/routes/here_multimodal";
+import {
+  HereMultimodalRouteModality,
+  HereMultimodalRouteSection,
+} from "@/app/api/routes/here_multimodal";
 import {
   projectEmitter,
   projectEventReceiver,
@@ -96,6 +99,7 @@ export type MapFeatureWithLayerSpec = {
   feature: GeoJSON.GeoJSON;
   layer: LayerSpecification;
   marker?: ConsolidatedMapMarker;
+  modalityType?: HereMultimodalRouteModality;
 };
 
 type MapFeatureContextType = "permanent" | "temporary" | "all";
@@ -169,8 +173,8 @@ class MapController {
   getMapStyle() {
     return {
       key: this.mapStyle,
-      uri: MAP_STYLES[this.mapStyle]
-    }
+      uri: MAP_STYLES[this.mapStyle],
+    };
   }
 
   /**
@@ -318,7 +322,9 @@ export default function GlobalAppMap() {
 
   const [zoomLevel, setZoomLevel] = useState<number>(1);
 
-  const [mapStyle, setMapStyle] = useState<string>(mapController.getMapStyle().uri);
+  const [mapStyle, setMapStyle] = useState<string>(
+    mapController.getMapStyle().uri,
+  );
   const [mapProjection, setMapProjection] = useState<"mercator" | "globe">(
     "globe",
   );
@@ -330,7 +336,10 @@ export default function GlobalAppMap() {
     MapFeatureWithLayerSpec[]
   >([]);
 
-  const mapZoomStartEndListener = (e: { type: string, originalEvent?: MouseEvent | WheelEvent | TouchEvent }) => {
+  const mapZoomStartEndListener = (e: {
+    type: string;
+    originalEvent?: MouseEvent | WheelEvent | TouchEvent;
+  }) => {
     if ((e.type === "zoomstart" || e.type === "movestart") && e.originalEvent) {
       // Existence of originalEvent implies this was a user interaction
       openMarkerRef.current?.classList.add("scale-30", "pointer-events-none");
@@ -545,6 +554,7 @@ export default function GlobalAppMap() {
               (r.segments ?? []) as HereMultimodalRouteSection[],
               false,
               r.styleData ?? undefined,
+              r.modality as HereMultimodalRouteModality,
             ),
           )
           .flat();
@@ -603,8 +613,7 @@ export default function GlobalAppMap() {
       }
     };
 
-    if (openMarker)
-      updateOpenMarkerPopupBounds(openMarker, currentMap)
+    if (openMarker) updateOpenMarkerPopupBounds(openMarker, currentMap);
 
     currentMap?.on("move", moveListener);
 
@@ -909,6 +918,12 @@ export default function GlobalAppMap() {
                       paint={{
                         ...feature.layer.paint,
                         "line-width": isHighlighted ? 8 : zoomLevel > 5 ? 6 : 4,
+                        "line-opacity":
+                          feature.modalityType == "flight"
+                            ? zoomLevel > 6
+                              ? Math.max(0, 1 - (zoomLevel - 6) / 3)
+                              : 1
+                            : 1,
                       }}
                       layout={feature.layer.layout as any}
                     />

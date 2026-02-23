@@ -1,6 +1,6 @@
 'use client'
 
-import { HereMultimodalRouteSection } from "@/app/api/routes/here_multimodal"
+import { HereMultimodalRouteModality, HereMultimodalRouteSection } from "@/app/api/routes/here_multimodal"
 import { MapFeatureWithLayerSpec } from "@/components/global_map"
 import RoutePlanningSectionChip from "@/components/route_planning_section_chip"
 import { decode } from "@here/flexpolyline"
@@ -8,7 +8,7 @@ import { herePlatformRouteGetStyleForSection } from "../here_maps/route_styles"
 
 import * as turf from "@turf/turf";
 
-export const hereMultimodalRouteSectionsToFeatures = (routeId: string, sections: HereMultimodalRouteSection[], includeMarkers: boolean = true, styleData?: PrismaJson.RouteStyleType): MapFeatureWithLayerSpec[] => {
+export const hereMultimodalRouteSectionsToFeatures = (routeId: string, sections: HereMultimodalRouteSection[], includeMarkers: boolean = true, styleData?: PrismaJson.RouteStyleType, modalityType?: HereMultimodalRouteModality): MapFeatureWithLayerSpec[] => {
   return sections.map((section) => {
     const id = routeId + "-" + section.id;
 
@@ -29,6 +29,7 @@ export const hereMultimodalRouteSectionsToFeatures = (routeId: string, sections:
 
     const feature: MapFeatureWithLayerSpec = {
       id,
+      modalityType: modalityType,
       feature: {
         id,
         type: "Feature",
