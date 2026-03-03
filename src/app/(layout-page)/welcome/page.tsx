@@ -7,12 +7,8 @@ export default async function WelcomePage() {
     <>
       <style>{"#mobile-overlay { display: none }"}</style>
       <div className="pt-12 pb-24 px-4">
-        <div className="w-full aspect-[3.6] rounded-lg overflow-hidden mx-auto max-w-3xl">
-          <img
-            src="/images/tripcollab-banner.webp"
-            alt="Banner Image"
-            className="object-fill"
-          />
+        <div className="w-full mx-auto max-w-3xl">
+          <img src="/images/tripcollab-screenshots.webp" alt="Screenshots of web app" />
         </div>
         <main className="mx-auto max-w-xl">
           <h1 className="mt-12 font-display text-xl font-medium">
@@ -49,6 +45,12 @@ export default async function WelcomePage() {
               Escher
             </a>{" "}
             (wrighesc@oregonstate.edu) to provide feedback.
+          </p>
+          <h1 className="mt-12 font-display text-xl font-medium">
+            Source Code
+          </h1>
+          <p className="mt-3 text-gray-700">
+            This project is open source. <a className="underline" href="https://github.com/escherwd/tripcollab-web-v2">Source Code</a>
           </p>
         </main>
       </div>
