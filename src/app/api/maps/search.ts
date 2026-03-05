@@ -58,11 +58,11 @@ export async function searchAppleMaps(
   const results: AppleMapsPlaceResult[] = [];
 
   for (const mapResult of data.mapsResult ?? []) {
-    
-
-    results.push(appleMapsPlaceResultToFullyFormedAppleMapsPlace(mapResult.place))
+    const result = appleMapsPlaceResultToFullyFormedAppleMapsPlace(
+      mapResult.place,
+    );
+    if (result) results.push(result);
   }
-
 
   return {
     query: query,

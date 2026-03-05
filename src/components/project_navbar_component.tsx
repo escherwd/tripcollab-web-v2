@@ -101,7 +101,7 @@ export default function ProjectNavbarComponent({
             <div className="h-5">
               <UserAvatars
                 itemClass="border-gray-950! border-1!"
-                users={project.projectShares.map((ps) => ps.user)}
+                users={project.projectShares.map((ps) => ps.user).slice(0,3)}
               />
             </div>
           )}

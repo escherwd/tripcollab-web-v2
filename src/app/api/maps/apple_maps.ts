@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { DateTime } from "luxon";
+import { AppleMapsPlace } from "./place";
 
 export type AppleMapsPlaceResult = {
   name: string;
@@ -67,56 +68,93 @@ export const appleMapsGenerateAnalyticsBody = () => {
 
 export const appleMapsPlaceResultToFullyFormedAppleMapsPlace = (
   mapResult: any,
-) => {
-  const components = (mapResult?.component as any[]).reduce((acc, item) => {
-    if (item.value?.[0]) acc[item.type] = item.value[0];
+): AppleMapsPlace | null => {
+  if (!mapResult?.component || !Array.isArray(mapResult?.component) || !mapResult.muid) {
+    console.log(mapResult);
+    return null;
+  }
+
+  // Reduce the mapResult into an object to fetch components by ID
+  const components: {
+    [key: string]: { first?: any; all?: any[]; item?: any };
+  } = (mapResult?.component as any[]).reduce((acc, item) => {
+    if (item.value?.[0])
+      acc[item.type] = {
+        first: item.value[0],
+        all: item.value,
+        item,
+      };
     return acc;
   }, {});
 
-  const result = <AppleMapsPlaceResult>{
-    name: components["COMPONENT_TYPE_ENTITY"]?.entity?.name?.[0]?.stringValue,
-    address:
-      components["COMPONENT_TYPE_ADDRESS_OBJECT"]?.addressObject?.shortAddress,
-    coordinate: components["COMPONENT_TYPE_PLACE_INFO"]?.placeInfo?.center,
+  const result = <AppleMapsPlace>{
     muid: mapResult.muid,
-    categoryId: components["COMPONENT_TYPE_ENTITY"]?.entity?.mapsCategoryId,
+    // COMPONENT_TYPE_ENTITY
+    name: components["COMPONENT_TYPE_ENTITY"]?.first?.entity?.name?.[0]
+      ?.stringValue,
+    categoryId:
+      components["COMPONENT_TYPE_ENTITY"]?.first?.entity?.mapsCategoryId,
     categoryName: components[
       "COMPONENT_TYPE_ENTITY"
-    ]?.entity?.localizedCategory?.toSorted(
+    ]?.first?.entity?.localizedCategory?.toSorted(
       (a: any, b: any) => b.level - a.level,
     )[0].localizedName?.[0]?.stringValue,
-    rating: components["COMPONENT_TYPE_RATING"]
+    // COMPONENT_TYPE_ADDRESS_OBJECT
+    address:
+      components["COMPONENT_TYPE_ADDRESS_OBJECT"]?.first?.addressObject
+        ?.shortAddress,
+    // COMPONENT_TYPE_PLACE_INFO
+    coordinate:
+      components["COMPONENT_TYPE_PLACE_INFO"]?.first?.placeInfo?.center,
+    timeZone:
+      components["COMPONENT_TYPE_PLACE_INFO"]?.first?.placeInfo?.timezone
+        ?.identifier,
+    // COMPONENT_TYPE_RATING
+    rating: components["COMPONENT_TYPE_RATING"]?.first
       ? {
           source: "-",
           score:
-            components["COMPONENT_TYPE_RATING"].rating?.score /
-            components["COMPONENT_TYPE_RATING"].rating?.maxScore,
+            components["COMPONENT_TYPE_RATING"]?.first?.rating?.score /
+            components["COMPONENT_TYPE_RATING"]?.first?.rating?.maxScore,
         }
       : null,
-    photos: mapResult.component
-      .find((c: any) => c.type == "COMPONENT_TYPE_SEARCH_RESULT_PLACE_PHOTO")
-      ?.value?.map((photo: Record<string, any>) => ({
-        id: photo.searchResultPlacePhoto?.photo.photo.photoId,
-        url: photo.searchResultPlacePhoto?.photo.photo.photoVersion[0]?.url,
-        width: photo.searchResultPlacePhoto?.photo.photo.photoVersion[0]?.width,
-        height:
-          photo.searchResultPlacePhoto?.photo.photo.photoVersion[0]?.height,
-      }))
-      .filter((photo: Record<string, any>) => photo.url) ?? 
-      mapResult.component
-      .find((c: any) => c.type == "COMPONENT_TYPE_CATEGORIZED_PHOTOS")?.value.reduce((acc:any[], item:any) => {
-          return [...acc, ...(item?.categorizedPhotos.photo)]
-      },[])?.map((photo: any) => ({
-        id: photo.photo.photoId,
-        url: photo.photo.photoVersion?.[0]?.url,
-        width: photo.photo.photoVersion?.[0]?.width,
-        height:
-          photo.photo.photoVersion?.[0]?.height,
-      })),
-    timeZone:
-      components["COMPONENT_TYPE_PLACE_INFO"].placeInfo?.timezone?.identifier,
+    // COMPONENT_TYPE_SEARCH_RESULT_PLACE_PHOTO or COMPONENT_TYPE_CATEGORIZED_PHOTOS
+    photos:
+      components["COMPONENT_TYPE_SEARCH_RESULT_PLACE_PHOTO"]?.all
+        ?.map((photo: Record<string, any>) => ({
+          id: photo.searchResultPlacePhoto?.photo.photo.photoId,
+          url: photo.searchResultPlacePhoto?.photo.photo.photoVersion[0]?.url,
+          width:
+            photo.searchResultPlacePhoto?.photo.photo.photoVersion[0]?.width,
+          height:
+            photo.searchResultPlacePhoto?.photo.photo.photoVersion[0]?.height,
+        }))
+        .filter((photo: Record<string, any>) => photo.url) ??
+      components["COMPONENT_TYPE_CATEGORIZED_PHOTOS"]?.all
+        ?.reduce((acc: any[], item: any) => {
+          return [...acc, ...item?.categorizedPhotos.photo];
+        }, [])
+        ?.map((photo: any) => ({
+          id: photo.photo.photoId,
+          url: photo.photo.photoVersion?.[0]?.url,
+          width: photo.photo.photoVersion?.[0]?.width,
+          height: photo.photo.photoVersion?.[0]?.height,
+        })),
+    // COMPONENT_TYPE_TEXT_BLOCK
+    textBlock: components["COMPONENT_TYPE_TEXT_BLOCK"]?.first?.textBlock,
+    // COMPONENT_TYPE_CONTAINMENT_PLACE
+    containmentPlace: components["COMPONENT_TYPE_CONTAINMENT_PLACE"]?.first
+      ? {
+          text: components[
+            "COMPONENT_TYPE_CONTAINMENT_PLACE"
+          ]?.first?.containmentLine?.formatString?.[0]
+            ?.replaceAll("{s:s}", "")
+            .replaceAll("{/s:s}", ""),
+          muid: components["COMPONENT_TYPE_CONTAINMENT_PLACE"]?.first
+            ?.containmentPlace?.containerId?.shardedId?.muid,
+        }
+      : undefined,
   };
 
   return result;
 };
-

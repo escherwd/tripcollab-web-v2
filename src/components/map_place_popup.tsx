@@ -352,7 +352,7 @@ export default function MapPlacePopup({
                     target="_blank"
                     className="flex text-xs font-medium text-gray-400 items-center gap-1"
                   >
-                    <span>Wikipedia</span>
+                    <span>{place?.textBlock?.title}</span>
                     <ArrowUpRightIcon className="size-3 mt-px" />
                   </a>
                 </div>
