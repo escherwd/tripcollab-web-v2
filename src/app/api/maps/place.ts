@@ -5,6 +5,7 @@ import {
   appleMapsGenerateAnalyticsBody,
   appleMapsGenerateClientTimeInfo,
   AppleMapsPlaceResult,
+  appleMapsPlaceResultToFullyFormedAppleMapsPlace,
 } from "./apple_maps";
 import { appleMapsReverseGeocode } from "./reverse_geocode";
 import { searchAppleMaps } from "./search";
@@ -141,6 +142,10 @@ const getPlaceAppleMaps = async (
   }
 
   const result = data.places[0];
+
+  const appleMapsResult = appleMapsPlaceResultToFullyFormedAppleMapsPlace(result)
+
+  return appleMapsResult;
 
   const photos = [];
 
