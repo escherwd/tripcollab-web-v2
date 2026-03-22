@@ -27,6 +27,9 @@ export default async function WelcomePage() {
             through iterative design and user testing. The goal of this project
             is to develop an online platform for visualizing complex travel
             itineraries, with a focus on user-friendliness and accessibility.
+            <br />
+            <br />
+            <a href="https://ir.library.oregonstate.edu/concern/honors_college_theses/s7526n176?locale=en" className="underline">View thesis</a>
           </p>
           <h1 className="mt-12 font-display text-xl font-medium">
             Beta Testing
