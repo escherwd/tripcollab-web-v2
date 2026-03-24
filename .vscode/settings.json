@@ -8,5 +8,13 @@
   "typescript.tsdk": ".yarn/sdks/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "prisma.pinToPrisma6": true,
-  "jest.runMode": "on-demand"
+  "jest.runMode": "on-demand",
+  "spellright.language": [
+    "en"
+  ],
+  "spellright.documentTypes": [
+    "latex",
+    "plaintext",
+    "markdown"
+  ]
 }
